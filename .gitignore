@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# Virtual environment
+backend/venv/
+venv/
+env/
+
+# Environment files
+.env
+.env.*
+.env*.local
+
+# Database
+backend/*.db
+
+# Vector store (ChromaDB — persisted data, not code)
+backend/chroma_db/
+
+# Uploads
+backend/uploads/
+
+# Logs
+*.log
+logs/
+
+# Node.js
+frontend/g1-dashboard/node_modules/
+frontend/g1-dashboard/.next/
+frontend/g1-dashboard/out/
+
+# Testing
+.pytest_cache/
+htmlcov/
+.coverage
+/coverage
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+*.pem
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Vercel
+.vercel
