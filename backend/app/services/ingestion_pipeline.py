@@ -382,16 +382,17 @@ class IngestionPipeline:
             db.commit()
         
         # Log activity
+        import json
         activity = Activity(
             action="Document indexed",
             target=document.name if document else f"Document {document_id}",
             target_type="document",
             target_id=document_id,
             activity_type=ActivityType.SUCCESS,
-            details={
+            details=json.dumps({
                 "chunks_count": chunks_count,
                 "document_id": document_id,
-            }
+            })
         )
         db.add(activity)
         db.commit()
@@ -432,7 +433,7 @@ class IngestionPipeline:
             target_type="document",
             target_id=document_id,
             activity_type=ActivityType.ERROR,
-            details={"error": error}
+            details=json.dumps({"error": error})
         )
         db.add(activity)
         db.commit()
