@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useRef, useLayoutEffect, cloneElement } from "react";
+import React, { useState, useRef, useLayoutEffect, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { api } from "@/lib/api";
 
 // SVG Icons
 const HomeIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -64,23 +65,25 @@ export const LimelightNav = ({
   className = "",
 }: LimelightNavProps) => {
   const pathname = usePathname();
-  const [activeIndex, setActiveIndex] = useState(() => {
-    const index = items.findIndex((item) => item.href === pathname);
-    return index >= 0 ? index : 0;
-  });
+  const [activeIndex, setActiveIndex] = useState(0);
   const [isReady, setIsReady] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const navItemRefs = useRef<(HTMLAnchorElement | null)[]>([]);
   const limelightRef = useRef<HTMLDivElement | null>(null);
 
+  useEffect(() => {
+    setIsLoggedIn(!!api.getToken());
+  }, [pathname]);
+
   useLayoutEffect(() => {
-    const index = items.findIndex((item) => item.href === pathname);
+    const index = visibleItems.findIndex((item) => item.href === pathname);
     if (index >= 0) {
       setActiveIndex(index);
     }
-  }, [pathname, items]);
+  }, [pathname, isLoggedIn]);
 
   useLayoutEffect(() => {
-    if (items.length === 0) return;
+    if (visibleItems.length === 0) return;
 
     const limelight = limelightRef.current;
     const activeItem = navItemRefs.current[activeIndex];
@@ -96,7 +99,9 @@ export const LimelightNav = ({
     }
   }, [activeIndex, isReady, items]);
 
-  if (items.length === 0) {
+  const visibleItems = isLoggedIn ? items.filter((item) => item.id !== "home") : items;
+
+  if (visibleItems.length === 0 || pathname.startsWith("/auth") || (!isLoggedIn && pathname === "/")) {
     return null;
   }
 
@@ -105,7 +110,7 @@ export const LimelightNav = ({
       className={`fixed top-6 left-1/2 -translate-x-1/2 z-50 inline-flex items-center h-20 rounded-2xl bg-card text-card-foreground border border-border shadow-lg px-3 backdrop-blur-md ${className}`}
       style={{ boxShadow: `0 10px 40px -10px var(--shadow-color)` }}
     >
-      {items.map(({ id, icon, label, href }, index) => (
+      {visibleItems.map(({ id, icon, label, href }, index) => (
         <Link
           key={id}
           href={href}

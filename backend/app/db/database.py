@@ -45,8 +45,26 @@ def get_db() -> Session:
 
 def init_db():
     """Initialize database tables."""
-    # Import models to ensure they're registered
     from app.models import document, activity, setting
-    
+    from app.models import user
+
     Base.metadata.create_all(bind=engine)
+    _migrate_add_role_column()
     logger.info("Database tables created")
+
+
+def _migrate_add_role_column():
+    """Add role column to users table if it doesn't exist (one-time migration)."""
+    if not settings.DATABASE_URL.startswith("sqlite"):
+        return
+    with engine.connect() as conn:
+        result = conn.execute(
+            __import__("sqlalchemy").text("PRAGMA table_info(users)")
+        )
+        columns = [row[1] for row in result]
+        if "role" not in columns:
+            conn.execute(__import__("sqlalchemy").text(
+                "ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'user'"
+            ))
+            conn.commit()
+            logger.info("Migrated: added role column to users table")

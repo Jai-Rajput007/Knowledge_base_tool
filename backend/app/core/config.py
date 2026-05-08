@@ -53,6 +53,11 @@ class Settings(BaseSettings):
     TOP_K: int = 5
     SIMILARITY_THRESHOLD: float = 0.3
 
+    # Admin seed account
+    ADMIN_USERNAME: str = "admin"
+    ADMIN_EMAIL: str = "admin@g1system.local"
+    ADMIN_PASSWORD: str = "admin123"
+
     # API Keys (optional)
     OPENAI_API_KEY: Optional[str] = None
     ANTHROPIC_API_KEY: Optional[str] = None

@@ -14,17 +14,46 @@ class ApiClient {
     this.baseUrl = baseUrl;
   }
 
+  setToken(token: string) {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("token", token);
+    }
+  }
+
+  getToken(): string | null {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("token");
+    }
+    return null;
+  }
+
+  removeToken() {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("token");
+    }
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      
+      const token = this.getToken();
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      if (options.headers) {
+        Object.assign(headers, options.headers);
+      }
+
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...options.headers,
-        },
+        headers,
       });
 
       if (!response.ok) {
@@ -177,9 +206,15 @@ class ApiClient {
       includeHierarchyInContext?: boolean;
     }
   ) {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    const token = this.getToken();
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
     const response = await fetch(`${this.baseUrl}/chat/stream`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({
         message,
         document_ids: documentIds,
@@ -218,6 +253,59 @@ class ApiClient {
       method: "PUT",
       body: JSON.stringify(settings),
     });
+  }
+
+  // Auth
+  async loginUser(userData: { username: string; password: string }) {
+    return this.request("/auth/login", {
+      method: "POST",
+      body: JSON.stringify(userData),
+    });
+  }
+
+  async getCurrentUser() {
+    return this.request("/auth/me");
+  }
+
+  // Admin: user management
+  async listUsers() {
+    return this.request("/auth/users");
+  }
+
+  async createUser(userData: { username: string; email: string; password: string; role: "admin" | "user" }) {
+    return this.request("/auth/users", {
+      method: "POST",
+      body: JSON.stringify(userData),
+    });
+  }
+
+  async updateUser(userId: number, data: { email?: string; role?: string; is_active?: number; password?: string }) {
+    return this.request(`/auth/users/${userId}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteUser(userId: number) {
+    return this.request(`/auth/users/${userId}`, { method: "DELETE" });
+  }
+
+  async forgotPassword(email: string) {
+    return this.request("/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+  }
+
+  async resetPassword(email: string, new_password: string) {
+    return this.request("/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify({ email, new_password }),
+    });
+  }
+
+  async registerUser(_userData: { username: string; email: string; password: string }) {
+    return { error: "Registration is disabled. Contact your administrator." };
   }
 }
 
