@@ -17,8 +17,12 @@ class Settings(BaseSettings):
     HOST: str = "0.0.0.0"
     PORT: int = 8000
 
-    # CORS
-    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    # CORS — stored as plain string, split into list via property
+    CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
+
+    @property
+    def cors_origins_list(self) -> List[str]:
+        return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
 
     # Database (SQLite for metadata)
     DATABASE_URL: str = "sqlite:///./rag_system.db"
@@ -70,13 +74,6 @@ class Settings(BaseSettings):
         ".pdf", ".docx", ".txt", ".md", ".html", ".csv", ".json",
         ".epub", ".pptx", ".odt", ".rtf", ".xml",
     ]
-
-    @field_validator("CORS_ORIGINS", mode="before")
-    @classmethod
-    def assemble_cors_origins(cls, v):
-        if isinstance(v, str):
-            return [o.strip() for o in v.split(",")]
-        return v
 
     @field_validator("ALLOWED_EXTENSIONS", mode="before")
     @classmethod
