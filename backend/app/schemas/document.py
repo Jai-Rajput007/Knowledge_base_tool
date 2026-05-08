@@ -25,6 +25,7 @@ class DocumentResponse(DocumentBase):
     type: str
     status: str
     uploadedAt: str
+    date: Optional[str] = None
     chunks: Optional[int] = None
     error: Optional[str] = None
     

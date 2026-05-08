@@ -40,13 +40,15 @@ class Document(Base):
     
     def to_dict(self):
         """Convert to dictionary."""
+        formatted_date = self._format_date()
         return {
             "id": self.id,
             "name": self.name,
             "size": self._format_size(),
             "type": self.file_type.upper(),
             "status": self.status.value,
-            "uploadedAt": self._format_date(),
+            "uploadedAt": formatted_date,
+            "date": formatted_date,
             "chunks": self.chunks_count if self.chunks_count > 0 else None,
             "error": self.error_message
         }
