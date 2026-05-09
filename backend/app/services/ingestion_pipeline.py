@@ -16,10 +16,10 @@ from app.db.database import SessionLocal
 from app.models.document import Document, DocumentStatus
 from app.models.activity import Activity, ActivityType
 from app.services.document_loaders.loader_factory import load_document_from_bytes
-from app.services.document_loaders.base import DocumentContent
+from app.services.document_loaders.base import DocumentContent, ContentType
 from app.services.embedding_service_optimized import embedding_service_optimized
 from app.services.vector_db_service import vector_db_service
-from app.services.structure_aware_chunker import StructureAwareChunker, DocumentChunk
+from app.services.structure_aware_chunker import StructureAwareChunker, DocumentChunk, ChunkMetadata
 from app.core.config import settings
 from app.core.logging import logger
 from app.core.exceptions import DocumentProcessingError
@@ -143,9 +143,20 @@ class IngestionPipeline:
             # Stage 1: Extract content with structure
             doc_content = await self._extract_content(progress, file_content, filename, file_type)
             
-            # Stage 2: Structure-aware chunking with streaming
-            chunks = await self._chunk_with_structure(progress, doc_content)
-            
+            # Stage 2: Chunking — Excel files bypass the StructureAwareChunker entirely.
+            # The chunker splits TABLE elements into 512-char fragments and emits tiny
+            # HEADING-only chunks ("Sheet: X") that win similarity races over real data.
+            # Excel TABLE elements from the loader are already correctly sized (5 rows each).
+            ext = Path(filename).suffix.lower()
+            if ext in (".xlsx", ".xls"):
+                chunks = self._chunks_from_excel_elements(doc_content, filename)
+                progress.stage = IngestionStage.CHUNKING
+                progress.progress_percent = 40
+                progress.message = f"Created {len(chunks)} Excel chunks (direct, no re-chunking)"
+                _update_progress(progress)
+            else:
+                chunks = await self._chunk_with_structure(progress, doc_content)
+
             if not chunks:
                 raise DocumentProcessingError("No text chunks generated")
 
@@ -444,6 +455,36 @@ class IngestionPipeline:
         )
         db.add(activity)
         db.commit()
+
+    def _chunks_from_excel_elements(
+        self,
+        doc_content: DocumentContent,
+        filename: str,
+    ) -> List[DocumentChunk]:
+        """
+        Convert Excel TABLE elements directly into DocumentChunks, skipping the
+        StructureAwareChunker. Each TABLE element from the Excel loader is already
+        a correctly sized 5-row chunk — re-chunking at 512 chars destroys them.
+        """
+        chunks = []
+        file_type = Path(filename).suffix.lower().lstrip(".")
+        for element in doc_content.elements:
+            if element.type != ContentType.TABLE:
+                continue
+            text = element.to_text().strip()
+            if not text:
+                continue
+            meta = ChunkMetadata(
+                filename=filename,
+                file_type=file_type,
+                contains_table=True,
+                char_count=len(text),
+                word_count=len(text.split()),
+                content_types=["table"],
+            )
+            chunks.append(DocumentChunk(content=text, metadata=meta))
+        logger.info(f"Excel direct chunking: {len(chunks)} TABLE chunks from {filename}")
+        return chunks
 
 
 # Global pipeline instance
