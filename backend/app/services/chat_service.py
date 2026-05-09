@@ -292,28 +292,23 @@ Answer (only from the context above):"""
         assembled = self._build_context(results, request)
 
         # Step 5: Build prompts and generate response
-        # Use KB only if retrieved chunks actually contain terms from the query
-        use_kb = results and self._context_is_relevant(processed.cleaned_query, results)
-
-        if use_kb:
-            system_prompt = self._build_system_prompt(
-                has_hierarchy=bool(request.section_path or request.parent_section)
-            )
-            user_prompt = self._build_user_prompt(processed.cleaned_query, assembled.context_text)
-            response_text = await self._call_ollama(system_prompt, user_prompt)
+        if not results:
             return ChatResponse(
-                response=response_text,
-                sources=assembled.sources,
+                response="I don't have that information in the knowledge base.",
+                sources=[],
                 model=self.model,
             )
 
-        # No relevant KB content — answer from general knowledge
-        general_system = (
-            "You are a helpful assistant. Answer the question clearly and concisely "
-            "in 2-4 sentences. Do not use bullet points or source citations."
+        system_prompt = self._build_system_prompt(
+            has_hierarchy=bool(request.section_path or request.parent_section)
         )
-        response_text = await self._call_ollama(general_system, processed.cleaned_query)
-        return ChatResponse(response=response_text, sources=[], model=self.model)
+        user_prompt = self._build_user_prompt(processed.cleaned_query, assembled.context_text)
+        response_text = await self._call_ollama(system_prompt, user_prompt)
+        return ChatResponse(
+            response=response_text,
+            sources=assembled.sources,
+            model=self.model,
+        )
     
     def _build_system_prompt_with_hierarchy(self, has_hierarchy: bool = False) -> str:
         return self._build_system_prompt(has_hierarchy)
