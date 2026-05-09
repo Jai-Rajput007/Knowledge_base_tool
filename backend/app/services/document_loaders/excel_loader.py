@@ -81,17 +81,27 @@ class ExcelLoader(DocumentLoader):
         if not rows:
             return []
 
+        import re
+
         def is_header(row: List[str]) -> bool:
-            import re
             non_empty = [c for c in row if c]
             if not non_empty:
                 return False
             numeric = sum(1 for c in non_empty if re.match(r'^[\d,.\-%()\s]+$', c))
             return numeric < len(non_empty) / 2
 
-        has_header = len(rows) > 1 and is_header(rows[0])
-        headers = rows[0] if has_header else []
-        data_rows = rows[1:] if has_header else rows
+        def is_title_row(row: List[str]) -> bool:
+            """Detect merged title rows: a single non-empty cell in a wide sheet."""
+            non_empty = [c for c in row if c]
+            return len(non_empty) == 1 and len(row) > 3
+
+        # Skip a leading title row (e.g. "Humanoid Robot Office Assistant — NLP Module...")
+        # so the real column headers are detected correctly on the next row.
+        start = 1 if len(rows) > 1 and is_title_row(rows[0]) else 0
+
+        has_header = len(rows) > start + 1 and is_header(rows[start])
+        headers = rows[start] if has_header else []
+        data_rows = rows[start + 1:] if has_header else rows[start:]
 
         total_data_rows = len(data_rows)
         chunks = []
