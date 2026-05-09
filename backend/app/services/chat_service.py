@@ -299,10 +299,16 @@ Answer (only from the context above):"""
                 model=self.model,
             )
 
+        logger.info(f"=== RETRIEVED {len(results)} CHUNKS ===")
+        for i, r in enumerate(results):
+            logger.info(f"  Chunk {i+1}: score={r.score:.3f} | text_preview={r.text[:120].replace(chr(10),' ')!r}")
+        logger.info(f"=== CONTEXT SENT TO LLM (first 800 chars) ===\n{assembled.context_text[:800]}")
+
         system_prompt = self._build_system_prompt(
             has_hierarchy=bool(request.section_path or request.parent_section)
         )
         user_prompt = self._build_user_prompt(processed.cleaned_query, assembled.context_text)
+        logger.info(f"=== USER PROMPT (first 400 chars) ===\n{user_prompt[:400]}")
         response_text = await self._call_ollama(system_prompt, user_prompt)
         return ChatResponse(
             response=response_text,
