@@ -73,7 +73,8 @@ class ExcelLoader(DocumentLoader):
     def _cell_val(self, cell) -> str:
         if cell.value is None:
             return ""
-        return str(cell.value).strip()
+        # Collapse internal newlines so multiline cells don't break pipe-delimited format
+        return " ".join(str(cell.value).split())
 
     def _format_sheet_chunks(self, rows: List[List[str]], sheet_name: str, max_rows: int = 30) -> List[str]:
         """Split a sheet into chunks of max_rows data rows each."""
@@ -104,11 +105,17 @@ class ExcelLoader(DocumentLoader):
             else:
                 label = f"[Sheet: {sheet_name} | Total rows: {total_data_rows}]"
             lines = [label]
+            # Characters used as Gantt/bar chart fill — skip these columns entirely
+            _CHART_CHARS = {"█", "■", "▓", "░", "▪", "●"}
+
             if has_header and headers:
                 for row in batch:
                     parts = []
                     for j, val in enumerate(row):
                         if not val:
+                            continue
+                        # Skip Gantt chart bar values
+                        if val in _CHART_CHARS or all(c in _CHART_CHARS for c in val):
                             continue
                         lbl = headers[j] if j < len(headers) and headers[j] else f"Col{j+1}"
                         parts.append(f"{lbl}: {val}")
@@ -116,7 +123,7 @@ class ExcelLoader(DocumentLoader):
                         lines.append(" | ".join(parts))
             else:
                 for row in batch:
-                    line = " | ".join(c for c in row if c)
+                    line = " | ".join(c for c in row if c and c not in _CHART_CHARS)
                     if line:
                         lines.append(line)
             if len(lines) > 1:

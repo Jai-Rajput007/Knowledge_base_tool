@@ -148,7 +148,13 @@ class IngestionPipeline:
             
             if not chunks:
                 raise DocumentProcessingError("No text chunks generated")
-            
+
+            # Prepend filename to every chunk so queries mentioning the document name
+            # land on the right chunks even when multiple documents are indexed.
+            doc_prefix = f"[Document: {filename}]\n"
+            for chunk in chunks:
+                chunk.content = doc_prefix + chunk.content
+
             # Stage 3: Generate embeddings
             chunk_texts = [chunk.content for chunk in chunks]
             embeddings = await self._generate_embeddings(progress, chunk_texts)
