@@ -76,7 +76,7 @@ class ExcelLoader(DocumentLoader):
         # Collapse internal newlines so multiline cells don't break pipe-delimited format
         return " ".join(str(cell.value).split())
 
-    def _format_sheet_chunks(self, rows: List[List[str]], sheet_name: str, max_rows: int = 30) -> List[str]:
+    def _format_sheet_chunks(self, rows: List[List[str]], sheet_name: str, max_rows: int = 5) -> List[str]:
         """Split a sheet into chunks of max_rows data rows each."""
         if not rows:
             return []

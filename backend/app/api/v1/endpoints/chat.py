@@ -90,7 +90,6 @@ async def chat(
             context_strategy=request.context_strategy,
             include_metadata_in_context=request.include_metadata_in_context,
             include_hierarchy_in_context=request.include_hierarchy_in_context,
-            top_k=5,
             stream=False,
         )
         

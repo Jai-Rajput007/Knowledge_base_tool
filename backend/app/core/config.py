@@ -55,7 +55,7 @@ class Settings(BaseSettings):
     EMBEDDING_CPU_OPTIMIZED: bool = True
 
     # Retrieval
-    TOP_K: int = 5
+    TOP_K: int = 10
     SIMILARITY_THRESHOLD: float = 0.3
 
     # Security
