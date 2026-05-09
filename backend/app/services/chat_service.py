@@ -186,25 +186,24 @@ class ChatService:
 
     def _build_system_prompt(self, has_hierarchy: bool = False) -> str:
         """Build system prompt for RAG."""
-        return """You are a helpful assistant with access to a company knowledge base.
+        return """You are a document assistant. Your only job is to answer questions using the context provided below.
 
-Rules:
-- Answer directly and concisely in plain prose — 2 to 4 sentences unless more detail is clearly needed
-- Do NOT use numbered lists, bullet points, or inline source citations
-- Do NOT repeat the question or use filler phrases like "Certainly!" or "Great question!"
-- For company-specific questions: answer ONLY from the provided Knowledge Base context
-- For general knowledge questions (science, history, world events, etc.): answer from your own knowledge if the KB context is not relevant
-- If a company-specific question is not covered in the KB context, say: "I don't have that information in the knowledge base."
-- Never invent company facts, employee names, or internal details not present in the KB"""
+Strict rules:
+- Use ONLY the information in the provided context. Do not use your training knowledge.
+- Do not invent, assume, or add any facts not explicitly written in the context.
+- Answer in plain prose, 1 to 3 sentences. No bullet points, no numbered lists, no source citations.
+- Do NOT repeat the question or use filler phrases like "Certainly!" or "Based on the context..."
+- If the context does not contain enough information to answer, say exactly: "I don't have that information in the knowledge base."
+- Never guess dates, numbers, names, or any specific values — only report what is explicitly stated."""
 
     def _build_user_prompt(self, query: str, context: str) -> str:
         """Build user prompt with context."""
-        return f"""Knowledge Base Context:
+        return f"""Context (use ONLY this to answer — do not use outside knowledge):
 {context}
 
 Question: {query}
 
-Answer:"""
+Answer (only from the context above):"""
     
     def _build_retrieval_query(self, request: ChatRequest) -> RetrievalQuery:
         """Build retrieval query with hierarchy and prefiltering."""
@@ -385,9 +384,9 @@ Answer:"""
             "system": system_prompt,
             "stream": False,
             "options": {
-                "temperature": settings.LLM_TEMPERATURE,
+                "temperature": 0.1,
                 "top_p": settings.LLM_TOP_P,
-                "num_predict": settings.LLM_MAX_TOKENS,
+                "num_predict": 256,
             }
         }
         
@@ -418,9 +417,9 @@ Answer:"""
             "system": system_prompt,
             "stream": True,
             "options": {
-                "temperature": settings.LLM_TEMPERATURE,
+                "temperature": 0.1,
                 "top_p": settings.LLM_TOP_P,
-                "num_predict": settings.LLM_MAX_TOKENS,
+                "num_predict": 256,
             }
         }
         

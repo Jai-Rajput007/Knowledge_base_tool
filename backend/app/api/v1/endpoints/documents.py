@@ -114,24 +114,35 @@ async def get_document(document_id: int, db: Session = Depends(get_db)):
 
 @router.delete("/{document_id}")
 async def delete_document(document_id: int, db: Session = Depends(get_db)):
-    """Delete document."""
+    """Delete document and remove its chunks from the vector store."""
+    from app.services.vector_db_service import vector_db_service
+
     doc = db.query(Document).filter(Document.id == document_id).first()
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
-    
+
     try:
-        # Delete file
+        # Remove chunks from ChromaDB
+        try:
+            vector_db_service.delete_document(str(document_id))
+        except Exception as e:
+            logger.warning(f"Vector store cleanup warning for doc {document_id}: {e}")
+
+        # Delete physical file
         if os.path.exists(doc.file_path):
             os.remove(doc.file_path)
-        
+
+        # Delete related activity records first (foreign key constraint)
+        from app.models.activity import Activity
+        db.query(Activity).filter(Activity.target_id == document_id).delete()
+
         # Delete from database
         db.delete(doc)
         db.commit()
-        
+
         logger.info(f"Document deleted: {doc.name} (ID: {document_id})")
-        
         return {"message": "Document deleted successfully"}
-        
+
     except Exception as e:
         logger.error(f"Delete failed: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Delete failed: {str(e)}")

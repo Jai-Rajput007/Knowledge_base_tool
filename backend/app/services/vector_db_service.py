@@ -144,8 +144,14 @@ class VectorDBService:
 
     def delete_document(self, document_id: str):
         try:
-            self._collection.delete(where={"document_id": {"$eq": document_id}})
-            logger.info(f"Deleted chunks for document {document_id}")
+            # Fetch IDs first — ChromaDB errors if where clause matches nothing
+            results = self._collection.get(where={"document_id": {"$eq": document_id}})
+            ids = results.get("ids", [])
+            if ids:
+                self._collection.delete(ids=ids)
+                logger.info(f"Deleted {len(ids)} chunks for document {document_id}")
+            else:
+                logger.info(f"No chunks found for document {document_id}, skipping vector delete")
         except Exception as e:
             logger.error(f"Failed to delete document: {e}")
             raise VectorDBError(f"Failed to delete document: {e}")
