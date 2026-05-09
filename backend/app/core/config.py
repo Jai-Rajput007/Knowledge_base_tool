@@ -76,6 +76,7 @@ class Settings(BaseSettings):
     MAX_FILE_SIZE: int = 50 * 1024 * 1024  # 50 MB
     ALLOWED_EXTENSIONS: List[str] = [
         ".pdf", ".docx", ".txt", ".md", ".html", ".csv", ".json",
+        ".xlsx", ".xls",
         ".epub", ".pptx", ".odt", ".rtf", ".xml",
     ]
 

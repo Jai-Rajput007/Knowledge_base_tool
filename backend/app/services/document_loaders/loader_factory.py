@@ -11,6 +11,7 @@ from app.services.document_loaders.markdown_loader import MarkdownLoader
 from app.services.document_loaders.html_loader import HTMLLoader
 from app.services.document_loaders.csv_loader import CSVLoader
 from app.services.document_loaders.json_loader import JSONLoader
+from app.services.document_loaders.excel_loader import ExcelLoader
 from app.services.document_loaders.langchain_loader import LANGCHAIN_LOADERS, create_langchain_loader
 from app.core.logging import logger
 from app.core.exceptions import DocumentProcessingError
@@ -20,6 +21,7 @@ from app.core.exceptions import DocumentProcessingError
 LOADERS = [
     PDFLoader(),
     DOCXLoader(),
+    ExcelLoader(),
     TextLoader(),
     MarkdownLoader(),
     HTMLLoader(),
