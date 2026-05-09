@@ -216,7 +216,7 @@ export default function Library() {
               ref={fileInputRef}
               type="file"
               multiple
-              accept=".pdf,.docx,.txt,.md"
+              accept=".pdf,.docx,.txt,.md,.xlsx,.xls,.csv,.json,.html"
               className="hidden"
               onChange={(e) => e.target.files && handleFiles(Array.from(e.target.files))}
             />
