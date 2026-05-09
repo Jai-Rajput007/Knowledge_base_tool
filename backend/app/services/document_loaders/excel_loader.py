@@ -52,11 +52,10 @@ class ExcelLoader(DocumentLoader):
                 level=1,
             ))
 
-            sheet_text = self._format_sheet(rows, sheet_name)
-            if sheet_text:
+            for chunk in self._format_sheet_chunks(rows, sheet_name):
                 elements.append(ContentElement(
                     type=ContentType.TABLE,
-                    content=sheet_text,
+                    content=chunk,
                     metadata={"sheet": sheet_name, "source": "openpyxl"},
                 ))
 
@@ -75,6 +74,50 @@ class ExcelLoader(DocumentLoader):
         if cell.value is None:
             return ""
         return str(cell.value).strip()
+
+    def _format_sheet_chunks(self, rows: List[List[str]], sheet_name: str, max_rows: int = 30) -> List[str]:
+        """Split a sheet into chunks of max_rows data rows each."""
+        if not rows:
+            return []
+
+        def is_header(row: List[str]) -> bool:
+            import re
+            non_empty = [c for c in row if c]
+            if not non_empty:
+                return False
+            numeric = sum(1 for c in non_empty if re.match(r'^[\d,.\-%()\s]+$', c))
+            return numeric < len(non_empty) / 2
+
+        has_header = len(rows) > 1 and is_header(rows[0])
+        headers = rows[0] if has_header else []
+        data_rows = rows[1:] if has_header else rows
+
+        chunks = []
+        for i in range(0, max(len(data_rows), 1), max_rows):
+            batch = data_rows[i:i + max_rows]
+            part = i // max_rows + 1
+            total = (len(data_rows) - 1) // max_rows + 1
+            label = f"[Sheet: {sheet_name}" + (f" Part {part}/{total}]" if total > 1 else "]")
+            lines = [label]
+            if has_header and headers:
+                for row in batch:
+                    parts = []
+                    for j, val in enumerate(row):
+                        if not val:
+                            continue
+                        lbl = headers[j] if j < len(headers) and headers[j] else f"Col{j+1}"
+                        parts.append(f"{lbl}: {val}")
+                    if parts:
+                        lines.append(" | ".join(parts))
+            else:
+                for row in batch:
+                    line = " | ".join(c for c in row if c)
+                    if line:
+                        lines.append(line)
+            if len(lines) > 1:
+                chunks.append("\n".join(lines))
+
+        return chunks if chunks else []
 
     def _format_sheet(self, rows: List[List[str]], sheet_name: str) -> str:
         """

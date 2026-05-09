@@ -42,13 +42,17 @@ class OllamaEmbeddingProvider(EmbeddingProvider):
         """Generate embeddings using Ollama with retry logic."""
         import ollama
         
+        # Safe character limit — nomic-embed-text allows 8192 tokens (~4 chars/token)
+        MAX_CHARS = 4000
+
         embeddings = []
         for text in texts:
+            safe_text = text[:MAX_CHARS]
             for attempt in range(self.max_retries):
                 try:
                     response = ollama.embeddings(
                         model=self.model,
-                        prompt=text[:8192]  # Limit text length
+                        prompt=safe_text
                     )
                     embeddings.append(response["embedding"])
                     break
