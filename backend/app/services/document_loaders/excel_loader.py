@@ -92,12 +92,17 @@ class ExcelLoader(DocumentLoader):
         headers = rows[0] if has_header else []
         data_rows = rows[1:] if has_header else rows
 
+        total_data_rows = len(data_rows)
         chunks = []
-        for i in range(0, max(len(data_rows), 1), max_rows):
+        for i in range(0, max(total_data_rows, 1), max_rows):
             batch = data_rows[i:i + max_rows]
             part = i // max_rows + 1
-            total = (len(data_rows) - 1) // max_rows + 1
-            label = f"[Sheet: {sheet_name}" + (f" Part {part}/{total}]" if total > 1 else "]")
+            total = (total_data_rows - 1) // max_rows + 1 if total_data_rows > 0 else 1
+            row_range = f"rows {i+1}-{min(i+max_rows, total_data_rows)}"
+            if total > 1:
+                label = f"[Sheet: {sheet_name} | Total rows: {total_data_rows} | Part {part}/{total} ({row_range})]"
+            else:
+                label = f"[Sheet: {sheet_name} | Total rows: {total_data_rows}]"
             lines = [label]
             if has_header and headers:
                 for row in batch:

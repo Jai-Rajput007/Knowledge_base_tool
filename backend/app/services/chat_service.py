@@ -186,15 +186,16 @@ class ChatService:
 
     def _build_system_prompt(self, has_hierarchy: bool = False) -> str:
         """Build system prompt for RAG."""
-        return """You are a document assistant. Your only job is to answer questions using the context provided below.
+        return """You are a document assistant. Answer questions using only the context provided below.
 
-Strict rules:
-- Use ONLY the information in the provided context. Do not use your training knowledge.
-- Do not invent, assume, or add any facts not explicitly written in the context.
-- Answer in plain prose, 1 to 3 sentences. No bullet points, no numbered lists, no source citations.
-- Do NOT repeat the question or use filler phrases like "Certainly!" or "Based on the context..."
-- If the context does not contain enough information to answer, say exactly: "I don't have that information in the knowledge base."
-- Never guess dates, numbers, names, or any specific values — only report what is explicitly stated."""
+Rules:
+- Use ONLY information explicitly present in the context. Do not use your training knowledge.
+- Do not invent or assume any facts not written in the context.
+- For "explain" or "describe" questions, summarize what the context shows — column names, types of data, what the document covers.
+- For counting questions (e.g. "how many"), count or use numbers that appear in the context. If the header says "Total rows: N", report that number.
+- Do NOT repeat the question. Do NOT use filler phrases like "Certainly!" or "Based on the context..."
+- If the context truly contains no relevant information at all, say exactly: "I don't have that information in the knowledge base."
+- Keep answers focused and clear. Use as many sentences as needed to answer accurately."""
 
     def _build_user_prompt(self, query: str, context: str) -> str:
         """Build user prompt with context."""
@@ -386,7 +387,7 @@ Answer (only from the context above):"""
             "options": {
                 "temperature": 0.1,
                 "top_p": settings.LLM_TOP_P,
-                "num_predict": 256,
+                "num_predict": 1024,
             }
         }
         
@@ -419,7 +420,7 @@ Answer (only from the context above):"""
             "options": {
                 "temperature": 0.1,
                 "top_p": settings.LLM_TOP_P,
-                "num_predict": 256,
+                "num_predict": 1024,
             }
         }
         
