@@ -16,6 +16,33 @@ from app.services.document_loaders.langchain_loader import LANGCHAIN_LOADERS, cr
 from app.core.logging import logger
 from app.core.exceptions import DocumentProcessingError
 
+# MinerU loader — loaded lazily so the server starts even if mineru is not installed
+_mineru_loader = None
+_mineru_checked = False
+
+
+def _get_mineru_loader():
+    """Return a MineruLoader if the mineru CLI is available, else None."""
+    global _mineru_loader, _mineru_checked
+    if _mineru_checked:
+        return _mineru_loader
+    _mineru_checked = True
+    try:
+        from app.services.document_loaders.mineru_loader import (
+            MineruLoader, is_mineru_available,
+        )
+        if is_mineru_available():
+            _mineru_loader = MineruLoader()
+            logger.info("MineruLoader active — using MinerU for PDF/Office documents")
+        else:
+            logger.info("mineru CLI not found — falling back to built-in loaders")
+    except Exception as e:
+        logger.warning(f"MineruLoader import failed: {e}")
+    return _mineru_loader
+
+
+# Extensions handled by MinerU when available
+_MINERU_EXTS = {".pdf", ".docx", ".doc", ".pptx", ".ppt"}
 
 # Registry of loaders (custom loaders first)
 LOADERS = [
@@ -61,16 +88,19 @@ def _get_langchain_loader(ext: str) -> Optional[DocumentLoader]:
 
 def get_loader_for_file(file_path: Union[str, Path]) -> Optional[DocumentLoader]:
     """Get appropriate loader for file based on extension.
-    
-    Priority: 1) Custom loaders, 2) LangChain fallback loaders
+
+    Priority: 1) MinerU (if installed), 2) Custom loaders, 3) LangChain fallback
     """
     ext = Path(file_path).suffix.lower()
-    
-    # Try custom loaders first
+
+    if ext in _MINERU_EXTS:
+        ml = _get_mineru_loader()
+        if ml:
+            return ml
+
     if ext in EXTENSION_MAP:
         return EXTENSION_MAP[ext]
-    
-    # Try LangChain fallback
+
     return _get_langchain_loader(ext)
 
 
@@ -100,27 +130,33 @@ def load_document_from_bytes(
     filename: str,
     file_type: Optional[str] = None
 ) -> DocumentContent:
-    """Load document from bytes (custom or LangChain fallback)."""
-    # Determine loader from filename or explicit type
-    if file_type:
-        ext = f".{file_type.lower()}"
-    else:
-        ext = Path(filename).suffix.lower()
-    
-    # Try custom loaders first
+    """Load document from bytes.
+
+    Priority: 1) MinerU (if installed), 2) Custom loaders, 3) LangChain fallback
+    """
+    ext = f".{file_type.lower()}" if file_type else Path(filename).suffix.lower()
+
+    # MinerU first for PDF/Office
+    if ext in _MINERU_EXTS:
+        ml = _get_mineru_loader()
+        if ml:
+            logger.info(f"Using MineruLoader for {filename}")
+            return ml.load_from_bytes(content, filename)
+
+    # Built-in loaders
     loader = EXTENSION_MAP.get(ext)
-    
-    # Try LangChain fallback
+
+    # LangChain fallback
     if not loader:
         loader = _get_langchain_loader(ext)
-    
+
     if not loader:
         all_supported = get_all_supported_extensions()
         raise DocumentProcessingError(
             f"Unsupported file type: {ext}. "
             f"Supported: {', '.join(sorted(set(all_supported)))}"
         )
-    
+
     logger.info(f"Using {loader.__class__.__name__} for {filename}")
     return loader.load_from_bytes(content, filename)
 

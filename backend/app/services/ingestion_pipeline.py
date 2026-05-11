@@ -3,6 +3,7 @@
 import os
 import asyncio
 import json
+import httpx
 from pathlib import Path
 from typing import Optional, Callable, Dict, Any, List
 from dataclasses import dataclass, field
@@ -151,8 +152,12 @@ class IngestionPipeline:
             if ext in (".xlsx", ".xls"):
                 chunks = self._chunks_from_excel_elements(doc_content, filename)
                 progress.stage = IngestionStage.CHUNKING
+                progress.progress_percent = 35
+                progress.message = f"Created {len(chunks)} Excel chunks — generating LLM descriptions…"
+                _update_progress(progress)
+                chunks = await self._enrich_with_llm_descriptions(chunks, progress)
                 progress.progress_percent = 40
-                progress.message = f"Created {len(chunks)} Excel chunks (direct, no re-chunking)"
+                progress.message = f"{len(chunks)} Excel chunks ready (with LLM descriptions)"
                 _update_progress(progress)
             else:
                 chunks = await self._chunk_with_structure(progress, doc_content)
@@ -455,6 +460,57 @@ class IngestionPipeline:
         )
         db.add(activity)
         db.commit()
+
+    async def _enrich_with_llm_descriptions(
+        self,
+        chunks: List[DocumentChunk],
+        progress: IngestionProgress,
+    ) -> List[DocumentChunk]:
+        """
+        For each chunk call the local LLM to produce a natural-language description.
+        The description is prepended to the raw chunk text so both embed into the
+        vector store — the description matches conversational queries, the raw data
+        keeps exact values for verification.
+        """
+        sem = asyncio.Semaphore(2)
+
+        async def _describe(chunk: DocumentChunk, idx: int) -> DocumentChunk:
+            async with sem:
+                raw = chunk.content
+                prompt = (
+                    "Convert this spreadsheet data into clear, complete natural language "
+                    "sentences. Include every column name and all cell values exactly as "
+                    "shown. Do not omit any rows or data:\n\n" + raw
+                )
+                try:
+                    async with httpx.AsyncClient(timeout=60) as client:
+                        resp = await client.post(
+                            "http://localhost:11434/api/generate",
+                            json={
+                                "model": settings.LLM_MODEL,
+                                "prompt": prompt,
+                                "stream": False,
+                                "options": {"num_predict": 512, "temperature": 0.1},
+                            },
+                        )
+                        resp.raise_for_status()
+                        description = resp.json().get("response", "").strip()
+                        if description:
+                            chunk.content = description + "\n\n" + raw
+                            logger.debug(
+                                f"Excel LLM description done: chunk {idx + 1}/{len(chunks)}"
+                            )
+                except Exception as e:
+                    logger.warning(f"LLM description failed for Excel chunk {idx}: {e}")
+            return chunk
+
+        results = await asyncio.gather(
+            *[_describe(chunk, i) for i, chunk in enumerate(chunks)]
+        )
+        logger.info(
+            f"Excel LLM enrichment complete: {len(results)} chunks with descriptions"
+        )
+        return list(results)
 
     def _chunks_from_excel_elements(
         self,
