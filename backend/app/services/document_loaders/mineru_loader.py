@@ -98,7 +98,7 @@ class MineruLoader(DocumentLoader):
 
         result = subprocess.run(
             ["mineru", "-p", str(pdf_path), "-o", str(mineru_out), "-m", "auto"],
-            capture_output=True, text=True, timeout=300,
+            capture_output=True, text=True, timeout=600,
             errors="ignore",
         )
         if result.returncode != 0:

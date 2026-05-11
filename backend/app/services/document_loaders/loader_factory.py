@@ -96,7 +96,7 @@ def get_loader_for_file(file_path: Union[str, Path]) -> Optional[DocumentLoader]
     if ext in _MINERU_EXTS:
         ml = _get_mineru_loader()
         if ml:
-            return ml
+            return ml  # caller handles fallback on load failure
 
     if ext in EXTENSION_MAP:
         return EXTENSION_MAP[ext]
@@ -136,12 +136,18 @@ def load_document_from_bytes(
     """
     ext = f".{file_type.lower()}" if file_type else Path(filename).suffix.lower()
 
-    # MinerU first for PDF/Office
+    # MinerU first for PDF/Office — fall back to built-in loader on any failure
     if ext in _MINERU_EXTS:
         ml = _get_mineru_loader()
         if ml:
-            logger.info(f"Using MineruLoader for {filename}")
-            return ml.load_from_bytes(content, filename)
+            try:
+                logger.info(f"Using MineruLoader for {filename}")
+                return ml.load_from_bytes(content, filename)
+            except Exception as e:
+                logger.warning(
+                    f"MineruLoader failed for {filename} ({e!r}) — "
+                    f"falling back to built-in loader"
+                )
 
     # Built-in loaders
     loader = EXTENSION_MAP.get(ext)
