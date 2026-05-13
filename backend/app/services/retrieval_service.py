@@ -1,4 +1,4 @@
-"""Retrieval service for hybrid search with metadata filtering and hierarchy."""
+"""Retrieval service: hybrid search (dense + BM25) → cross-encoder reranker."""
 
 from typing import List, Optional, Dict, Any, Union
 from dataclasses import dataclass, field
@@ -8,6 +8,42 @@ from app.core.config import settings
 from app.core.logging import logger
 from app.services.vector_db_service import vector_db_service
 from app.services.embedding_service_optimized import EmbeddingServiceOptimized
+
+# -----------------------------------------------------------------------
+# Cross-encoder reranker (lazy-loaded — no import at startup)
+# -----------------------------------------------------------------------
+
+_reranker_model = None
+
+
+def _get_reranker():
+    global _reranker_model
+    if not settings.RERANKER_ENABLED:
+        return None
+    if _reranker_model is None:
+        try:
+            from sentence_transformers import CrossEncoder
+            _reranker_model = CrossEncoder(settings.RERANKER_MODEL)
+            logger.info(f"Reranker loaded: {settings.RERANKER_MODEL}")
+        except Exception as e:
+            logger.warning(f"Reranker unavailable ({e}) — returning top-k from hybrid scores only")
+    return _reranker_model
+
+
+def _rerank(query: str, results: List[Dict[str, Any]], top_k: int) -> List[Dict[str, Any]]:
+    """Run cross-encoder reranker; fall back to score-sorted list if unavailable."""
+    reranker = _get_reranker()
+    if not reranker or not results:
+        return results[:top_k]
+    try:
+        pairs = [(query, r["text"]) for r in results]
+        scores = reranker.predict(pairs)
+        ranked = sorted(zip(scores, results), key=lambda x: x[0], reverse=True)
+        logger.info(f"Reranker: {len(results)} → {top_k} results")
+        return [r for _, r in ranked[:top_k]]
+    except Exception as e:
+        logger.warning(f"Reranker predict failed ({e}) — using hybrid scores")
+        return results[:top_k]
 
 
 class FilterOperator(Enum):
@@ -233,28 +269,28 @@ class RetrievalService:
         
         # Build prefilters
         prefilter_dict = self._build_prefilter_dict(query)
-        
+
         # Generate query embedding
         query_embedding = await self.embedding_service.embed_query_async(query.query)
-        
-        # Determine top_k (get more for post-filtering)
-        search_top_k = query.top_k * 2 if (
-            query.document_ids and len(query.document_ids) > 1
-        ) or query.metadata_prefilters else query.top_k
-        
-        # Perform vector search with prefilters
+
+        # Fetch enough candidates for reranker
+        reranker_candidates = settings.RERANKER_CANDIDATES if settings.RERANKER_ENABLED else query.top_k
+        search_top_k = max(reranker_candidates, query.top_k * 2)
+
+        # Hybrid search: dense + BM25
         results = self.vector_db.search(
             query_embedding=query_embedding,
+            query_text=query.query,
             top_k=search_top_k,
             similarity_threshold=query.similarity_threshold,
-            filter_dict=prefilter_dict
+            filter_dict=prefilter_dict,
         )
-        
+
         # Apply post-filters
         results = self._apply_postfilters(results, query)
-        
-        # Limit to top_k
-        results = results[:query.top_k]
+
+        # Cross-encoder reranker → final top_k
+        results = _rerank(query.query, results, query.top_k)
         
         # Enrich with hierarchy info
         results = [self._enrich_with_hierarchy(r) for r in results]

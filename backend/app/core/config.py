@@ -42,8 +42,8 @@ class Settings(BaseSettings):
     EMBEDDING_DIMENSIONS: int = 768
 
     # Chunking Configuration
-    CHUNK_SIZE: int = 512
-    CHUNK_OVERLAP: int = 50
+    CHUNK_SIZE: int = 3000      # ~750 tokens — large enough for narrative context
+    CHUNK_OVERLAP: int = 200
     CHUNKING_STRATEGY: str = "semantic"
 
     # Embedding tuning
@@ -55,8 +55,13 @@ class Settings(BaseSettings):
     EMBEDDING_CPU_OPTIMIZED: bool = True
 
     # Retrieval
-    TOP_K: int = 15
-    SIMILARITY_THRESHOLD: float = 0.3
+    TOP_K: int = 10
+    SIMILARITY_THRESHOLD: float = 0.1
+
+    # Reranker (cross-encoder — requires sentence-transformers)
+    RERANKER_ENABLED: bool = True
+    RERANKER_MODEL: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    RERANKER_CANDIDATES: int = 20  # fed to reranker; top TOP_K returned to LLM
 
     # Security
     SECRET_KEY: str = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"

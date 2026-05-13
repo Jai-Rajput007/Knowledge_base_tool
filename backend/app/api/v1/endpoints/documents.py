@@ -122,7 +122,7 @@ async def delete_document(document_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Document not found")
 
     try:
-        # Remove chunks from ChromaDB
+        # Remove chunks from Qdrant
         try:
             vector_db_service.delete_document(str(document_id))
         except Exception as e:

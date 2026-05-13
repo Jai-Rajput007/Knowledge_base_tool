@@ -126,7 +126,7 @@ class StructureAwareChunker:
         chunk_size: int = None,
         chunk_overlap: int = None,
         preserve_structure: bool = True,
-        min_chunk_size: int = 100,
+        min_chunk_size: int = 300,
         max_chunk_size: int = None,
         respect_boundaries: bool = True,
     ):
@@ -164,101 +164,101 @@ class StructureAwareChunker:
         """
         elements = document.elements
         total_elements = len(elements)
-        
-        # Build hierarchy context
-        hierarchy = self._build_hierarchy_context(elements)
-        current_section_path = []
-        current_headings = []
-        
-        chunk_buffer = []
+
+        current_headings: list = []
+        current_section_path: list = []
+        chunk_buffer: list = []
         buffer_size = 0
         chunk_index = 0
-        
+
         for idx, element in enumerate(elements):
-            # Update progress
-            if progress_callback and idx % 5 == 0:
+            if progress_callback and idx % 10 == 0:
                 progress_callback(idx, total_elements, f"Processing element {idx}/{total_elements}")
-            
-            # Update hierarchy tracking
+
+            element_text = element.to_text()
+            element_size = len(element_text)
+
             if element.type == ContentType.HEADING:
+                # Flush accumulated content with the OLD section path BEFORE updating context.
+                # Flush whenever there is ANY non-heading content — even a short paragraph —
+                # so it gets the section path of the heading it belongs to, not the next one.
+                has_real_content = any(e.type != ContentType.HEADING for e in chunk_buffer)
+                if chunk_buffer and has_real_content:
+                    chunk = self._create_chunk(
+                        chunk_buffer, chunk_index, document.metadata,
+                        current_headings, current_section_path, total_elements,
+                    )
+                    yield chunk
+                    chunk_index += 1
+                    chunk_buffer = []
+                    buffer_size = 0
+
+                # Now update section context
                 current_headings, current_section_path = self._update_heading_context(
                     element, current_headings, current_section_path
                 )
-            
-            # Check if element is a structure boundary
-            is_boundary = element.type in [
-                ContentType.HEADING, ContentType.TABLE, 
-                ContentType.LIST, ContentType.CODE_BLOCK
-            ]
-            
-            element_text = element.to_text()
-            element_size = len(element_text)
-            
-            # Handle large single elements (tables, code blocks)
-            if element_size > self.chunk_size and is_boundary:
-                # Flush current buffer first
+
+                # Add heading to buffer — it will appear in the next chunk's content
+                chunk_buffer.append(element)
+                buffer_size += element_size
+
+            elif element.type in (ContentType.TABLE, ContentType.CODE_BLOCK):
+                # Flush current buffer before emitting table/code as its own chunk
                 if chunk_buffer:
                     chunk = self._create_chunk(
                         chunk_buffer, chunk_index, document.metadata,
-                        current_headings, current_section_path, len(elements)
+                        current_headings, current_section_path, total_elements,
+                    )
+                    yield chunk
+                    chunk_index += 1
+                    chunk_buffer = []
+                    buffer_size = 0
+
+                if element_size > self.max_chunk_size:
+                    async for sub_chunk in self._chunk_large_element(
+                        element, chunk_index, document.metadata,
+                        current_headings, current_section_path, total_elements,
+                    ):
+                        yield sub_chunk
+                        chunk_index += 1
+                else:
+                    chunk = self._create_chunk(
+                        [element], chunk_index, document.metadata,
+                        current_headings, current_section_path, total_elements,
+                    )
+                    yield chunk
+                    chunk_index += 1
+
+            else:
+                # Regular content — accumulate until chunk_size
+                if buffer_size + element_size > self.chunk_size and chunk_buffer:
+                    chunk = self._create_chunk(
+                        chunk_buffer, chunk_index, document.metadata,
+                        current_headings, current_section_path, total_elements,
                     )
                     yield chunk
                     chunk_index += 1
                     chunk_buffer = self._get_overlap_elements(chunk_buffer)
                     buffer_size = sum(len(e.to_text()) for e in chunk_buffer)
-                
-                # Handle the large element specially
-                async for sub_chunk in self._chunk_large_element(
-                    element, chunk_index, document.metadata,
-                    current_headings, current_section_path, len(elements)
-                ):
-                    yield sub_chunk
-                    chunk_index += 1
-                
-                continue
-            
-            # Check if adding this element would exceed chunk size
-            if buffer_size + element_size > self.chunk_size and chunk_buffer:
-                # Create chunk from buffer
-                chunk = self._create_chunk(
-                    chunk_buffer, chunk_index, document.metadata,
-                    current_headings, current_section_path, len(elements)
-                )
-                yield chunk
-                chunk_index += 1
-                
-                # Get overlap elements for next chunk
-                chunk_buffer = self._get_overlap_elements(chunk_buffer)
-                buffer_size = sum(len(e.to_text()) for e in chunk_buffer)
-            
-            # Add element to buffer
-            chunk_buffer.append(element)
-            buffer_size += element_size
-            
-            # If this is a strong boundary and we have enough content, create chunk
-            if is_boundary and buffer_size >= self.min_chunk_size:
-                chunk = self._create_chunk(
-                    chunk_buffer, chunk_index, document.metadata,
-                    current_headings, current_section_path, len(elements)
-                )
-                yield chunk
-                chunk_index += 1
-                chunk_buffer = self._get_overlap_elements(chunk_buffer)
-                buffer_size = sum(len(e.to_text()) for e in chunk_buffer)
-            
-            # Small delay for streaming effect
+
+                chunk_buffer.append(element)
+                buffer_size += element_size
+
             await asyncio.sleep(0.001)
-        
-        # Flush remaining buffer
+
+        # Flush remainder
         if chunk_buffer:
             if progress_callback:
                 progress_callback(total_elements, total_elements, "Finalizing chunks...")
-            
-            chunk = self._create_chunk(
-                chunk_buffer, chunk_index, document.metadata,
-                current_headings, current_section_path, len(elements)
+            non_heading_size = sum(
+                len(e.to_text()) for e in chunk_buffer if e.type != ContentType.HEADING
             )
-            yield chunk
+            if non_heading_size >= 50 or chunk_index == 0:
+                chunk = self._create_chunk(
+                    chunk_buffer, chunk_index, document.metadata,
+                    current_headings, current_section_path, total_elements,
+                )
+                yield chunk
     
     def chunk_document(
         self,
@@ -341,8 +341,13 @@ class StructureAwareChunker:
             text = elem.to_text()
             if text.strip():
                 content_parts.append(text)
-        
+
         content = "\n\n".join(content_parts)
+
+        # Prepend section path so the embedding carries full heading context.
+        # This is the key fix for named entity / heading-body separation failures.
+        if section_path:
+            content = "[Section: " + " > ".join(section_path) + "]\n\n" + content
         
         # Analyze content
         content_types = list(set(e.type.value for e in elements))
