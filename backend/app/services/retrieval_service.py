@@ -250,13 +250,19 @@ class RetrievalService:
         result["section_path"] = metadata.get("section_path")
         result["parent_section"] = metadata.get("parent_section")
 
-        # headings_hierarchy is stored as a JSON string in Qdrant — deserialize it
+        # headings_hierarchy is stored as a JSON string in Qdrant — deserialize it,
+        # then flatten to a list of strings (the context builder does str.join on it).
         hierarchy = metadata.get("headings_hierarchy", [])
         if isinstance(hierarchy, str):
             try:
                 hierarchy = _json.loads(hierarchy)
             except Exception:
                 hierarchy = []
+        if isinstance(hierarchy, list):
+            hierarchy = [
+                h.get("text", str(h)) if isinstance(h, dict) else str(h)
+                for h in hierarchy
+            ]
         result["headings_hierarchy"] = hierarchy if isinstance(hierarchy, list) else []
         return result
     
