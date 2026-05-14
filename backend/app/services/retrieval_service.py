@@ -245,10 +245,19 @@ class RetrievalService:
     
     def _enrich_with_hierarchy(self, result: Dict[str, Any]) -> Dict[str, Any]:
         """Enrich result with hierarchy information from metadata."""
+        import json as _json
         metadata = result.get("metadata", {})
         result["section_path"] = metadata.get("section_path")
-        result["headings_hierarchy"] = metadata.get("headings_hierarchy", [])
         result["parent_section"] = metadata.get("parent_section")
+
+        # headings_hierarchy is stored as a JSON string in Qdrant — deserialize it
+        hierarchy = metadata.get("headings_hierarchy", [])
+        if isinstance(hierarchy, str):
+            try:
+                hierarchy = _json.loads(hierarchy)
+            except Exception:
+                hierarchy = []
+        result["headings_hierarchy"] = hierarchy if isinstance(hierarchy, list) else []
         return result
     
     async def retrieve(

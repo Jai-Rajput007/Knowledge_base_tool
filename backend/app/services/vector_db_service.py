@@ -281,68 +281,86 @@ class VectorDBService:
             fetch_k = min(fetch_k, count)
             qdrant_filter = _build_qdrant_filter(filter_dict)
 
+            # --- Dense search ---
             dense_hits = _qdrant_search(
                 self._client, COLLECTION_NAME, query_embedding, fetch_k, qdrant_filter
             )
+            dense_by_id = {str(p.id): p for p in dense_hits}
+            dense_ranks = {sid: rank for rank, sid in enumerate(dense_by_id)}
 
-            if not dense_hits:
-                return []
+            # --- BM25 search (independent recall — finds exact keyword matches
+            #     that dense search may miss, e.g. rare proper nouns) ---
+            bm25_hits = self._bm25_search_all(query_text, fetch_k)
+            bm25_by_id = {r["id"]: r for r in bm25_hits}
+            bm25_ranks = {r["id"]: rank for rank, r in enumerate(bm25_hits)}
 
-            # BM25 scores for the dense candidate set
-            bm25_lookup = self._bm25_scores_for_ids(
-                query_text, {str(p.id) for p in dense_hits}
-            )
+            # Fetch Qdrant payloads for BM25-only results
+            bm25_only_ids = [sid for sid in bm25_by_id if sid not in dense_by_id]
+            if bm25_only_ids:
+                try:
+                    extra_points = self._client.retrieve(
+                        collection_name=COLLECTION_NAME,
+                        ids=bm25_only_ids,
+                        with_payload=True,
+                    )
+                    for point in extra_points:
+                        dense_by_id[str(point.id)] = point
+                except Exception as e:
+                    logger.warning(f"BM25-only payload fetch failed: {e}")
 
+            # --- RRF fusion ---
+            k = 60
+            all_ids = set(dense_ranks) | set(bm25_ranks)
+            rrf_scores: Dict[str, float] = {}
+            for sid in all_ids:
+                dr = dense_ranks.get(sid, fetch_k)
+                br = bm25_ranks.get(sid, fetch_k)
+                rrf_scores[sid] = 1.0 / (k + dr + 1) + 1.0 / (k + br + 1)
+
+            # Build results
             results = []
-            for point in dense_hits:
-                sid = str(point.id)
-                dense_score = float(point.score)
-
-                if dense_score < similarity_threshold:
+            for sid in sorted(rrf_scores, key=lambda x: rrf_scores[x], reverse=True):
+                point = dense_by_id.get(sid)
+                if point is None:
                     continue
-
-                bm25_score = bm25_lookup.get(sid, 0.0)
-                combined = 0.6 * dense_score + 0.4 * bm25_score
-
+                dense_score = float(getattr(point, "score", 0.0))
+                # Apply threshold only to results that came from dense search
+                if sid in dense_ranks and dense_score < similarity_threshold:
+                    continue
                 payload = dict(point.payload or {})
                 text = payload.pop("text", "")
-
                 results.append({
                     "id": sid,
                     "text": text,
                     "metadata": payload,
-                    "score": combined,
+                    "score": rrf_scores[sid],
                 })
 
-            results.sort(key=lambda x: x["score"], reverse=True)
             return results[:top_k]
 
         except Exception as e:
             logger.error(f"Search failed: {e}")
             raise VectorDBError(f"Search failed: {e}")
 
-    def _bm25_scores_for_ids(self, query_text: str, target_ids: set) -> Dict[str, float]:
-        """Return BM25 scores (normalized to [0,1]) for the given set of point IDs."""
-        if not self._bm25 or not query_text or not target_ids:
-            return {}
+    def _bm25_search_all(self, query_text: str, top_k: int) -> List[Dict]:
+        """Independent BM25 search across all indexed docs — provides keyword recall."""
+        if not self._bm25 or not query_text:
+            return []
         try:
             tokens = _tokenize(query_text)
             if not tokens:
-                return {}
-            import numpy as np
-            raw = self._bm25.get_scores(tokens)
-            max_score = float(np.max(raw)) if raw.size else 0.0
-            if max_score <= 0:
-                return {}
-            result = {}
-            for idx, doc in enumerate(self._bm25_docs):
-                sid = doc["id"]
-                if sid in target_ids and raw[idx] > 0:
-                    result[sid] = float(raw[idx]) / max_score
-            return result
+                return []
+            scores = self._bm25.get_scores(tokens)
+            hits = [
+                {"id": doc["id"], "score": float(scores[i]), "text": doc["text"]}
+                for i, doc in enumerate(self._bm25_docs)
+                if scores[i] > 0
+            ]
+            hits.sort(key=lambda x: x["score"], reverse=True)
+            return hits[:top_k]
         except Exception as e:
-            logger.warning(f"BM25 scoring failed: {e}")
-            return {}
+            logger.warning(f"BM25 search failed: {e}")
+            return []
 
     # ------------------------------------------------------------------
     # Delete
