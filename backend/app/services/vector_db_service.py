@@ -39,6 +39,27 @@ def _serialize_metadata(meta: Dict[str, Any]) -> Dict[str, Any]:
     return result
 
 
+def _qdrant_search(client, collection_name, query_vector, limit, query_filter):
+    """Compatibility wrapper: qdrant-client <2.0 uses search(), >=2.0 uses query_points()."""
+    try:
+        return client.search(
+            collection_name=collection_name,
+            query_vector=query_vector,
+            limit=limit,
+            query_filter=query_filter,
+            with_payload=True,
+        )
+    except AttributeError:
+        # qdrant-client >= 2.0
+        return client.query_points(
+            collection_name=collection_name,
+            query=query_vector,
+            limit=limit,
+            query_filter=query_filter,
+            with_payload=True,
+        ).points
+
+
 def _build_qdrant_filter(filter_dict: Optional[Dict[str, Any]]):
     if not filter_dict:
         return None
@@ -260,12 +281,8 @@ class VectorDBService:
             fetch_k = min(fetch_k, count)
             qdrant_filter = _build_qdrant_filter(filter_dict)
 
-            dense_hits = self._client.search(
-                collection_name=COLLECTION_NAME,
-                query_vector=query_embedding,
-                limit=fetch_k,
-                query_filter=qdrant_filter,
-                with_payload=True,
+            dense_hits = _qdrant_search(
+                self._client, COLLECTION_NAME, query_embedding, fetch_k, qdrant_filter
             )
 
             if not dense_hits:

@@ -11,7 +11,7 @@ pydantic[email]==2.5.0
 pydantic-settings==2.1.0
 
 # Vector Database
-qdrant-client>=1.7.0
+qdrant-client>=1.7.0,<3.0.0
 rank-bm25>=0.2.2
 sentence-transformers>=2.2.0
 
