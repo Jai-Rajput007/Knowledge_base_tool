@@ -2,7 +2,6 @@
 
 from typing import List, Optional
 from pydantic_settings import BaseSettings
-from pydantic import field_validator
 
 
 class Settings(BaseSettings):
@@ -79,18 +78,11 @@ class Settings(BaseSettings):
     # File Upload
     UPLOAD_DIR: str = "./uploads"
     MAX_FILE_SIZE: int = 50 * 1024 * 1024  # 50 MB
-    ALLOWED_EXTENSIONS: List[str] = [
-        ".pdf", ".docx", ".txt", ".md", ".html", ".csv", ".json",
-        ".xlsx", ".xls",
-        ".epub", ".pptx", ".odt", ".rtf", ".xml",
-    ]
+    ALLOWED_EXTENSIONS: str = ".pdf,.docx,.txt,.md,.html,.csv,.json,.xlsx,.xls,.epub,.pptx,.odt,.rtf,.xml"
 
-    @field_validator("ALLOWED_EXTENSIONS", mode="before")
-    @classmethod
-    def assemble_allowed_extensions(cls, v):
-        if isinstance(v, str):
-            return [e.strip() for e in v.split(",")]
-        return v
+    @property
+    def allowed_extensions_list(self) -> List[str]:
+        return [e.strip() for e in self.ALLOWED_EXTENSIONS.split(",") if e.strip()]
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
