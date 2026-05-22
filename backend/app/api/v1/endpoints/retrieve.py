@@ -50,6 +50,7 @@ async def retrieve(request: RetrieveRequest):
         candidates = max(settings.RERANKER_CANDIDATES, request.top_k * 3)
         raw = vector_db_service.search(
             query_embedding=query_embedding,
+            query_text=request.query,
             top_k=candidates,
             filter_dict=filter_dict,
         )
