@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { api } from "@/lib/api";
-import AuthGuard from "@/app/components/auth-guard";
+import { AuthGuard } from "@/app/components/auth-guard";
 
 interface Employee {
   id: number;
