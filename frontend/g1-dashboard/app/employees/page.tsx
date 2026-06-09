@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { AuthGuard } from "@/app/components/auth-guard";
 
@@ -41,6 +42,7 @@ function PhotoBadge({ count }: { count: number }) {
 }
 
 export default function EmployeesPage() {
+  const router = useRouter();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -60,7 +62,17 @@ export default function EmployeesPage() {
   const load = async () => {
     setLoading(true);
     const res = await api.listEmployees();
-    if (res.data) setEmployees(res.data);
+    if (res.data) {
+      setEmployees(res.data);
+    } else if (res.error) {
+      const errStr = typeof res.error === "string" ? res.error : "";
+      if (errStr.includes("401") || errStr.toLowerCase().includes("unauthorized") || errStr.toLowerCase().includes("not authenticated")) {
+        api.removeToken();
+        router.push("/auth/login");
+        return;
+      }
+      setError("Failed to load employees: " + errStr);
+    }
     setLoading(false);
   };
 
@@ -238,20 +250,15 @@ export default function EmployeesPage() {
                     className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary" />
                 </div>
               </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Email *</label>
-                <input name="email" type="email" required placeholder="naveen@company.com"
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary" />
-              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Department</label>
-                  <input name="department" placeholder="Management"
+                  <label className="text-xs text-muted-foreground mb-1 block">Email <span className="text-muted-foreground/60">(optional)</span></label>
+                  <input name="email" type="email" placeholder="naveen@company.com"
                     className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary" />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Password</label>
-                  <input name="password" type="password" defaultValue="changeme123"
+                  <label className="text-xs text-muted-foreground mb-1 block">Department <span className="text-muted-foreground/60">(optional)</span></label>
+                  <input name="department" placeholder="Management"
                     className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary" />
                 </div>
               </div>
@@ -285,8 +292,8 @@ export default function EmployeesPage() {
             <h2 className="text-lg font-semibold mb-2">Bulk Import (Excel)</h2>
             <p className="text-sm text-muted-foreground mb-4">
               Upload an <strong>.xlsx</strong> file with columns:<br />
-              <code className="text-xs bg-muted px-1 py-0.5 rounded">employee_id | name | email | department | password</code><br />
-              Insert one employee photo per row in column F.
+              <code className="text-xs bg-muted px-1 py-0.5 rounded">employee_id | name | email (optional) | department (optional)</code><br />
+              Insert one photo per row (any column — matched by row number).
             </p>
             <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-xs mb-4">
               ⚠ Photo is required for each row. Rows without a photo will be skipped.

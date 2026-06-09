@@ -42,7 +42,7 @@ class AuthService:
         return self.db.query(User).filter(User.id == user_id).first()
 
     def list_users(self):
-        return self.db.query(User).order_by(User.created_at).all()
+        return self.db.query(User).filter(User.employee_id.is_(None)).order_by(User.created_at).all()
 
     def update_user(self, user_id: int, **fields) -> User:
         user = self.get_user_by_id(user_id)

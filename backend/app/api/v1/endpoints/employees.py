@@ -1,7 +1,8 @@
 """Employee management endpoints — admin only except /context."""
 
 import io
-from typing import List
+import secrets
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
 from sqlalchemy.orm import Session
 import openpyxl
@@ -29,9 +30,8 @@ def list_employees(db: Session = Depends(get_db), _: User = Depends(require_admi
 async def create_employee(
     employee_id: str = Form(...),
     name: str = Form(...),
-    email: str = Form(...),
-    department: str = Form(None),
-    password: str = Form("changeme123"),
+    email: Optional[str] = Form(None),
+    department: Optional[str] = Form(None),
     photos: List[UploadFile] = File(...),
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
@@ -51,12 +51,15 @@ async def create_employee(
     if not photo_bytes:
         raise HTTPException(status_code=400, detail="At least one valid photo is required (jpg/png)")
 
-    user = svc.create_employee(employee_id, name, email, password, department)
+    resolved_email = email or f"{employee_id.lower()}@frs.local"
+    auto_password = secrets.token_hex(16)
+
+    user = svc.create_employee(employee_id, name, resolved_email, auto_password, department)
 
     try:
         svc.enroll_photos(user, photo_bytes, filenames)
-    except RuntimeError as e:
-        raise HTTPException(status_code=502, detail=str(e))
+    except RuntimeError:
+        pass  # employee created; admin can add photos later via /photos endpoint
 
     return EmployeeResponse.from_user(user)
 
@@ -143,9 +146,10 @@ async def bulk_import(
 
         employee_id = str(row[0]).strip()
         name        = str(row[1]).strip() if row[1] else ""
-        email       = str(row[2]).strip() if row[2] else ""
+        email_raw   = str(row[2]).strip() if row[2] else ""
         department  = str(row[3]).strip() if row[3] else None
-        password    = str(row[4]).strip() if len(row) > 4 and row[4] else "changeme123"
+        email       = email_raw or f"{employee_id.lower()}@frs.local"
+        password    = secrets.token_hex(16)
 
         if not employee_id or not name or not email:
             errors.append({"row": i, "employee_id": employee_id, "reason": "Missing required fields"})
@@ -165,11 +169,19 @@ async def bulk_import(
 
         try:
             user = svc.create_employee(employee_id, name, email, password, department)
-            svc.enroll_photos(user, [photo_bytes], [f"{employee_id}.jpg"])
-            enrolled += 1
         except Exception as e:
             errors.append({"row": i, "employee_id": employee_id, "reason": str(e)})
             failed += 1
+            continue
+
+        try:
+            svc.enroll_photos(user, [photo_bytes], [f"{employee_id}.jpg"])
+        except RuntimeError as e:
+            errors.append({"row": i, "employee_id": employee_id, "reason": f"FRS enrollment failed: {e}"})
+            failed += 1
+            continue
+
+        enrolled += 1
 
     return BulkEnrollResult(total=enrolled + failed, enrolled=enrolled, failed=failed, errors=errors)
 
