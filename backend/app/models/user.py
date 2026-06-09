@@ -24,6 +24,9 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     last_login = Column(DateTime, nullable=True)
 
+    memory_facts = relationship("MemoryFact", back_populates="user", cascade="all, delete-orphan")
+    sessions = relationship("Session", back_populates="user", cascade="all, delete-orphan")
+
     def set_password(self, password: str):
         self.salt = secrets.token_hex(16)
         self.hashed_password = hashlib.sha256((password + self.salt).encode()).hexdigest()

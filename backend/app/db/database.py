@@ -31,6 +31,8 @@ def set_sqlite_pragma(dbapi_conn, connection_record):
     if settings.DATABASE_URL.startswith("sqlite"):
         cursor = dbapi_conn.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA synchronous=NORMAL")
         cursor.close()
 
 
@@ -47,6 +49,7 @@ def init_db():
     """Initialize database tables."""
     from app.models import document, activity, setting
     from app.models import user
+    from app.models import session, message, memory_fact, session_summary, entity
 
     Base.metadata.create_all(bind=engine)
     _migrate_add_role_column()
