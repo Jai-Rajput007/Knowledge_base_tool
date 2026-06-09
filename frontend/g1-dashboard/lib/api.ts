@@ -307,6 +307,76 @@ class ApiClient {
   async registerUser(_userData: { username: string; email: string; password: string }) {
     return { error: "Registration is disabled. Contact your administrator." };
   }
+
+  // ── Employees ──────────────────────────────────────────────────────────────
+
+  async listEmployees() {
+    return this.request<any[]>("/employees/");
+  }
+
+  async createEmployee(formData: FormData) {
+    const token = this.getToken();
+    const headers: Record<string, string> = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    try {
+      const response = await fetch(`${this.baseUrl}/employees/`, {
+        method: "POST",
+        headers,
+        body: formData,
+      });
+      if (!response.ok) {
+        const error = await response.text();
+        return { error };
+      }
+      return { data: await response.json() };
+    } catch (e: any) {
+      return { error: e.message };
+    }
+  }
+
+  async addEmployeePhotos(employeeId: string, formData: FormData) {
+    const token = this.getToken();
+    const headers: Record<string, string> = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    try {
+      const response = await fetch(`${this.baseUrl}/employees/${employeeId}/photos`, {
+        method: "POST",
+        headers,
+        body: formData,
+      });
+      if (!response.ok) {
+        const error = await response.text();
+        return { error };
+      }
+      return { data: await response.json() };
+    } catch (e: any) {
+      return { error: e.message };
+    }
+  }
+
+  async deleteEmployee(employeeId: string) {
+    return this.request(`/employees/${employeeId}`, { method: "DELETE" });
+  }
+
+  async bulkImportEmployees(formData: FormData) {
+    const token = this.getToken();
+    const headers: Record<string, string> = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    try {
+      const response = await fetch(`${this.baseUrl}/employees/bulk`, {
+        method: "POST",
+        headers,
+        body: formData,
+      });
+      if (!response.ok) {
+        const error = await response.text();
+        return { error };
+      }
+      return { data: await response.json() };
+    } catch (e: any) {
+      return { error: e.message };
+    }
+  }
 }
 
 export const api = new ApiClient(API_BASE_URL);

@@ -75,6 +75,9 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY: Optional[str] = None
     COHERE_API_KEY: Optional[str] = None
 
+    # FRS (Facial Recognition Service)
+    FRS_URL: str = "http://localhost:8001"
+
     # File Upload
     UPLOAD_DIR: str = "./uploads"
     MAX_FILE_SIZE: int = 50 * 1024 * 1024  # 50 MB

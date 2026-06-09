@@ -1,7 +1,7 @@
 """User model for authentication."""
 
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String, DateTime, Text
 from sqlalchemy.orm import relationship
 import hashlib
 import secrets
@@ -23,6 +23,12 @@ class User(Base):
     is_active = Column(Integer, default=1)
     created_at = Column(DateTime, default=datetime.utcnow)
     last_login = Column(DateTime, nullable=True)
+
+    # Employee fields
+    employee_id = Column(String(50), unique=True, nullable=True, index=True)
+    face_id = Column(String(100), unique=True, nullable=True, index=True)
+    department = Column(String(100), nullable=True)
+    photo_count = Column(Integer, default=0)
 
     memory_facts = relationship("MemoryFact", back_populates="user", cascade="all, delete-orphan")
     sessions = relationship("Session", back_populates="user", cascade="all, delete-orphan")

@@ -53,7 +53,29 @@ def init_db():
 
     Base.metadata.create_all(bind=engine)
     _migrate_add_role_column()
+    _migrate_add_employee_columns()
     logger.info("Database tables created")
+
+
+def _migrate_add_employee_columns():
+    """Add employee columns to users table if they don't exist."""
+    if not settings.DATABASE_URL.startswith("sqlite"):
+        return
+    new_cols = {
+        "employee_id": "VARCHAR(50)",
+        "face_id":     "VARCHAR(100)",
+        "department":  "VARCHAR(100)",
+        "photo_count": "INTEGER DEFAULT 0",
+    }
+    with engine.connect() as conn:
+        result = conn.execute(__import__("sqlalchemy").text("PRAGMA table_info(users)"))
+        existing = [row[1] for row in result]
+        for col, col_type in new_cols.items():
+            if col not in existing:
+                conn.execute(__import__("sqlalchemy").text(
+                    f"ALTER TABLE users ADD COLUMN {col} {col_type}"
+                ))
+        conn.commit()
 
 
 def _migrate_add_role_column():
