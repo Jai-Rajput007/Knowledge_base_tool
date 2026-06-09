@@ -1,6 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, JSON
 from sqlalchemy.orm import relationship
 
 from app.db.database import Base
@@ -16,7 +15,7 @@ class Message(Base):
     role = Column(String(20), nullable=False)  # 'user' or 'assistant'
     content = Column(Text, nullable=False)
     tokens_used = Column(Integer, nullable=True)
-    message_metadata = Column(JSONB, nullable=True)  # JSON: entities, tool_calls, etc.
+    message_metadata = Column(JSON, nullable=True)  # JSON: entities, tool_calls, etc.
     
     created_at = Column(DateTime, default=datetime.utcnow)
     
