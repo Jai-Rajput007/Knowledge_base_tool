@@ -11,7 +11,7 @@ from app.db.database import get_db
 from app.core.security import get_current_user, require_admin
 from app.models.user import User
 from app.services.employee_service import EmployeeService
-from app.schemas.employee import EmployeeResponse, BulkEnrollResult, ContextResponse
+from app.schemas.employee import EmployeeResponse, BulkEnrollResult, ContextResponse, ContextSummaryRequest
 
 router = APIRouter()
 
@@ -190,8 +190,17 @@ async def bulk_import(
 
 @router.get("/context/{face_id}", response_model=ContextResponse)
 def get_context(face_id: str, db: Session = Depends(get_db)):
-    """No auth required — called internally by NLP pipeline on wake word."""
+    """No auth required — called internally by NLP pipeline on face detection."""
     ctx = EmployeeService(db).get_context(face_id)
     if not ctx:
         raise HTTPException(status_code=404, detail="face_id not found")
     return ctx
+
+
+@router.post("/context/{face_id}/summary")
+def save_context_summary(face_id: str, body: ContextSummaryRequest, db: Session = Depends(get_db)):
+    """No auth required — called by NLP pipeline when a robot conversation ends."""
+    ok = EmployeeService(db).save_conversation_summary(face_id, body.summary, body.turn_count)
+    if not ok:
+        raise HTTPException(status_code=404, detail="face_id not found")
+    return {"status": "saved"}

@@ -145,3 +145,27 @@ class EmployeeService:
             "last_session_summary": last_summary.summary_text if last_summary else None,
             "last_seen": user.last_login.isoformat() if user.last_login else None,
         }
+
+    def save_conversation_summary(self, face_id: str, summary_text: str, turn_count: int) -> bool:
+        from datetime import datetime
+        user = self.get_by_face_id(face_id)
+        if not user:
+            return False
+
+        session = ChatSession(
+            user_id=user.id,
+            title=f"Robot session {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}",
+            status="archived",
+        )
+        self.db.add(session)
+        self.db.flush()
+
+        self.db.add(SessionSummary(
+            session_id=session.id,
+            summary_level=2,
+            turn_range_start=1,
+            turn_range_end=max(turn_count, 1),
+            summary_text=summary_text,
+        ))
+        self.db.commit()
+        return True

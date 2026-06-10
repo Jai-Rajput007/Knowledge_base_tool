@@ -59,3 +59,8 @@ class ContextResponse(BaseModel):
     memory_facts: list[str]
     last_session_summary: Optional[str]
     last_seen: Optional[datetime]
+
+
+class ContextSummaryRequest(BaseModel):
+    summary: str
+    turn_count: int = 1
