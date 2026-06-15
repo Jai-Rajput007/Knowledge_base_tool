@@ -246,14 +246,14 @@ export default function EmployeesPage() {
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Full Name *</label>
-                  <input name="name" required placeholder="Naveen Jindal"
+                  <input name="name" required placeholder="Jai"
                     className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Email <span className="text-muted-foreground/60">(optional)</span></label>
-                  <input name="email" type="email" placeholder="naveen@company.com"
+                  <input name="email" type="email" placeholder="Jai@company.com"
                     className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary" />
                 </div>
                 <div>
