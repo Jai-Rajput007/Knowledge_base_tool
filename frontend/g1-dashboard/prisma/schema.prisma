@@ -1,0 +1,40 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // url is managed by prisma.config.ts in Prisma v6, but we can explicitly add it here too if needed, though omitted by default in v6 init.
+}
+
+model Tenant {
+  id        String   @id @default(uuid())
+  name      String
+  features  Json     @default("{}") // e.g. {"advanced_ai": true, "custom_voice": false}
+  users     User[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  SUPER_ADMIN
+  CLIENT
+  VIEWER
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String   // In production, this must be hashed using bcrypt or argon2
+  name      String
+  role      Role     @default(VIEWER)
+  
+  tenantId  String?
+  tenant    Tenant?  @relation(fields: [tenantId], references: [id])
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
