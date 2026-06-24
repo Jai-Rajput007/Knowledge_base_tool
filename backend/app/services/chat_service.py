@@ -185,17 +185,46 @@ class ChatService:
         return ""
 
     def _build_system_prompt(self, has_hierarchy: bool = False) -> str:
-        """Build system prompt for RAG."""
-        return """You are a document assistant. Answer questions using only the context provided below.
+        """Build system prompt for RAG, simulating the Robot Persona."""
+        import json
+        import os
+        
+        persona_path = '/home/jai/g1-universe/g1-nlp/config/persona.json'
+        identity_str = "You are a helpful document assistant."
+        rules_str = ""
+        
+        if os.path.exists(persona_path):
+            try:
+                with open(persona_path, 'r') as f:
+                    config = json.load(f)
+                    identity = config.get("identity", {})
+                    name = identity.get("name", "Jarvis")
+                    role = identity.get("role", "office assistant robot")
+                    company = identity.get("company", "this company")
+                    location = identity.get("location", "this office")
+                    
+                    sys_prompt = config.get("system_prompt", "")
+                    rules = config.get("conversation_rules", [])
+                    rules_block = "\n".join(f"- {r}" for r in rules) if rules else ""
+                    
+                    identity_str = f"You are {name}, a {role} working at {company}, located at {location}.\n\nMASTER INSTRUCTIONS:\n{sys_prompt}"
+                    rules_str = rules_block
+            except Exception as e:
+                logger.error(f"Failed to load persona for simulator: {e}")
+
+        return f"""{identity_str}
+
+If the user is asking a factual question about documents or company knowledge, answer ONLY using the provided Context.
+If the user is just chatting or asking about your identity, respond naturally according to your persona rules.
 
 Rules:
-- Use ONLY information explicitly present in the context. Do not use your training knowledge.
-- Do not invent or assume any facts not written in the context.
-- For "explain" or "describe" questions, summarize what the context shows — column names, types of data, what the document covers.
-- For counting questions (e.g. "how many"), count or use numbers that appear in the context. If the header says "Total rows: N", report that number.
-- Do NOT repeat the question. Do NOT use filler phrases like "Certainly!" or "Based on the context..."
-- If the context truly contains no relevant information at all, say exactly: "I don't have that information in the knowledge base."
-- Keep answers focused and clear. Use as many sentences as needed to answer accurately."""
+{rules_str}
+- When answering from context, do not invent or assume facts not written in the context.
+- For "explain" or "describe" questions, summarize what the context shows.
+- For counting questions (e.g. "how many"), count or use numbers that appear in the context.
+- Do NOT use filler phrases like "Certainly!" or "Based on the context..."
+- If the context does not contain the answer to a factual knowledge question, say exactly: "I don't have that information in my knowledge base."
+- Always stay in character as {name}."""
 
     def _build_user_prompt(self, query: str, context: str) -> str:
         """Build user prompt with context."""
@@ -262,10 +291,10 @@ Answer (only from the context above):"""
         """
         logger.info(f"Processing chat request: {request.message[:50]}...")
 
-        # Fast path: greetings and chitchat — no retrieval needed
-        chitchat = self._chitchat_response(request.message)
-        if chitchat:
-            return ChatResponse(response=chitchat, sources=[], model=self.model)
+        # Fast path: greetings and chitchat — let the LLM answer using Persona instead of hardcoded bypass.
+        # chitchat = self._chitchat_response(request.message)
+        # if chitchat:
+        #     return ChatResponse(response=chitchat, sources=[], model=self.model)
 
         # Step 1: Process query to understand intent and extract filters
         processed = self._process_query(request)
@@ -293,11 +322,8 @@ Answer (only from the context above):"""
 
         # Step 5: Build prompts and generate response
         if not results:
-            return ChatResponse(
-                response="I don't have that information in the knowledge base.",
-                sources=[],
-                model=self.model,
-            )
+            logger.info("No relevant chunks found; letting Persona answer anyway.")
+            assembled.context_text = "No relevant context found in the knowledge base."
 
         logger.info(f"=== RETRIEVED {len(results)} CHUNKS ===")
         for i, r in enumerate(results):
@@ -360,8 +386,8 @@ Answer (only from the context above):"""
 
         # Short-circuit: no relevant documents found
         if not results:
-            yield "I don't have that information in the knowledge base."
-            return
+            logger.info("No relevant chunks found; letting Persona answer anyway.")
+            assembled.context_text = "No relevant context found in the knowledge base."
 
         # Step 5: Build prompts and stream
         system_prompt = self._build_system_prompt(

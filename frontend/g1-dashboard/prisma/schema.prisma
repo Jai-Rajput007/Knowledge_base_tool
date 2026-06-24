@@ -26,15 +26,92 @@ enum Role {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String   // In production, this must be hashed using bcrypt or argon2
-  name      String
-  role      Role     @default(VIEWER)
-  
-  tenantId  String?
-  tenant    Tenant?  @relation(fields: [tenantId], references: [id])
-  
+  id       String @id @default(uuid())
+  email    String @unique
+  password String // In production, this must be hashed using bcrypt or argon2
+  name     String
+  role     Role   @default(VIEWER)
+
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  personas        Persona[]
+  personaVersions PersonaVersion[]
+}
+
+model Persona {
+  id String @id @default(uuid())
+
+  // Internal tracking
+  name       String // Internal dashboard label e.g., "Main Receptionist"
+  version    Int     @default(1)
+  isActive   Boolean @default(true)
+  isTemplate Boolean @default(false)
+
+  // Identity (from persona.json)
+  robotName     String @default("Jarvis")
+  robotCompany  String @default("Jindal Steel")
+  robotLocation String @default("Delhi")
+  robotRole     String @default("Office assistant robot")
+
+  // Core AI Prompts
+  systemPrompt      String @db.Text
+  conversationRules Json   @default("[]") // Array of strings
+
+  // Hardware/Platform settings
+  wakeWord String @default("hey_jarvis")
+  llmMode  String @default("local")
+  asrMode  String @default("parakeet")
+  ttsMode  String @default("g1_direct")
+
+  // Sync status
+  syncStatus   String    @default("not_synced") // synced, pending, error
+  lastSyncedAt DateTime?
+
+  // Relations
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  versions PersonaVersion[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PersonaVersion {
+  id String @id @default(uuid())
+
+  personaId String
+  persona   Persona @relation(fields: [personaId], references: [id], onDelete: Cascade)
+
+  version       Int
+  snapshot      Json // Full snapshot of all persona fields
+  changeSummary String? @db.Text
+
+  syncedToRobot Boolean   @default(false)
+  syncedAt      DateTime?
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model PersonaTemplate {
+  id          String   @id @default(uuid())
+  name        String
+  description String?  @db.Text
+  category    String?
+  tags        String[] // Array of strings
+
+  isSystem     Boolean @default(false)
+  templateData Json // Full persona config minus local IPs/robot IDs
+
+  useCount Int @default(0)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
