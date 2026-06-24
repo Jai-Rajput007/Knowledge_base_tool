@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { findUserByEmail, validatePassword } from '@/lib/mock-db';
-import { createToken, createSessionCookie } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { createToken } from '@/lib/auth';
+import type { UserRole } from '@/lib/mock-db';
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,18 +17,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find user
-    const user = findUserByEmail(email);
+    // Find user in Prisma database
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: { tenant: true }
+    });
+
     if (!user) {
-      // Generic error to prevent user enumeration
       return NextResponse.json(
         { error: 'Invalid email or password' },
         { status: 401 }
       );
     }
 
-    // Validate password
-    if (!validatePassword(user, password)) {
+    // Validate password (raw string match for our seeded demo users, add bcrypt later)
+    if (user.password !== password) {
       return NextResponse.json(
         { error: 'Invalid email or password' },
         { status: 401 }
@@ -35,21 +39,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Create encrypted PASETO token
+    // Lowercase the Prisma Enum role so it matches our existing UI logic (e.g. SUPER_ADMIN -> super_admin)
+    const roleString = user.role.toLowerCase() as UserRole;
+
     const token = await createToken({
       sub: user.id,
       email: user.email,
       name: user.name,
-      role: user.role,
-      tenantId: user.tenantId,
-      tenantName: user.tenantName,
+      role: roleString,
+      tenantId: user.tenantId || undefined,
+      tenantName: user.tenant?.name || undefined,
     });
 
     // Determine redirect based on role
-    let redirectTo = '/client-dashboard';
-    if (user.role === 'super_admin') {
+    // Instead of the old client-dashboard placeholder, send them to the new RAG dashboard
+    let redirectTo = '/dashboard'; 
+    if (roleString === 'super_admin') {
       redirectTo = '/super-admin';
-    } else if (user.role === 'viewer') {
-      redirectTo = '/client-dashboard';
     }
 
     // Set HttpOnly cookie via next/headers
@@ -64,7 +70,7 @@ export async function POST(request: NextRequest) {
       maxAge: 8 * 60 * 60, // 8 hours
     });
 
-    const response = NextResponse.json(
+    return NextResponse.json(
       {
         success: true,
         redirectTo,
@@ -72,14 +78,13 @@ export async function POST(request: NextRequest) {
           id: user.id,
           name: user.name,
           email: user.email,
-          role: user.role,
+          role: roleString,
         },
       },
       { status: 200 }
     );
-
-    return response;
-  } catch {
+  } catch (err) {
+    console.error('Login error:', err);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

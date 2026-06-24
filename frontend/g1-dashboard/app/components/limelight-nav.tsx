@@ -1,43 +1,92 @@
 "use client";
 
-import React, { useState, useRef, useLayoutEffect, useEffect } from "react";
+import React, { useState, useRef, useLayoutEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { api } from "@/lib/api";
+import { AnimatePresence, motion } from "motion/react";
+import { 
+  FiUser, 
+  FiDatabase, 
+  FiMic, 
+  FiActivity, 
+  FiBox,
+  FiArrowRight,
+  FiSmile,
+  FiCpu,
+  FiSliders,
+  FiPlusCircle,
+  FiHeart
+} from "react-icons/fi";
 
-// SVG Icons
-const HomeIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-    <polyline points="9 22 9 12 15 12 15 22" />
-  </svg>
+// --- Dropdown Contents ---
+const PersonaMenu = () => (
+  <div className="w-[300px]">
+    <h3 className="mb-3 text-sm font-semibold text-foreground border-b border-border pb-2">Persona Manager</h3>
+    <div className="flex flex-col gap-1">
+      <a href="/persona#templates" className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-primary transition-colors">
+        <FiBox className="text-lg" /> Persona Templates
+      </a>
+      <a href="/persona#generative" className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-primary transition-colors">
+        <FiSmile className="text-lg" /> Generative Persona
+      </a>
+      <a href="/persona#role-builder" className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-primary transition-colors">
+        <FiUser className="text-lg" /> Role Builder
+      </a>
+    </div>
+  </div>
 );
 
-const DashboardIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect width="7" height="9" x="3" y="3" rx="1" /><rect width="7" height="5" x="14" y="3" rx="1" />
-    <rect width="7" height="9" x="14" y="12" rx="1" /><rect width="7" height="5" x="3" y="16" rx="1" />
-  </svg>
+const RagMenu = () => (
+  <div className="w-[240px]">
+    <h3 className="mb-3 text-sm font-semibold text-foreground border-b border-border pb-2">Robot RAG</h3>
+    <div className="flex flex-col gap-1">
+      <a href="/rag#document" className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-primary transition-colors">
+        <FiDatabase className="text-lg" /> Document RAG
+      </a>
+      <a href="/rag#web" className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-primary transition-colors">
+        <FiCpu className="text-lg" /> Web RAG
+      </a>
+    </div>
+  </div>
 );
 
-const LibraryIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20" />
-    <path d="M8 7h6" /><path d="M8 11h6" /><path d="M8 15h4" />
-  </svg>
+const VoiceMenu = () => (
+  <div className="w-[240px]">
+    <h3 className="mb-3 text-sm font-semibold text-foreground border-b border-border pb-2">Voice Settings</h3>
+    <div className="flex flex-col gap-1">
+      <a href="/voice#cloning" className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-primary transition-colors">
+        <FiMic className="text-lg" /> Voice Cloning
+      </a>
+      <a href="/voice#tuning" className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-primary transition-colors">
+        <FiSliders className="text-lg" /> Tuning
+      </a>
+    </div>
+  </div>
 );
 
-const ChatIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-  </svg>
+const GestureMenu = () => (
+  <div className="w-[240px]">
+    <h3 className="mb-3 text-sm font-semibold text-foreground border-b border-border pb-2">Gesture Settings</h3>
+    <div className="flex flex-col gap-1">
+      <a href="/gesture#custom" className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-primary transition-colors">
+        <FiActivity className="text-lg" /> Custom Gesture
+      </a>
+      <a href="/gesture#add" className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-primary transition-colors">
+        <FiPlusCircle className="text-lg" /> Add Gesture
+      </a>
+    </div>
+  </div>
 );
 
-const SettingsIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
-    <circle cx="12" cy="12" r="3" />
-  </svg>
+const InventoryMenu = () => (
+  <div className="w-[240px]">
+    <h3 className="mb-3 text-sm font-semibold text-foreground border-b border-border pb-2">Robot Inventory</h3>
+    <div className="flex flex-col gap-1">
+      <a href="/inventory#health" className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-primary transition-colors">
+        <FiHeart className="text-lg" /> Health Status
+      </a>
+    </div>
+  </div>
 );
 
 export type NavItem = {
@@ -45,121 +94,174 @@ export type NavItem = {
   icon: React.ReactElement;
   label: string;
   href: string;
+  dropdownComponent?: React.FC;
 };
-
-const EmployeesIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-    <circle cx="9" cy="7" r="4" />
-    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-  </svg>
-);
 
 const defaultNavItems: NavItem[] = [
-  { id: "home", icon: <HomeIcon />, label: "Home", href: "/" },
-  { id: "dashboard", icon: <DashboardIcon />, label: "Dashboard", href: "/dashboard" },
-  { id: "library", icon: <LibraryIcon />, label: "Library", href: "/library" },
-  { id: "chat", icon: <ChatIcon />, label: "Chat", href: "/chat" },
-  { id: "employees", icon: <EmployeesIcon />, label: "Employees", href: "/employees" },
-  { id: "settings", icon: <SettingsIcon />, label: "Settings", href: "/settings" },
+  { id: "persona", icon: <FiUser />, label: "Persona Manager", href: "/persona", dropdownComponent: PersonaMenu },
+  { id: "rag", icon: <FiDatabase />, label: "Robot RAG", href: "/rag", dropdownComponent: RagMenu },
+  { id: "voice", icon: <FiMic />, label: "Voice Settings", href: "/voice", dropdownComponent: VoiceMenu },
+  { id: "gesture", icon: <FiActivity />, label: "Gesture Settings", href: "/gesture", dropdownComponent: GestureMenu },
+  { id: "inventory", icon: <FiBox />, label: "Robot Inventory", href: "/inventory", dropdownComponent: InventoryMenu },
 ];
-
-type LimelightNavProps = {
-  items?: NavItem[];
-  className?: string;
-};
 
 export const LimelightNav = ({
   items = defaultNavItems,
-  className = "",
-}: LimelightNavProps) => {
+}: { items?: NavItem[] }) => {
   const pathname = usePathname();
   const [activeIndex, setActiveIndex] = useState(0);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [dir, setDir] = useState<"l" | "r" | null>(null);
   const [isReady, setIsReady] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [limelightCenter, setLimelightCenter] = useState(0);
+  
   const navItemRefs = useRef<(HTMLAnchorElement | null)[]>([]);
   const limelightRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    setIsLoggedIn(!!api.getToken());
-  }, [pathname]);
+  const visibleItems = items;
 
   useLayoutEffect(() => {
     const index = visibleItems.findIndex((item) => item.href === pathname);
     if (index >= 0) {
       setActiveIndex(index);
     }
-  }, [pathname, isLoggedIn]);
+  }, [pathname, visibleItems]);
+
+  const handleSetHovered = (index: number | null) => {
+    if (typeof hoveredIndex === "number" && typeof index === "number") {
+      setDir(hoveredIndex > index ? "r" : "l");
+    } else if (index === null) {
+      setDir(null);
+    }
+    setHoveredIndex(index);
+  };
+
+  const targetIndex = hoveredIndex !== null ? hoveredIndex : activeIndex;
 
   useLayoutEffect(() => {
     if (visibleItems.length === 0) return;
 
     const limelight = limelightRef.current;
-    const activeItem = navItemRefs.current[activeIndex];
+    const targetItem = navItemRefs.current[targetIndex];
 
-    if (limelight && activeItem) {
-      const newLeft =
-        activeItem.offsetLeft + activeItem.offsetWidth / 2 - limelight.offsetWidth / 2;
+    if (limelight && targetItem) {
+      const center = targetItem.offsetLeft + targetItem.offsetWidth / 2;
+      setLimelightCenter(center);
+      
+      const newLeft = center - limelight.offsetWidth / 2;
       limelight.style.left = `${newLeft}px`;
 
       if (!isReady) {
         setTimeout(() => setIsReady(true), 50);
       }
     }
-  }, [activeIndex, isReady, items]);
+  }, [targetIndex, isReady, visibleItems]);
 
-  const visibleItems = isLoggedIn ? items.filter((item) => item.id !== "home") : items;
-
-  if (visibleItems.length === 0 || pathname.startsWith("/auth") || (!isLoggedIn && pathname === "/")) {
+  if (visibleItems.length === 0 || pathname.startsWith("/auth")) {
     return null;
   }
 
   return (
-    <nav
-      className={`fixed top-6 left-1/2 -translate-x-1/2 z-50 inline-flex items-center h-20 rounded-2xl bg-card text-card-foreground border border-border shadow-lg px-3 backdrop-blur-md ${className}`}
-      style={{ boxShadow: `0 10px 40px -10px var(--shadow-color)` }}
+    <div 
+      className="absolute top-6 left-1/2 -translate-x-1/2 z-50" 
+      onMouseLeave={() => handleSetHovered(null)}
     >
-      {visibleItems.map(({ id, icon, label, href }, index) => (
-        <Link
-          key={id}
-          href={href}
-          ref={(el) => {
-            navItemRefs.current[index] = el;
-          }}
-          className="relative z-20 flex flex-col items-center justify-center gap-1 px-4 py-2 cursor-pointer group"
-        >
-          {React.cloneElement(icon, {
-            className: `w-5 h-5 transition-all duration-300 ease-in-out ${
-              activeIndex === index
-                ? "text-primary scale-110"
-                : "text-muted-foreground group-hover:text-foreground"
-            }`,
-          } as any)}
-          <span
-            className={`text-[10px] font-medium transition-all duration-300 ease-in-out ${
-              activeIndex === index
-                ? "text-primary translate-y-0 opacity-100"
-                : "text-muted-foreground translate-y-0.5 opacity-60 group-hover:text-foreground group-hover:opacity-100"
-            }`}
-          >
-            {label}
-          </span>
-        </Link>
-      ))}
-
-      {/* Limelight indicator */}
-      <div
-        ref={limelightRef}
-        className={`absolute -top-[3px] z-10 w-12 h-[3px] rounded-full bg-primary shadow-[0_0_20px_var(--primary),0_0_40px_var(--primary)] ${
-          isReady ? "transition-all duration-400 ease-out" : ""
-        }`}
-        style={{ left: "-999px" }}
+      <nav
+        className="relative flex items-center h-16 rounded-2xl bg-card text-card-foreground border border-border shadow-lg px-2 backdrop-blur-md"
+        style={{ boxShadow: `0 10px 40px -10px var(--shadow-color)` }}
       >
-        {/* Glow effect below the line */}
-        <div className="absolute left-[-50%] top-[3px] w-[200%] h-16 [clip-path:polygon(10%_100%,30%_0,70%_0,90%_100%)] bg-gradient-to-b from-primary/25 to-transparent pointer-events-none" />
+        {visibleItems.map((item, index) => {
+          const isActive = activeIndex === index;
+          const isHovered = hoveredIndex === index;
+          const isHighlighted = isHovered || (hoveredIndex === null && isActive);
+
+          return (
+            <Link
+              key={item.id}
+              href={item.href}
+              ref={(el) => {
+                navItemRefs.current[index] = el;
+              }}
+              onMouseEnter={() => handleSetHovered(index)}
+              className="relative z-20 flex items-center justify-center gap-2 px-4 py-2 cursor-pointer group"
+            >
+              {React.cloneElement(item.icon, {
+                className: `w-4 h-4 transition-all duration-300 ease-in-out ${
+                  isHighlighted
+                    ? "text-primary scale-110"
+                    : "text-muted-foreground group-hover:text-foreground"
+                }`,
+              } as any)}
+              <span
+                className={`text-xs font-semibold transition-all duration-300 ease-in-out ${
+                  isHighlighted
+                    ? "text-primary opacity-100"
+                    : "text-muted-foreground opacity-60 group-hover:text-foreground group-hover:opacity-100"
+                }`}
+              >
+                {item.label}
+              </span>
+            </Link>
+          );
+        })}
+
+        {/* Limelight indicator line */}
+        <div
+          ref={limelightRef}
+          className={`absolute -top-[2px] z-10 w-12 h-[2px] rounded-full bg-primary shadow-[0_0_20px_var(--primary),0_0_40px_var(--primary)] ${
+            isReady ? "transition-all duration-300 ease-out" : ""
+          }`}
+          style={{ left: "-999px" }}
+        >
+          <div className="absolute left-[-50%] top-[2px] w-[200%] h-12 [clip-path:polygon(10%_100%,30%_0,70%_0,90%_100%)] bg-gradient-to-b from-primary/20 to-transparent pointer-events-none" />
+        </div>
+      </nav>
+
+      {/* Dropdown renders below the nav, inside the hover-tracking wrapper */}
+      <AnimatePresence>
+        {hoveredIndex !== null && visibleItems[hoveredIndex]?.dropdownComponent && (
+          <DropdownContent 
+            dir={dir} 
+            selectedItem={visibleItems[hoveredIndex]} 
+            center={limelightCenter}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+// --- Dropdown Sub-components ---
+const DropdownContent = ({ selectedItem, dir, center }: any) => {
+  const Component = selectedItem.dropdownComponent;
+
+  return (
+    <motion.div
+      id="overlay-content"
+      initial={{ opacity: 0, y: 8, x: `calc(${center}px - 50%)` }}
+      animate={{ opacity: 1, y: 0, x: `calc(${center}px - 50%)` }}
+      exit={{ opacity: 0, y: 8, x: `calc(${center}px - 50%)` }}
+      transition={{ duration: 0.25, ease: "easeInOut" }}
+      className="absolute top-full mt-3 left-0 rounded-xl border border-border bg-card shadow-2xl z-50 w-fit"
+    >
+      {/* Invisible bridge from nav bottom to dropdown top */}
+      <div className="absolute -top-[12px] left-1/2 -translate-x-1/2 w-[200%] h-[12px]" />
+      
+      {/* Nub is always centered on the dropdown */}
+      <div className="absolute top-0 left-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-tl border border-border bg-card" style={{ clipPath: "polygon(0 0, 100% 0, 50% 50%, 0% 100%)" }} />
+
+      <div className="overflow-hidden rounded-xl">
+        <motion.div
+          key={selectedItem.id}
+          initial={{ opacity: 0, x: dir === "l" ? 80 : dir === "r" ? -80 : 0 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.25, ease: "easeInOut" }}
+          className="p-3"
+        >
+          <Component />
+        </motion.div>
       </div>
-    </nav>
+    </motion.div>
   );
 };
 

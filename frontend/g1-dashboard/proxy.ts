@@ -20,12 +20,14 @@ export function proxy(request: NextRequest) {
 
   // Public routes that don't need auth (but shouldn't be accessed if already logged in)
   const isPublicRoute =
+    pathname === '/' ||
     pathname === '/sign-in' ||
+    pathname.startsWith('/auth/') ||
     (pathname.startsWith('/api/auth/') && pathname !== '/api/auth/logout');
 
-  // If accessing a public route (like sign-in or login API) while already authenticated, redirect to home
-  if (isPublicRoute && sessionCookie?.value) {
-    return NextResponse.redirect(new URL('/', request.url));
+  // If accessing a public route (like sign-in or login API) while already authenticated, redirect to dashboard
+  if (isPublicRoute && sessionCookie?.value && pathname !== '/api/auth/logout') {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
   // If accessing a protected route without a session cookie, redirect to sign-in

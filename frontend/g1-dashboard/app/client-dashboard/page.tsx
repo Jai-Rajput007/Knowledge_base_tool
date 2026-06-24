@@ -110,7 +110,7 @@ export default function ClientDashboardPage() {
                 <div
                   className={`w-11 h-11 rounded-lg bg-gradient-to-br ${card.gradient} flex items-center justify-center text-accent-blue mb-4 group-hover:scale-110 transition-transform duration-300`}
                 >
-                  {getIcon(card.icon, 20)}
+                  {getIcon(card.icon, "w-5 h-5")}
                 </div>
                 <h4 className="text-sm font-semibold text-text-primary mb-1">
                   {card.title}

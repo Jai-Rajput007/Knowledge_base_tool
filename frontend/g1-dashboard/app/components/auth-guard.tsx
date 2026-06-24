@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { api } from "@/lib/api";
 
-const publicRoutes = ["/", "/auth/login", "/auth/register", "/auth/forgot-password", "/auth/reset-password"];
+const publicRoutes = ["/", "/sign-in", "/auth/login", "/auth/register", "/auth/forgot-password", "/auth/reset-password"];
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -12,22 +11,34 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const token = api.getToken();
-    
-    if (publicRoutes.includes(pathname)) {
-      if (token && (pathname === "/auth/login" || pathname === "/auth/register" || pathname === "/")) {
-        router.push("/dashboard");
-      } else {
-        setIsLoading(false);
-      }
-      return;
-    }
+    // Check our PASETO cookie-based session via /api/auth/me
+    fetch("/api/auth/me")
+      .then((res) => {
+        const isPublic = publicRoutes.includes(pathname);
 
-    if (!token) {
-      router.push("/auth/login");
-    } else {
-      setIsLoading(false);
-    }
+        if (res.ok) {
+          // Logged in — redirect away from public pages
+          if (isPublic && (pathname === "/auth/login" || pathname === "/auth/register" || pathname === "/")) {
+            router.push("/dashboard");
+          } else {
+            setIsLoading(false);
+          }
+        } else {
+          // Not logged in — redirect to sign-in if on a protected page
+          if (!isPublic) {
+            router.push("/sign-in");
+          } else {
+            setIsLoading(false);
+          }
+        }
+      })
+      .catch(() => {
+        if (!publicRoutes.includes(pathname)) {
+          router.push("/sign-in");
+        } else {
+          setIsLoading(false);
+        }
+      });
   }, [pathname, router]);
 
   if (isLoading) {

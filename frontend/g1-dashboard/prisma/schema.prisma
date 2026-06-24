@@ -7,7 +7,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // url is managed by prisma.config.ts in Prisma v6, but we can explicitly add it here too if needed, though omitted by default in v6 init.
+  url      = env("DATABASE_URL")
 }
 
 model Tenant {
