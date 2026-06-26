@@ -1,36 +1,33 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// Prisma schema — SQLite for local/prototype deployments
+// Run migrations: npx prisma migrate dev
+// Seed: npx prisma db seed
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
+
+// SQLite note: no enums, no String[], no @db.Text — use String throughout
 
 model Tenant {
   id        String   @id @default(uuid())
   name      String
-  features  Json     @default("{}") // e.g. {"advanced_ai": true, "custom_voice": false}
+  features  String   @default("{}") // JSON stored as text
   users     User[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-enum Role {
-  SUPER_ADMIN
-  CLIENT
-  VIEWER
-}
-
 model User {
   id       String @id @default(uuid())
   email    String @unique
-  password String // In production, this must be hashed using bcrypt or argon2
+  password String
   name     String
-  role     Role   @default(VIEWER)
+  role     String @default("VIEWER") // SUPER_ADMIN | CLIENT | VIEWER
 
   tenantId String?
   tenant   Tenant? @relation(fields: [tenantId], references: [id])
@@ -45,33 +42,27 @@ model User {
 model Persona {
   id String @id @default(uuid())
 
-  // Internal tracking
-  name       String // Internal dashboard label e.g., "Main Receptionist"
+  name       String
   version    Int     @default(1)
   isActive   Boolean @default(true)
   isTemplate Boolean @default(false)
 
-  // Identity (from persona.json)
   robotName     String @default("Jarvis")
   robotCompany  String @default("Jindal Steel")
   robotLocation String @default("Delhi")
   robotRole     String @default("Office assistant robot")
 
-  // Core AI Prompts
-  systemPrompt      String @db.Text
-  conversationRules Json   @default("[]") // Array of strings
+  systemPrompt      String @default("")
+  conversationRules String @default("[]") // JSON array as text
 
-  // Hardware/Platform settings
   wakeWord String @default("hey_jarvis")
   llmMode  String @default("local")
   asrMode  String @default("parakeet")
   ttsMode  String @default("g1_direct")
 
-  // Sync status
-  syncStatus   String    @default("not_synced") // synced, pending, error
+  syncStatus   String    @default("not_synced")
   lastSyncedAt DateTime?
 
-  // Relations
   createdById String?
   createdBy   User?   @relation(fields: [createdById], references: [id])
 
@@ -88,8 +79,8 @@ model PersonaVersion {
   persona   Persona @relation(fields: [personaId], references: [id], onDelete: Cascade)
 
   version       Int
-  snapshot      Json // Full snapshot of all persona fields
-  changeSummary String? @db.Text
+  snapshot      String  // JSON stored as text
+  changeSummary String?
 
   syncedToRobot Boolean   @default(false)
   syncedAt      DateTime?
@@ -101,14 +92,14 @@ model PersonaVersion {
 }
 
 model PersonaTemplate {
-  id          String   @id @default(uuid())
+  id          String  @id @default(uuid())
   name        String
-  description String?  @db.Text
+  description String?
   category    String?
-  tags        String[] // Array of strings
+  tags        String  @default("[]") // JSON array as text
 
   isSystem     Boolean @default(false)
-  templateData Json // Full persona config minus local IPs/robot IDs
+  templateData String  @default("{}") // JSON stored as text
 
   useCount Int @default(0)
 

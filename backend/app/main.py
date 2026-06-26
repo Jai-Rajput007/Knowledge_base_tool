@@ -1,5 +1,6 @@
 """FastAPI application factory."""
 
+import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -65,6 +66,7 @@ def create_application() -> FastAPI:
         init_db()
         logger.info("Database initialized")
         _seed_admin()
+        asyncio.create_task(_resume_wakeword_jobs())
 
     @app.on_event("shutdown")
     async def shutdown_event():
@@ -79,6 +81,59 @@ def create_application() -> FastAPI:
         return {"name": settings.APP_NAME, "version": settings.APP_VERSION, "docs": "/docs"}
 
     return app
+
+
+async def _resume_wakeword_jobs():
+    """On startup resume any in-progress wakeword jobs using the correct backend poller."""
+    from app.models.wakeword_job import WakewordJob, WakewordJobStatus
+    from app.db.database import SessionLocal
+    from app.services.wakeword import kaggle_trainer as kaggle
+    from app.services.wakeword import agx_trainer as agx
+
+    await asyncio.sleep(3)
+    with SessionLocal() as s:
+        stuck = s.query(WakewordJob).filter(
+            WakewordJob.status.in_([
+                WakewordJobStatus.RUNNING,
+                WakewordJobStatus.UPLOADING,
+                WakewordJobStatus.DOWNLOADING,
+            ])
+        ).all()
+        jobs = [(j.id, j.model_name, j.backend, j.robot_ip) for j in stuck]
+
+    for job_id, model_name, backend, robot_ip in jobs:
+        logger.info(f"Resuming wakeword job {job_id} ({model_name}, backend={backend})")
+
+        if backend == "kaggle":
+            output_dir = str(Path(settings.WAKEWORD_SAMPLES_DIR) / f"{model_name}_output")
+            asyncio.create_task(kaggle.poll_until_done(job_id, model_name, output_dir))
+
+        elif backend == "local_agx" and robot_ip:
+            try:
+                status = agx.get_training_status(robot_ip)
+                agx_status = status.get("status", "unknown")
+                if agx_status in ("complete", "error", "cancelled", "idle"):
+                    with SessionLocal() as s:
+                        job = s.query(WakewordJob).filter(WakewordJob.id == job_id).first()
+                        if job:
+                            job.status = (WakewordJobStatus.ERROR
+                                          if agx_status in ("error", "idle")
+                                          else WakewordJobStatus.CANCELLED)
+                            job.error_message = f"Job interrupted — AGX reported: {agx_status}"
+                            s.commit()
+                else:
+                    from app.api.v1.endpoints.wakeword import _run_local_training
+                    asyncio.create_task(_run_local_training(
+                        job_id, robot_ip, "", model_name, 0, 0, [], []
+                    ))
+            except Exception as e:
+                logger.warning(f"Job {job_id}: cannot reach AGX on resume — {e}")
+                with SessionLocal() as s:
+                    job = s.query(WakewordJob).filter(WakewordJob.id == job_id).first()
+                    if job:
+                        job.status = WakewordJobStatus.ERROR
+                        job.error_message = f"AGX unreachable on startup: {e}"
+                        s.commit()
 
 
 app = create_application()

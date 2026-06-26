@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function SignInPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -31,7 +32,8 @@ export default function SignInPage() {
         return;
       }
 
-      router.push(data.redirectTo);
+      const redirect = searchParams.get('redirect') || data.redirectTo || '/dashboard';
+      router.push(redirect);
       router.refresh();
     } catch {
       setError('Something went wrong. Please try again.');

@@ -4,18 +4,22 @@ import React, { useState, useRef, useLayoutEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
-import { 
-  FiUser, 
-  FiDatabase, 
-  FiMic, 
-  FiActivity, 
+import {
+  FiUser,
+  FiDatabase,
+  FiMic,
+  FiActivity,
   FiBox,
   FiArrowRight,
   FiSmile,
   FiCpu,
   FiSliders,
   FiPlusCircle,
-  FiHeart
+  FiHeart,
+  FiRadio,
+  FiNavigation,
+  FiMap,
+  FiMapPin
 } from "react-icons/fi";
 
 // --- Dropdown Contents ---
@@ -97,12 +101,48 @@ export type NavItem = {
   dropdownComponent?: React.FC;
 };
 
+const NavigationMenu = () => (
+  <div className="p-3 w-48">
+    <h3 className="mb-3 text-sm font-semibold text-foreground border-b border-border pb-2">Navigation</h3>
+    <div className="space-y-1">
+      <a href="/navigation#navigate" className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-primary transition-colors">
+        <FiMapPin className="text-lg" /> Go to Location
+      </a>
+      <a href="/navigation#mapping" className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-primary transition-colors">
+        <FiMap className="text-lg" /> Mapping
+      </a>
+      <a href="/navigation#status" className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-primary transition-colors">
+        <FiNavigation className="text-lg" /> Status
+      </a>
+    </div>
+  </div>
+);
+
+const WakeWordMenu = () => (
+  <div className="p-3 w-48">
+    <h3 className="mb-3 text-sm font-semibold text-foreground border-b border-border pb-2">Wake Word</h3>
+    <div className="space-y-1">
+      <a href="/wake-word#train" className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-primary transition-colors">
+        <FiRadio className="text-lg" /> Train Model
+      </a>
+      <a href="/wake-word#progress" className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-primary transition-colors">
+        <FiSliders className="text-lg" /> Live Progress
+      </a>
+      <a href="/wake-word#history" className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-primary transition-colors">
+        <FiCpu className="text-lg" /> Job History
+      </a>
+    </div>
+  </div>
+);
+
 const defaultNavItems: NavItem[] = [
-  { id: "persona", icon: <FiUser />, label: "Persona Manager", href: "/persona", dropdownComponent: PersonaMenu },
-  { id: "rag", icon: <FiDatabase />, label: "Robot RAG", href: "/rag", dropdownComponent: RagMenu },
-  { id: "voice", icon: <FiMic />, label: "Voice Settings", href: "/voice", dropdownComponent: VoiceMenu },
-  { id: "gesture", icon: <FiActivity />, label: "Gesture Settings", href: "/gesture", dropdownComponent: GestureMenu },
-  { id: "inventory", icon: <FiBox />, label: "Robot Inventory", href: "/inventory", dropdownComponent: InventoryMenu },
+  { id: "persona",    icon: <FiUser />,       label: "Persona Manager",  href: "/persona",     dropdownComponent: PersonaMenu },
+  { id: "rag",        icon: <FiDatabase />,   label: "Robot RAG",        href: "/rag",         dropdownComponent: RagMenu },
+  { id: "voice",      icon: <FiMic />,        label: "Voice Settings",   href: "/voice",       dropdownComponent: VoiceMenu },
+  { id: "wake-word",  icon: <FiRadio />,      label: "Wake Word",        href: "/wake-word",   dropdownComponent: WakeWordMenu },
+  { id: "navigation", icon: <FiNavigation />, label: "Navigation",       href: "/navigation",  dropdownComponent: NavigationMenu },
+  { id: "gesture",    icon: <FiActivity />,   label: "Gesture Settings", href: "/gesture",     dropdownComponent: GestureMenu },
+  { id: "inventory",  icon: <FiBox />,        label: "Robot Inventory",  href: "/inventory",   dropdownComponent: InventoryMenu },
 ];
 
 export const LimelightNav = ({

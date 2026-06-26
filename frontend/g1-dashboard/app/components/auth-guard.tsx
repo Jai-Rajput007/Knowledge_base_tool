@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 
-const publicRoutes = ["/", "/sign-in", "/auth/login", "/auth/register", "/auth/forgot-password", "/auth/reset-password"];
+const publicRoutes = ["/", "/sign-in"];
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -11,30 +11,29 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check our PASETO cookie-based session via /api/auth/me
+    const isPublic = publicRoutes.some(r => pathname === r || pathname.startsWith("/sign-in"));
+
     fetch("/api/auth/me")
       .then((res) => {
-        const isPublic = publicRoutes.includes(pathname);
-
         if (res.ok) {
-          // Logged in — redirect away from public pages
-          if (isPublic && (pathname === "/auth/login" || pathname === "/auth/register" || pathname === "/")) {
+          // Logged in — send away from public pages
+          if (isPublic) {
             router.push("/dashboard");
           } else {
             setIsLoading(false);
           }
         } else {
-          // Not logged in — redirect to sign-in if on a protected page
+          // Not logged in
           if (!isPublic) {
-            router.push("/sign-in");
+            router.push(`/sign-in?redirect=${encodeURIComponent(pathname)}`);
           } else {
             setIsLoading(false);
           }
         }
       })
       .catch(() => {
-        if (!publicRoutes.includes(pathname)) {
-          router.push("/sign-in");
+        if (!isPublic) {
+          router.push(`/sign-in?redirect=${encodeURIComponent(pathname)}`);
         } else {
           setIsLoading(false);
         }
@@ -44,7 +43,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background text-foreground">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
       </div>
     );
   }

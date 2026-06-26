@@ -1,127 +1,153 @@
+/**
+ * /api/persona — Next.js route
+ *
+ * GET  → reads persona from robot (robot_sync.py) with Prisma DB as fallback
+ * POST → saves to Prisma DB + pushes to robot via robot_sync.py (hot-reload, no restart)
+ */
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
 import { prisma } from '@/lib/prisma';
 
-const PERSONA_FILE_PATH = '/home/jai/g1-universe/g1-nlp/config/persona.json';
+const ROBOT_SYNC_URL = process.env.ROBOT_SYNC_URL || 'http://192.168.1.61:9000';
+
+// ── GET ───────────────────────────────────────────────────────────────────────
 
 export async function GET() {
+  // 1. Try live persona from robot (source of truth — what the robot is actually running)
   try {
-    // 1. Try to fetch the active persona from the database
-    let activePersona = await prisma.persona.findFirst({
+    const res = await fetch(`${ROBOT_SYNC_URL}/persona`, { signal: AbortSignal.timeout(4000) });
+    if (res.ok) {
+      const robotPersona = await res.json();
+      return NextResponse.json({ ...robotPersona, _source: 'robot' });
+    }
+  } catch {
+    // Robot unreachable — fall through to DB
+  }
+
+  // 2. Fall back to Prisma DB
+  try {
+    const activePersona = await prisma.persona.findFirst({
       where: { isActive: true },
-      orderBy: { updatedAt: 'desc' }
+      orderBy: { updatedAt: 'desc' },
     });
 
-    // 2. If it doesn't exist in DB yet, try to read from the JSON file to bootstrap
-    if (!activePersona) {
-      if (fs.existsSync(PERSONA_FILE_PATH)) {
-        const fileData = fs.readFileSync(PERSONA_FILE_PATH, 'utf-8');
-        return NextResponse.json(JSON.parse(fileData));
-      } else {
-        return NextResponse.json({ error: 'No persona found' }, { status: 404 });
-      }
+    if (activePersona) {
+      let rules: string[] = [];
+      try { rules = JSON.parse(activePersona.conversationRules as string); } catch { rules = []; }
+
+      return NextResponse.json({
+        identity: {
+          name:     activePersona.robotName,
+          company:  activePersona.robotCompany,
+          location: activePersona.robotLocation,
+          role:     activePersona.robotRole,
+        },
+        system_prompt:       activePersona.systemPrompt,
+        conversation_rules:  rules,
+        _db_id:              activePersona.id,
+        _version:            activePersona.version,
+        _source:             'db',
+        _warning:            'Robot unreachable — showing last saved config',
+      });
     }
+  } catch { /* Prisma not set up yet */ }
 
-    // 3. Format the DB model to match the JSON structure expected by the UI and Python
-    const formattedData = {
-      identity: {
-        name: activePersona.robotName,
-        company: activePersona.robotCompany,
-        location: activePersona.robotLocation,
-        role: activePersona.robotRole
-      },
-      system_prompt: activePersona.systemPrompt,
-      conversation_rules: activePersona.conversationRules,
-      // Pass the DB ID so the frontend can send it back on POST
-      _db_id: activePersona.id,
-      _version: activePersona.version
-    };
-
-    return NextResponse.json(formattedData);
-  } catch (error) {
-    console.error('Failed to read persona:', error);
-    return NextResponse.json({ error: 'Failed to read config' }, { status: 500 });
-  }
+  return NextResponse.json({ error: 'No persona found — robot offline and no DB record' }, { status: 404 });
 }
+
+// ── POST ──────────────────────────────────────────────────────────────────────
 
 export async function POST(req: Request) {
   try {
     const data = await req.json();
-    
-    // 1. Write to PostgreSQL Database (Source of Truth)
     const rules = Array.isArray(data.conversation_rules) ? data.conversation_rules : [];
-    
-    let dbPersona;
-    
-    // Check if we already have an active persona in DB
-    const existingActive = await prisma.persona.findFirst({
-      where: { isActive: true }
-    });
 
-    if (existingActive) {
-      // Update existing
-      dbPersona = await prisma.persona.update({
-        where: { id: existingActive.id },
-        data: {
-          robotName: data.identity?.name || '',
-          robotCompany: data.identity?.company || '',
-          robotLocation: data.identity?.location || '',
-          robotRole: data.identity?.role || '',
-          systemPrompt: data.system_prompt || '',
-          conversationRules: rules,
-          version: { increment: 1 },
-          lastSyncedAt: new Date(),
-          syncStatus: 'synced'
-        }
-      });
-    } else {
-      // Create new
-      dbPersona = await prisma.persona.create({
-        data: {
-          name: 'Main Robot Persona',
-          robotName: data.identity?.name || 'Jarvis',
-          robotCompany: data.identity?.company || '',
-          robotLocation: data.identity?.location || '',
-          robotRole: data.identity?.role || '',
-          systemPrompt: data.system_prompt || '',
-          conversationRules: rules,
-          lastSyncedAt: new Date(),
-          syncStatus: 'synced'
-        }
-      });
-    }
-
-    // 2. Create a Snapshot Version in DB for rollback
-    await prisma.personaVersion.create({
-      data: {
-        personaId: dbPersona.id,
-        version: dbPersona.version,
-        snapshot: data,
-        changeSummary: 'Updated via Persona Manager UI',
-        syncedToRobot: true,
-        syncedAt: new Date()
-      }
-    });
-
-    // 3. Write to JSON File (High-Speed Cache for Python Robot)
-    const dir = path.dirname(PERSONA_FILE_PATH);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-
-    // Write the exact data the python script expects
-    const filePayload = {
-      identity: data.identity,
-      system_prompt: data.system_prompt,
-      conversation_rules: rules
+    const payload = {
+      identity:            data.identity,
+      system_prompt:       data.system_prompt || '',
+      conversation_rules:  rules,
     };
 
-    fs.writeFileSync(PERSONA_FILE_PATH, JSON.stringify(filePayload, null, 2), 'utf-8');
+    // 1. Push to robot (robot_sync.py writes persona.json, watchdog hot-reloads instantly)
+    let robotSynced = false;
+    let robotMessage = '';
+    try {
+      const res = await fetch(`${ROBOT_SYNC_URL}/persona`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(8000),
+      });
+      if (res.ok) {
+        robotSynced = true;
+        robotMessage = 'Persona hot-reloaded on robot — active immediately';
+      } else {
+        robotMessage = `Robot sync failed: ${res.status}`;
+      }
+    } catch (e) {
+      robotMessage = 'Robot unreachable — saved to DB only';
+    }
 
-    return NextResponse.json({ success: true, version: dbPersona.version });
+    // 2. Save to Prisma DB (source of truth, used as fallback when robot offline)
+    let dbVersion = 1;
+    try {
+      const existing = await prisma.persona.findFirst({ where: { isActive: true } });
+
+      let dbPersona;
+      if (existing) {
+        dbPersona = await prisma.persona.update({
+          where: { id: existing.id },
+          data: {
+            robotName:        data.identity?.name     || '',
+            robotCompany:     data.identity?.company  || '',
+            robotLocation:    data.identity?.location || '',
+            robotRole:        data.identity?.role     || '',
+            systemPrompt:     data.system_prompt      || '',
+            conversationRules: JSON.stringify(rules),
+            version:          { increment: 1 },
+            lastSyncedAt:     new Date(),
+            syncStatus:       robotSynced ? 'synced' : 'pending',
+          },
+        });
+      } else {
+        dbPersona = await prisma.persona.create({
+          data: {
+            name:             'Main Robot Persona',
+            robotName:        data.identity?.name     || 'Jarvis',
+            robotCompany:     data.identity?.company  || '',
+            robotLocation:    data.identity?.location || '',
+            robotRole:        data.identity?.role     || '',
+            systemPrompt:     data.system_prompt      || '',
+            conversationRules: JSON.stringify(rules),
+            lastSyncedAt:     new Date(),
+            syncStatus:       robotSynced ? 'synced' : 'pending',
+          },
+        });
+      }
+
+      dbVersion = dbPersona.version;
+
+      // Save version snapshot for rollback
+      await prisma.personaVersion.create({
+        data: {
+          personaId:    dbPersona.id,
+          version:      dbPersona.version,
+          snapshot:     JSON.stringify(payload),
+          changeSummary: 'Updated via Persona Manager UI',
+          syncedToRobot: robotSynced,
+          syncedAt:     robotSynced ? new Date() : null,
+        },
+      });
+    } catch { /* Prisma not set up yet — that's ok, robot sync still worked */ }
+
+    return NextResponse.json({
+      success:      true,
+      robot_synced: robotSynced,
+      message:      robotMessage,
+      version:      dbVersion,
+    });
+
   } catch (error) {
-    console.error('Failed to write persona config:', error);
-    return NextResponse.json({ error: 'Failed to save config' }, { status: 500 });
+    console.error('Persona save error:', error);
+    return NextResponse.json({ error: 'Failed to save persona' }, { status: 500 });
   }
 }

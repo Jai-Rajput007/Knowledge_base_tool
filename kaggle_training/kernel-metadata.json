@@ -1,0 +1,15 @@
+{
+  "id": "satishsurya/g1-wakeword-trainer",
+  "title": "g1-wakeword-trainer",
+  "code_file": "train.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": [
+    "satishsurya/g1-wakeword-config"
+  ],
+  "kernel_sources": [],
+  "competition_sources": []
+}

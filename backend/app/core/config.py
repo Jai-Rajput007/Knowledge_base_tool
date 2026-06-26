@@ -87,6 +87,24 @@ class Settings(BaseSettings):
     def allowed_extensions_list(self) -> List[str]:
         return [e.strip() for e in self.ALLOWED_EXTENSIONS.split(",") if e.strip()]
 
+    # Robot agent (runs on AGX — connect via WiFi IP from laptop)
+    ROBOT_AGENT_HOST:       str = "192.168.1.61"   # AGX WiFi IP reachable from this machine
+    ROBOT_AGENT_PORT:       int = 7788
+
+    # Wake word training
+    # "local_agx" = train on robot GPU | "kaggle" = train on Kaggle cloud GPU
+    WAKEWORD_BACKEND:       str = "local_agx"
+    WAKEWORD_AGX_IP:        str = "192.168.1.61"
+    WAKEWORD_MODELS_DIR:    str = "./wakeword_models"
+    WAKEWORD_SAMPLES_DIR:   str = "./wakeword_samples"
+
+    # Kaggle (only needed when WAKEWORD_BACKEND=kaggle)
+    KAGGLE_USERNAME:        str = ""
+    KAGGLE_KEY:             str = ""
+    KAGGLE_KERNEL_NAME:     str = "g1-wakeword-trainer"
+    KAGGLE_CONFIG_DATASET:  str = "g1-wakeword-config"
+    KAGGLE_EXTRA_DATASETS:  str = ""
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
 
