@@ -85,11 +85,14 @@ class VectorDBService:
         self._client = None
         self._bm25 = None
         self._bm25_docs: List[Dict] = []  # {id, text, document_id}
-        self._initialize()
 
     # ------------------------------------------------------------------
     # Init
     # ------------------------------------------------------------------
+
+    def _ensure_initialized(self):
+        if self._client is None:
+            self._initialize()
 
     def _initialize(self):
         try:
@@ -206,6 +209,8 @@ class VectorDBService:
         if not chunks or not embeddings:
             logger.warning("No chunks or embeddings to add")
             return
+
+        self._ensure_initialized()
 
         try:
             from qdrant_client import models as qm
@@ -367,6 +372,7 @@ class VectorDBService:
     # ------------------------------------------------------------------
 
     def delete_document(self, document_id: str):
+        self._ensure_initialized()
         try:
             from qdrant_client import models as qm
             self._client.delete(
@@ -393,6 +399,7 @@ class VectorDBService:
     # ------------------------------------------------------------------
 
     def get_stats(self) -> Dict[str, int]:
+        self._ensure_initialized()
         try:
             return {"total_chunks": self._client.count(COLLECTION_NAME).count}
         except Exception:

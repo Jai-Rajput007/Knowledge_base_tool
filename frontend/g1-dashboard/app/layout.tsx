@@ -6,7 +6,6 @@ import { LimelightNav } from "./components/limelight-nav";
 import { AuthGuard } from "./components/auth-guard";
 import { HeaderActions } from "./components/header-actions";
 import { Sidebar } from "./components/sidebar";
-import { ShiftingDropDown } from "./components/shifting-dropdown";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -47,7 +46,7 @@ export default async function RootLayout({
 
   // Hide the RAG Navigation UI for super admins (they have their own dashboard layout)
   // and for logged-out visitors (they see the clean landing page)
-  const showRagUi = isLoggedIn && role !== 'SUPER_ADMIN';
+  const showRagUi = isLoggedIn && (role as string) !== 'SUPER_ADMIN';
 
   return (
     <html

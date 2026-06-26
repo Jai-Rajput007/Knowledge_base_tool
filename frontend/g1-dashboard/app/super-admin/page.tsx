@@ -109,7 +109,7 @@ export default function SuperAdminPage() {
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-lg bg-accent-purple/10 flex items-center justify-center text-accent-purple">
-                          {getIcon('tenants', 14)}
+                          {getIcon('tenants', 'w-3.5 h-3.5')}
                         </div>
                         <span className="text-sm font-medium text-text-primary">
                           {tenant.name}
