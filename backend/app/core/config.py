@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
 
     # Server
-    HOST: str = "0.0.0.0"
+    API_HOST: str = "0.0.0.0"
     PORT: int = 8000
 
     # CORS — stored as plain string, split into list via property

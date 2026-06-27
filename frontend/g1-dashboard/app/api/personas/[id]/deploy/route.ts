@@ -57,8 +57,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         name: personaToDeploy.robotName,
         company: personaToDeploy.robotCompany,
         location: personaToDeploy.robotLocation,
-        role: personaToDeploy.robotRole
+        role: personaToDeploy.robotRole,
+        voice: personaToDeploy.robotVoice
       },
+      wake_word: personaToDeploy.wakeWord,
       system_prompt: personaToDeploy.systemPrompt,
       conversation_rules: personaToDeploy.conversationRules
     };

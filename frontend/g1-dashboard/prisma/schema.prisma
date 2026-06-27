@@ -51,6 +51,7 @@ model Persona {
   robotCompany  String @default("Jindal Steel")
   robotLocation String @default("Delhi")
   robotRole     String @default("Office assistant robot")
+  robotVoice    String @default("Male")
 
   systemPrompt      String @default("")
   conversationRules String @default("[]") // JSON array as text

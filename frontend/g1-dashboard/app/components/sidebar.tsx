@@ -17,13 +17,15 @@ import {
 import { motion } from "motion/react";
 
 export const Sidebar = () => {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
   return (
     <motion.nav
       layout
-      className="fixed top-0 left-0 h-screen shrink-0 border-r border-border bg-card p-2 z-[60] flex flex-col shadow-sm"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      className="fixed top-4 left-4 h-[calc(100vh-32px)] shrink-0 border border-border bg-card/90 backdrop-blur-md p-2 z-[60] flex flex-col shadow-lg rounded-2xl transition-shadow hover:shadow-2xl overflow-hidden"
       style={{
         width: open ? "225px" : "fit-content",
       }}
@@ -99,8 +101,6 @@ export const Sidebar = () => {
           </button>
         </div>
       </div>
-
-      <ToggleClose open={open} setOpen={setOpen} />
     </motion.nav>
   );
 };
@@ -204,34 +204,3 @@ const Logo = () => {
   );
 };
 
-const ToggleClose = ({ open, setOpen }: { open: boolean; setOpen: any }) => {
-  return (
-    <motion.button
-      layout
-      onClick={() => setOpen((pv: boolean) => !pv)}
-      className="absolute bottom-0 left-0 right-0 border-t border-border bg-card transition-colors hover:bg-accent text-muted-foreground hover:text-foreground"
-    >
-      <div className="flex items-center p-2">
-        <motion.div
-          layout
-          className="grid size-10 shrink-0 place-content-center text-lg"
-        >
-          <FiChevronsRight
-            className={`transition-transform ${open ? "rotate-180" : ""}`}
-          />
-        </motion.div>
-        {open && (
-          <motion.span
-            layout
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.125 }}
-            className="text-xs font-medium"
-          >
-            Collapse
-          </motion.span>
-        )}
-      </div>
-    </motion.button>
-  );
-};

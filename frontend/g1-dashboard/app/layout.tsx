@@ -58,7 +58,7 @@ export default async function RootLayout({
         <ThemeProvider>
           {showRagUi && <Sidebar />}
           
-          <div className={`flex flex-col flex-1 relative min-h-screen max-w-full overflow-hidden ${showRagUi ? 'pl-[60px]' : ''}`}>
+          <div className={`flex flex-col flex-1 relative h-screen max-w-full overflow-hidden ${showRagUi ? 'pl-[88px]' : ''}`}>
             {showRagUi && <LimelightNav />}
             <HeaderActions isLoggedIn={isLoggedIn} />
             

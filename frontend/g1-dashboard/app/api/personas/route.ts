@@ -25,6 +25,8 @@ export async function POST(req: Request) {
         robotCompany: data.identity?.company || '',
         robotLocation: data.identity?.location || '',
         robotRole: data.identity?.role || '',
+        robotVoice: data.identity?.voice || 'Male',
+        wakeWord: data.wakeWord || 'hey_jarvis',
         systemPrompt: data.system_prompt || '',
         conversationRules: rules,
         isActive: false, // Not active until deployed

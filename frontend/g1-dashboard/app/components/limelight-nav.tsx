@@ -207,7 +207,7 @@ export const LimelightNav = ({
       onMouseLeave={() => handleSetHovered(null)}
     >
       <nav
-        className="relative flex items-center h-16 rounded-2xl bg-card text-card-foreground border border-border shadow-lg px-2 backdrop-blur-md"
+        className="relative flex items-center h-16 rounded-2xl bg-card/70 text-card-foreground border border-border/50 shadow-lg px-2 backdrop-blur-lg"
         style={{ boxShadow: `0 10px 40px -10px var(--shadow-color)` }}
       >
         {visibleItems.map((item, index) => {

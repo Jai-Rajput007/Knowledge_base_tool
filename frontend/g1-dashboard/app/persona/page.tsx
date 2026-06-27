@@ -19,7 +19,8 @@ export default function PersonaManagerPage() {
   // State for the currently edited/viewed persona in dialogs
   const [editForm, setEditForm] = useState<any>({
     name: "",
-    identity: { name: "", company: "", location: "", role: "" },
+    identity: { name: "", company: "", location: "", role: "", voice: "Male" },
+    wakeWord: "hey_jarvis",
     system_prompt: "",
     conversation_rules: []
   });
@@ -33,6 +34,8 @@ export default function PersonaManagerPage() {
     context: ""
   });
   const [generating, setGenerating] = useState(false);
+
+  const [availableWakewords, setAvailableWakewords] = useState<{filename: string; name: string}[]>([]);
 
   const fetchPersonas = useCallback(async () => {
     setLoading(true);
@@ -55,7 +58,16 @@ export default function PersonaManagerPage() {
     }
   }, []);
 
-  useEffect(() => { fetchPersonas(); }, [fetchPersonas]);
+  useEffect(() => { 
+    fetchPersonas(); 
+    // Fetch available dynamic wakewords
+    fetch("/api/wakewords")
+      .then(res => res.json())
+      .then(data => {
+        if (data.models) setAvailableWakewords(data.models);
+      })
+      .catch(err => console.error("Failed to load wakewords:", err));
+  }, [fetchPersonas]);
 
   const handleCreateOrUpdate = async () => {
     setSaving(true);
@@ -178,15 +190,18 @@ export default function PersonaManagerPage() {
           name: persona.robotName || "",
           company: persona.robotCompany || "",
           location: persona.robotLocation || "",
-          role: persona.robotRole || ""
+          role: persona.robotRole || "",
+          voice: persona.robotVoice || "Male"
         },
+        wakeWord: persona.wakeWord || "hey_jarvis",
         system_prompt: persona.systemPrompt || "",
         conversation_rules: persona.conversationRules || []
       });
     } else {
       setEditForm({
         name: "New Custom Persona",
-        identity: { name: "", company: "", location: "", role: "" },
+        identity: { name: "", company: "", location: "", role: "", voice: "Male" },
+        wakeWord: "hey_jarvis",
         system_prompt: "",
         conversation_rules: []
       });
@@ -633,6 +648,39 @@ export default function PersonaManagerPage() {
                       value={editForm.identity?.role || ""}
                       onChange={(e) => updateIdentity("role", e.target.value)}
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider">Voice</label>
+                    <select
+                      className="w-full bg-background border border-border px-4 py-3 text-foreground font-mono text-sm focus:outline-none focus:border-primary transition-colors appearance-none"
+                      value={editForm.identity?.voice || "Male"}
+                      onChange={(e) => updateIdentity("voice", e.target.value)}
+                    >
+                      <option value="Male">Male Voice</option>
+                      <option value="Female">Female Voice</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider">Wake Word</label>
+                    <select
+                      className="w-full bg-background border border-border px-4 py-3 text-foreground font-mono text-sm focus:outline-none focus:border-primary transition-colors appearance-none"
+                      value={editForm.wakeWord || "hey_jarvis"}
+                      onChange={(e) => {
+                        setEditForm({ ...editForm, wakeWord: e.target.value });
+                        markUnsaved();
+                      }}
+                    >
+                      {availableWakewords.length > 0 ? (
+                        availableWakewords.map(ww => (
+                          <option key={ww.filename} value={ww.filename}>{ww.name}</option>
+                        ))
+                      ) : (
+                        <>
+                          <option value="hey_jarvis">Hey Jarvis</option>
+                          <option value="hey_daksh">Hey Daksh</option>
+                        </>
+                      )}
+                    </select>
                   </div>
                 </div>
               </section>

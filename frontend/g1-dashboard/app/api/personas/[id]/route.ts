@@ -39,6 +39,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         robotCompany: data.identity?.company,
         robotLocation: data.identity?.location,
         robotRole: data.identity?.role,
+        robotVoice: data.identity?.voice,
+        wakeWord: data.wakeWord,
         systemPrompt: data.system_prompt,
         conversationRules: rules,
         version: { increment: 1 }

@@ -17,7 +17,9 @@ def _seed_admin():
     from app.models.user import User
     db = SessionLocal()
     try:
-        exists = db.query(User).filter(User.username == settings.ADMIN_USERNAME).first()
+        exists = db.query(User).filter(
+            (User.username == settings.ADMIN_USERNAME) | (User.email == settings.ADMIN_EMAIL)
+        ).first()
         if not exists:
             admin = User()
             admin.username = settings.ADMIN_USERNAME
