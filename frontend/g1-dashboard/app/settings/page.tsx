@@ -2,6 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
+import { RbacModule } from "@/app/features/rbac";
+import { RollbackModule } from "@/app/features/rollback";
+import { MultilingualModule } from "@/app/features/multilingual";
+import { WebhookModule } from "@/app/features/webhook";
+import { OtaUpdatesModule } from "@/app/features/ota-updates";
+
 
 function cn(...classes: (string | undefined | null | false)[]) {
   return classes.filter(Boolean).join(" ");
@@ -94,6 +100,12 @@ export default function Settings() {
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState("");
 
+  // Security State
+  const [oldPassword, setOldPassword] = useState("");
+  const [changeNewPassword, setChangeNewPassword] = useState("");
+  const [passwordStatus, setPasswordStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
+  const [passwordError, setPasswordError] = useState("");
+
   useEffect(() => {
     loadSettings();
     loadCurrentUser();
@@ -154,6 +166,30 @@ export default function Settings() {
     loadUsers();
   };
 
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordStatus("saving");
+    setPasswordError("");
+    try {
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ oldPassword, newPassword: changeNewPassword })
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to change password");
+      }
+      setPasswordStatus("success");
+      setOldPassword("");
+      setChangeNewPassword("");
+      setTimeout(() => setPasswordStatus("idle"), 3000);
+    } catch (err: any) {
+      setPasswordStatus("error");
+      setPasswordError(err.message || "Something went wrong");
+    }
+  };
+
   const loadSettings = async () => {
     setIsLoading(true);
     try {
@@ -208,16 +244,23 @@ export default function Settings() {
 
   const allTabs = [
     { id: "general", label: "General", adminOnly: false, hidden: false, icon: "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" },
+    { id: "security", label: "Security", adminOnly: false, hidden: false, icon: "M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" },
     { id: "llm", label: "LLM Models", adminOnly: false, hidden: false, icon: "M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" },
     { id: "embedding", label: "Embedding", adminOnly: false, hidden: true, icon: "M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" },
     { id: "chunking", label: "Chunking", adminOnly: false, hidden: true, icon: "M4 7v10c0 2 1.5 3 3 3h10c1.5 0 3-1 3-3V7c0-2-1.5-3-3-3H7c-1.5 0-3 1-3 3z M9 12h6" },
     { id: "database", label: "Vector DB", adminOnly: false, hidden: true, icon: "M4 7v10c0 2 1.5 3 3 3h10c1.5 0 3-1 3-3V7c0-2-1.5-3-3-3H7c-1.5 0-3 1-3 3z" },
     { id: "api", label: "API Keys", adminOnly: false, hidden: false, icon: "M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" },
-    { id: "users", label: "Manage Users", adminOnly: true, hidden: false, icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" },
+    
+    { id: "rbac", label: "RBAC", adminOnly: true, hidden: false, icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" },
+    { id: "rollback", label: "Rollback", adminOnly: false, hidden: false, icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
+    { id: "multilingual", label: "Localization", adminOnly: false, hidden: false, icon: "M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" },
+    { id: "webhook", label: "Webhooks", adminOnly: false, hidden: false, icon: "M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" },
+    { id: "ota", label: "OTA Updates", adminOnly: false, hidden: false, icon: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" },
+
   ];
 
   const tabs = allTabs.filter(t => !t.hidden && (!t.adminOnly || currentUserRole === "admin"));
-  const showSaveButton = activeTab !== "users";
+  const showSaveButton = !["users", "rbac", "rollback", "multilingual", "webhook", "ota"].includes(activeTab);
 
   return (
     <div className="flex-1 p-6 bg-background">
@@ -284,6 +327,59 @@ export default function Settings() {
                     <Toggle checked={darkModeDefault} onChange={() => setDarkModeDefault(!darkModeDefault)} />
                   </div>
                 </div>
+              </div>
+            )}
+
+            {activeTab === "security" && (
+              <div className="bg-card border border-border rounded-2xl p-6 space-y-8">
+                <div>
+                  <h2 className="text-xl font-semibold text-card-foreground mb-1">Security</h2>
+                  <p className="text-muted-foreground">Manage your account credentials</p>
+                </div>
+                
+                <form onSubmit={handleChangePassword} className="space-y-6 max-w-md">
+                  {passwordStatus === "success" && (
+                    <div className="p-3 text-sm text-green-600 bg-green-500/10 border border-green-500/20 rounded-lg">
+                      Password successfully updated.
+                    </div>
+                  )}
+                  {passwordStatus === "error" && (
+                    <div className="p-3 text-sm text-red-500 bg-red-500/10 border border-red-500/20 rounded-lg">
+                      {passwordError}
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-card-foreground">Current Password</label>
+                    <input 
+                      type="password" 
+                      required
+                      value={oldPassword} 
+                      onChange={(e) => setOldPassword(e.target.value)} 
+                      placeholder="••••••••"
+                      className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-card-foreground">New Password</label>
+                    <input 
+                      type="password" 
+                      required
+                      value={changeNewPassword} 
+                      onChange={(e) => setChangeNewPassword(e.target.value)} 
+                      placeholder="••••••••"
+                      className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20" 
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={passwordStatus === "saving"}
+                    className="px-6 py-2.5 rounded-xl font-medium transition-all bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {passwordStatus === "saving" ? "Updating..." : "Change Password"}
+                  </button>
+                </form>
               </div>
             )}
 
@@ -498,139 +594,16 @@ export default function Settings() {
               </div>
             )}
 
-            {activeTab === "users" && currentUserRole === "admin" && (
-              <div className="bg-card border border-border rounded-2xl p-6 space-y-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-xl font-semibold text-card-foreground mb-1">Manage Users</h2>
-                    <p className="text-muted-foreground">Create and manage user accounts</p>
-                  </div>
-                  <button
-                    onClick={() => { setShowCreateForm(!showCreateForm); setCreateError(""); }}
-                    className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-medium hover:opacity-90 transition-opacity"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    Add User
-                  </button>
-                </div>
-
-                {showCreateForm && (
-                  <form onSubmit={handleCreateUser} className="bg-accent/30 border border-border rounded-xl p-5 space-y-4">
-                    <h3 className="font-semibold text-card-foreground">New User</h3>
-                    {createError && (
-                      <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2">{createError}</p>
-                    )}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                        <label className="text-sm font-medium text-card-foreground">Username</label>
-                        <input required value={newUsername} onChange={e => setNewUsername(e.target.value)}
-                          className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-                          placeholder="johndoe" />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-sm font-medium text-card-foreground">Email</label>
-                        <input required type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)}
-                          className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-                          placeholder="john@company.com" />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-sm font-medium text-card-foreground">Password</label>
-                        <input required type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)}
-                          className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-                          placeholder="••••••••" />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-sm font-medium text-card-foreground">Role</label>
-                        <select value={newRole} onChange={e => setNewRole(e.target.value as "user" | "admin")}
-                          className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20">
-                          <option value="user">User</option>
-                          <option value="admin">Admin</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div className="flex gap-3 pt-1">
-                      <button type="submit" disabled={createLoading}
-                        className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-60 transition-opacity">
-                        {createLoading ? "Creating..." : "Create User"}
-                      </button>
-                      <button type="button" onClick={() => setShowCreateForm(false)}
-                        className="px-4 py-2 bg-accent text-accent-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
-                        Cancel
-                      </button>
-                    </div>
-                  </form>
-                )}
-
-                {usersLoading ? (
-                  <div className="text-center py-10 text-muted-foreground">Loading users...</div>
-                ) : userError ? (
-                  <div className="text-center py-10 text-destructive">{userError}</div>
-                ) : (
-                  <div className="space-y-2">
-                    {users.map(user => (
-                      <div key={user.id} className="flex items-center gap-4 p-4 rounded-xl border border-border bg-background/50">
-                        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                          <span className="text-primary font-semibold text-sm">{user.username[0].toUpperCase()}</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-card-foreground text-sm truncate">{user.username}</p>
-                          <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                        </div>
-                        <span className={cn(
-                          "shrink-0 text-xs font-medium px-2.5 py-1 rounded-full",
-                          user.role === "admin"
-                            ? "bg-primary/10 text-primary"
-                            : "bg-accent text-accent-foreground"
-                        )}>
-                          {user.role}
-                        </span>
-                        <span className={cn(
-                          "shrink-0 text-xs font-medium px-2.5 py-1 rounded-full",
-                          user.is_active
-                            ? "bg-green-500/10 text-green-600"
-                            : "bg-red-500/10 text-red-500"
-                        )}>
-                          {user.is_active ? "Active" : "Disabled"}
-                        </span>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <button
-                            onClick={() => handleToggleActive(user)}
-                            title={user.is_active ? "Disable" : "Enable"}
-                            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                d={user.is_active
-                                  ? "M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
-                                  : "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"} />
-                            </svg>
-                          </button>
-                          <button
-                            onClick={() => handleDeleteUser(user.id)}
-                            title="Delete user"
-                            className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                    {users.length === 0 && (
-                      <p className="text-center py-8 text-muted-foreground">No users found.</p>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
+            
+            {activeTab === "rbac" && <RbacModule />}
+            {activeTab === "rollback" && <RollbackModule />}
+            {activeTab === "multilingual" && <MultilingualModule />}
+            {activeTab === "webhook" && <WebhookModule />}
+            {activeTab === "ota" && <OtaUpdatesModule />}
           </div>
         </div>
 
-        {showSaveButton && (
+        {showSaveButton && activeTab !== "security" && (
           <div className="flex justify-end mt-8">
             <button
               onClick={saveSettings}

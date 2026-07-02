@@ -278,6 +278,8 @@ class VectorDBService:
         similarity_threshold = similarity_threshold if similarity_threshold is not None else settings.SIMILARITY_THRESHOLD
         fetch_k = min(top_k * 3, 200)
 
+        self._ensure_initialized()
+
         try:
             count = self._client.count(COLLECTION_NAME).count
             if count == 0:

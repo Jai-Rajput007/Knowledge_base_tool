@@ -203,13 +203,14 @@ export const LimelightNav = ({
 
   return (
     <div 
-      className="absolute top-6 left-1/2 -translate-x-1/2 z-50" 
+      className="sticky top-6 z-50 flex justify-center w-full" 
       onMouseLeave={() => handleSetHovered(null)}
     >
-      <nav
-        className="relative flex items-center h-16 rounded-2xl bg-card/70 text-card-foreground border border-border/50 shadow-lg px-2 backdrop-blur-lg"
-        style={{ boxShadow: `0 10px 40px -10px var(--shadow-color)` }}
-      >
+      <div className="relative">
+        <nav
+          className="relative flex items-center h-16 rounded-2xl bg-card/70 text-card-foreground border border-border/50 shadow-lg px-2 backdrop-blur-lg"
+          style={{ boxShadow: `0 10px 40px -10px var(--shadow-color)` }}
+        >
         {visibleItems.map((item, index) => {
           const isActive = activeIndex === index;
           const isHovered = hoveredIndex === index;
@@ -267,6 +268,7 @@ export const LimelightNav = ({
           />
         )}
       </AnimatePresence>
+      </div>
     </div>
   );
 };

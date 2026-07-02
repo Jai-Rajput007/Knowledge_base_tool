@@ -1,3 +1,7 @@
+"use client";
+
+import { AuditingModule } from "@/app/features/auditing";
+
 export default function AuditLogsPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-16 pb-32 pt-8">
@@ -6,17 +10,11 @@ export default function AuditLogsPage() {
           Audit Logs
         </h1>
         <p className="text-[10px] font-mono text-muted-foreground mt-2 uppercase tracking-widest">
-          SYS.CONFIG // Configure system parameters and operational protocols
+          SYS.CONFIG // Complete action history and audit trail
         </p>
       </div>
 
-      
-      <section className="min-h-[40vh] border border-border bg-card/20 p-8 flex items-center justify-center">
-        <span className="text-muted-foreground font-mono text-xs uppercase tracking-widest">[ Awaiting Implementation ]</span>
-      </section>
-      
-
-      
+      <AuditingModule />
     </div>
   );
 }

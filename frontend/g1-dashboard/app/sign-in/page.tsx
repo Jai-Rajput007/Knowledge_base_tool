@@ -32,7 +32,7 @@ export default function SignInPage() {
         return;
       }
 
-      const redirect = searchParams.get('redirect') || data.redirectTo || '/dashboard';
+      const redirect = data.redirectTo || searchParams.get('redirect') || '/dashboard';
       router.push(redirect);
       router.refresh();
     } catch {

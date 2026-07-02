@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "./components/theme-provider";
 import { LimelightNav } from "./components/limelight-nav";
 import { AuthGuard } from "./components/auth-guard";
+import { FeaturesProvider } from "./components/features-context";
 import { HeaderActions } from "./components/header-actions";
 import { Sidebar } from "./components/sidebar";
 
@@ -19,6 +20,7 @@ const geistMono = Geist_Mono({
 
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
   title: "G1 RAG Dashboard",
@@ -35,18 +37,26 @@ export default async function RootLayout({
   
   let isLoggedIn = false;
   let role = null;
+  let tenantData = null;
+  let requiresPasswordChange = false;
   
   if (token) {
     const session = await verifyToken(token);
     if (session) {
       isLoggedIn = true;
       role = session.role;
+      requiresPasswordChange = session.requiresPasswordChange === true;
+      if (session.tenantId) {
+        tenantData = await prisma.tenant.findUnique({ where: { id: session.tenantId } });
+      }
     }
   }
 
-  // Hide the RAG Navigation UI for super admins (they have their own dashboard layout)
-  // and for logged-out visitors (they see the clean landing page)
-  const showRagUi = isLoggedIn && (role as string) !== 'SUPER_ADMIN';
+  // Hide the RAG Navigation UI for logged-out visitors AND users needing password change
+  const showRagUi = isLoggedIn && !requiresPasswordChange;
+  
+  // Public pages (landing, sign-in, change-password) should not have dashboard padding
+  const isPublicPage = !isLoggedIn || requiresPasswordChange;
 
   return (
     <html
@@ -56,14 +66,19 @@ export default async function RootLayout({
     >
       <body className="min-h-full flex bg-background text-foreground">
         <ThemeProvider>
-          {showRagUi && <Sidebar />}
+          {showRagUi && <Sidebar tenant={tenantData} />}
           
-          <div className={`flex flex-col flex-1 relative h-screen max-w-full overflow-hidden ${showRagUi ? 'pl-[88px]' : ''}`}>
+          <div className={`flex flex-col flex-1 relative min-h-screen max-w-full ${showRagUi ? 'pl-[88px]' : ''}`}>
             {showRagUi && <LimelightNav />}
+            
             <HeaderActions isLoggedIn={isLoggedIn} />
             
-            <main className="flex-1 p-6 pt-32 overflow-y-auto">
-              {children}
+            <main className={`flex-1 ${isPublicPage ? '' : 'p-6 pt-32'}`}>
+              <AuthGuard>
+                <FeaturesProvider>
+                  {children}
+                </FeaturesProvider>
+              </AuthGuard>
             </main>
           </div>
         </ThemeProvider>

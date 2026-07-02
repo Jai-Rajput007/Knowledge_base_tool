@@ -15,12 +15,16 @@ import {
   FiLogOut,
 } from "react-icons/fi";
 import { motion } from "motion/react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { TenantProfileModal } from "@/components/TenantProfileModal";
 
-export const Sidebar = () => {
+export const Sidebar = ({ tenant }: { tenant?: any }) => {
   const [open, setOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const pathname = usePathname();
 
   return (
+    <>
     <motion.nav
       layout
       onMouseEnter={() => setOpen(true)}
@@ -30,7 +34,7 @@ export const Sidebar = () => {
         width: open ? "225px" : "fit-content",
       }}
     >
-      <TitleSection open={open} />
+      <TitleSection open={open} onOpenProfile={() => setIsProfileOpen(true)} tenant={tenant} />
 
       <div className="space-y-1 flex-1 overflow-y-auto overflow-x-hidden no-scrollbar pb-14">
         <Option
@@ -102,6 +106,12 @@ export const Sidebar = () => {
         </div>
       </div>
     </motion.nav>
+    <TenantProfileModal 
+      isOpen={isProfileOpen} 
+      onClose={() => setIsProfileOpen(false)} 
+      tenant={tenant}
+    />
+    </>
   );
 };
 
@@ -154,53 +164,42 @@ const Option = ({ Icon, title, href, selected, open, notifs }: any) => {
   );
 };
 
-const TitleSection = ({ open }: { open: boolean }) => {
+const TitleSection = ({ open, onOpenProfile, tenant }: { open: boolean, onOpenProfile: () => void, tenant: any }) => {
+  const logo = tenant?.companyLogo;
+  const initial = tenant?.name ? tenant.name.charAt(0).toUpperCase() : "G";
+  const tenantName = tenant?.name || "G1 Universe";
+
   return (
     <div className="mb-3 border-b border-border pb-3">
-      <Link href="/dashboard" className="flex cursor-pointer items-center justify-between rounded-md transition-colors hover:bg-accent p-1">
-        <div className="flex items-center gap-2">
-          <Logo />
-          {open && (
-            <motion.div
-              layout
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.125 }}
-              className="whitespace-nowrap"
-            >
-              <span className="block text-xs font-semibold text-foreground">G1 Universe</span>
-              <span className="block text-xs text-muted-foreground">Pro Plan</span>
-            </motion.div>
-          )}
-        </div>
-        {open && <FiChevronDown className="mr-2 text-muted-foreground" />}
-      </Link>
+      <button 
+        onClick={onOpenProfile} 
+        className="flex w-full flex-col cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-accent p-2 text-center"
+      >
+        <motion.div layout className="shrink-0">
+          <Avatar className="h-10 w-10 rounded-md border border-border shadow-sm mx-auto">
+            {logo ? (
+              <AvatarImage src={logo} alt={tenantName} className="object-cover" />
+            ) : null}
+            <AvatarFallback className="bg-primary text-primary-foreground font-semibold rounded-md">
+              {initial}
+            </AvatarFallback>
+          </Avatar>
+        </motion.div>
+        {open && (
+          <motion.div
+            layout
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            transition={{ delay: 0.125 }}
+            className="mt-2 whitespace-nowrap overflow-hidden"
+          >
+            <span className="block text-sm font-semibold text-foreground">{tenantName}</span>
+          </motion.div>
+        )}
+      </button>
     </div>
   );
 };
 
-const Logo = () => {
-  return (
-    <motion.div
-      layout
-      className="grid size-10 shrink-0 place-content-center rounded-md bg-primary"
-    >
-      <svg
-        width="24"
-        height="auto"
-        viewBox="0 0 50 39"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="fill-primary-foreground"
-      >
-        <path
-          d="M16.4992 2H37.5808L22.0816 24.9729H1L16.4992 2Z"
-        ></path>
-        <path
-          d="M17.4224 27.102L11.4192 36H33.5008L49 13.0271H32.7024L23.2064 27.102H17.4224Z"
-        ></path>
-      </svg>
-    </motion.div>
-  );
-};
+
 

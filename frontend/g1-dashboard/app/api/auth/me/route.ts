@@ -21,6 +21,7 @@ export async function GET() {
       email: session.email,
       name: session.name,
       role: session.role,
+      requiresPasswordChange: session.requiresPasswordChange,
       tenantId: session.tenantId,
       tenantName: session.tenantName,
     });

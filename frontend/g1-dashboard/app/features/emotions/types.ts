@@ -1,0 +1,2 @@
+// Types for emotions
+export {};

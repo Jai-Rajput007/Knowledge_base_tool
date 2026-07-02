@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  super_admin_db:
+    image: postgres:15-alpine
+    container_name: g1-superadmin-db
+    restart: always
+    environment:
+      POSTGRES_USER: super_admin
+      POSTGRES_PASSWORD: superadmin_password123
+      POSTGRES_DB: g1_superadmin
+    ports:
+      - "5434:5432"
+    volumes:
+      - superadmin_pgdata:/var/lib/postgresql/data
+
+  mqtt_broker:
+    image: eclipse-mosquitto:2
+    container_name: g1-mqtt-broker
+    restart: always
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
+
+volumes:
+  superadmin_pgdata:

@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model SuperAdmin {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("SUPER_ADMIN")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Tenant {
+  id           String             @id @default(uuid())
+  name               String
+  host               String?
+  companyDescription String?
+  companyType        String?
+  companyLogo        String?
+  plan               String             @default("Starter")
+  features           String?            // JSON string of enabled features
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  users        User[]
+  mcpConfigs   TenantMcpConfig[]
+}
+
+model User {
+  id        String   @id @default(uuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  email     String   @unique
+  password  String   // In real world, hash this
+  name      String?
+  role      String   @default("VIEWER") // SUPER_ADMIN | CLIENT | VIEWER
+  requiresPasswordChange Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TenantMcpConfig {
+  id         String   @id @default(uuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  mcpId      String   // E.g. 'composio', 'linear', etc.
+  isUnlocked Boolean  @default(false)
+  config     String?  // JSON string for specific API keys if needed
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  @@unique([tenantId, mcpId])
+}

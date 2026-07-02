@@ -36,8 +36,15 @@ npm run dev &
 FRONTEND_PID=$!
 echo "[frontend] PID $FRONTEND_PID"
 
+# ── MQTT Background Listener ────────────────────────────────────────────────
+echo "[mqtt] Starting MQTT Background Listener..."
+cd "$FRONTEND"
+npm run mqtt:listen &
+MQTT_PID=$!
+echo "[mqtt] PID $MQTT_PID"
+
 # ── Cleanup on Ctrl-C ─────────────────────────────────────────────────────────
-trap "echo; echo '[stop] Shutting down...'; kill $BACKEND_PID $FRONTEND_PID 2>/dev/null; exit 0" INT TERM
+trap "echo; echo '[stop] Shutting down...'; kill $BACKEND_PID $FRONTEND_PID $MQTT_PID 2>/dev/null; exit 0" INT TERM
 
 echo ""
 echo "  Dashboard:  http://localhost:3000"

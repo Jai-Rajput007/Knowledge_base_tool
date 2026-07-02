@@ -39,7 +39,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       data: {
         personaId: personaToDeploy.id,
         version: personaToDeploy.version,
-        snapshot: personaToDeploy,
+        snapshot: JSON.stringify(personaToDeploy),
         changeSummary: 'Deployed to Robot',
         syncedToRobot: true,
         syncedAt: new Date()

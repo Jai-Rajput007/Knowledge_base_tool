@@ -21,7 +21,7 @@ export function HeaderActions({ isLoggedIn = false }: { isLoggedIn?: boolean }) 
   const isAuthPage = pathname.startsWith("/auth") || pathname.startsWith("/sign-in");
 
   return (
-    <div className="absolute top-6 right-6 z-50 flex items-center gap-4">
+    <div className="fixed top-6 right-6 z-50 flex items-center gap-4">
       <ThemeToggle />
       {!isAuthPage && (
         isLoggedIn ? (

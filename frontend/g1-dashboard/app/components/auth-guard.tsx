@@ -16,15 +16,19 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     fetch("/api/auth/me")
       .then((res) => {
         if (res.ok) {
-          // Logged in — send away from public pages
-          if (isPublic) {
-            router.push("/dashboard");
-          } else {
-            setIsLoading(false);
-          }
+          return res.json().then((data) => {
+            // Logged in
+            if (data.requiresPasswordChange && pathname !== "/change-password") {
+              router.push("/change-password");
+            } else if (isPublic) {
+              router.push("/dashboard");
+            } else {
+              setIsLoading(false);
+            }
+          });
         } else {
           // Not logged in
-          if (!isPublic) {
+          if (!isPublic && pathname !== "/change-password") {
             router.push(`/sign-in?redirect=${encodeURIComponent(pathname)}`);
           } else {
             setIsLoading(false);
@@ -32,7 +36,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         }
       })
       .catch(() => {
-        if (!isPublic) {
+        if (!isPublic && pathname !== "/change-password") {
           router.push(`/sign-in?redirect=${encodeURIComponent(pathname)}`);
         } else {
           setIsLoading(false);

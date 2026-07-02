@@ -11,6 +11,7 @@ interface TokenPayload {
   email: string;
   name: string;
   role: UserRole;
+  requiresPasswordChange: boolean;
   tenantId?: string;
   tenantName?: string;
 }

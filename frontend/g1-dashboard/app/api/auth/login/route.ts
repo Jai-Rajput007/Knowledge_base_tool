@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { createToken } from '@/lib/auth';
 import type { UserRole } from '@/lib/mock-db';
+import bcrypt from 'bcryptjs';
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,7 +18,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find user in Prisma database
+    // Find user in local Prisma database
     const user = await prisma.user.findUnique({
       where: { email },
       include: { tenant: true }
@@ -30,8 +31,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate password (raw string match for our seeded demo users, add bcrypt later)
-    if (user.password !== password) {
+    // Check password (supporting both plaintext seeded data and bcrypt hashes)
+    const isMatch = user.password.startsWith('$2')
+      ? await bcrypt.compare(password, user.password)
+      : user.password === password;
+
+    if (!isMatch) {
       return NextResponse.json(
         { error: 'Invalid email or password' },
         { status: 401 }
@@ -39,7 +44,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Create encrypted PASETO token
-    // Lowercase the Prisma Enum role so it matches our existing UI logic (e.g. SUPER_ADMIN -> super_admin)
     const roleString = user.role.toLowerCase() as UserRole;
 
     const token = await createToken({
@@ -47,16 +51,13 @@ export async function POST(request: NextRequest) {
       email: user.email,
       name: user.name,
       role: roleString,
-      tenantId: user.tenantId || undefined,
-      tenantName: user.tenant?.name || undefined,
+      requiresPasswordChange: user.requiresPasswordChange,
+      tenantId: user.tenant?.id,
+      tenantName: user.tenant?.name,
     });
 
-    // Determine redirect based on role
-    // Instead of the old client-dashboard placeholder, send them to the new RAG dashboard
-    let redirectTo = '/dashboard'; 
-    if (roleString === 'super_admin') {
-      redirectTo = '/super-admin';
-    }
+    // Determine redirect
+    const redirectTo = user.requiresPasswordChange ? '/change-password' : '/dashboard'; 
 
     // Set HttpOnly cookie via next/headers
     const cookieStore = await cookies();
