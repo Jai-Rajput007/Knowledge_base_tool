@@ -32,6 +32,12 @@ export default function SignInPage() {
         return;
       }
 
+      if (data.access_token) {
+        import('@/lib/api').then(({ api }) => {
+          api.setToken(data.access_token);
+        });
+      }
+
       const redirect = data.redirectTo || searchParams.get('redirect') || '/dashboard';
       router.push(redirect);
       router.refresh();

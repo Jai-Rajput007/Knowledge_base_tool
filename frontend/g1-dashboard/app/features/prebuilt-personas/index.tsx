@@ -2,9 +2,10 @@
 
 import React, { useState } from "react";
 import { FiX } from "react-icons/fi";
-import { Floating3DCard } from "@/components/ui/3d-card";
+import { Floating3DCard } from "@/app/components/ui/3d-card";
 import { FeatureGate } from "@/app/components/feature-gate";
 import { usePersonaContext } from "../persona/context";
+import { api } from "@/lib/api";
 
 export function PrebuiltPersonasModule() {
   const { personas, fetchPersonas } = usePersonaContext();
@@ -16,23 +17,17 @@ export function PrebuiltPersonasModule() {
     try {
       const clonedData = {
         name: template.name + " (Copy)",
-        identity: {
-          name: template.robotName,
-          company: template.robotCompany,
-          location: template.robotLocation,
-          role: template.robotRole
-        },
-        system_prompt: template.systemPrompt,
-        conversation_rules: template.conversationRules
+        robotName: template.robotName,
+        robotCompany: template.robotCompany,
+        robotLocation: template.robotLocation,
+        robotRole: template.robotRole,
+        systemPrompt: template.systemPrompt,
+        conversationRules: template.conversationRules
       };
       
-      const res = await fetch("/api/personas", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(clonedData),
-      });
+      const res = await api.createPersona(clonedData);
       
-      if (res.ok) {
+      if (!res.error) {
         await fetchPersonas();
         setIsOpen(false);
       }

@@ -88,3 +88,50 @@ async def reset_password(request: ResetPasswordRequest, db: Session = Depends(ge
     user.set_password(request.new_password)
     db.commit()
     return {"message": "Password reset successful"}
+
+
+from pydantic import BaseModel
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+@router.post("/change-password")
+async def change_password(
+    request: ChangePasswordRequest, 
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    svc = AuthService(db)
+    if not current_user.check_password(request.current_password):
+        raise HTTPException(status_code=400, detail="Incorrect current password")
+    
+    current_user.set_password(request.new_password)
+    current_user.requires_password_change = 0
+    db.commit()
+
+    # The current user model doesn't have tenant_id directly on it in this architecture
+    # We will try to fetch the first tenant to sync back to Super Admin
+    from app.models.tenant import Tenant
+    tenant = db.query(Tenant).first()
+
+    # Publish sync to Super Admin via MQTT (IoT Simulator)
+    if tenant:
+        import paho.mqtt.client as mqtt
+        import json
+        import logging
+        logger = logging.getLogger(__name__)
+        try:
+            client = mqtt.Client()
+            client.connect("localhost", 1883, 60)
+            topic = f"agx/{tenant.id}/auth_sync"
+            client.publish(topic, json.dumps({
+                "userId": current_user.id,
+                "email": current_user.email,
+                "passwordHash": current_user.hashed_password,
+                "requiresPasswordChange": False
+            }), qos=1)
+            client.disconnect()
+        except Exception as e:
+            logger.error(f"MQTT Connection Error: {e}")
+
+    return {"success": True, "message": "Password changed successfully"}

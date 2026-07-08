@@ -1,96 +1,94 @@
 import mqtt from "mqtt";
-import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient();
+const BACKEND = "http://localhost:8000/api/v1";
+const FRONTEND_EVENTS = "http://localhost:3000/api/events";
+
+// ── helpers ──────────────────────────────────────────────────────────────────
+async function callBackend(path: string, body: object): Promise<void> {
+  const res = await fetch(`${BACKEND}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Backend ${path} returned ${res.status}: ${text}`);
+  }
+}
+
+async function notifyFrontend(): Promise<void> {
+  await fetch(FRONTEND_EVENTS, { method: "POST" }).catch(() => {});
+}
+
+// ── MQTT ─────────────────────────────────────────────────────────────────────
 const client = mqtt.connect("mqtt://localhost:1883");
 
 client.on("connect", () => {
-  console.log("AGX Client connected to MQTT Broker (IoT Simulator)");
-  // Subscribe to all feature and MCP updates for all tenants
-  // In production, an AGX would only subscribe to its OWN tenant ID topic
+  console.log("[MQTT] AGX Client connected to broker (IoT Simulator)");
+  // In production an AGX only subscribes to its OWN tenant topic.
+  // For local dev we subscribe to all tenants.
+  client.subscribe("tenant/+/info");
   client.subscribe("tenant/+/features");
   client.subscribe("tenant/+/mcp");
   client.subscribe("tenant/+/users/create");
 });
 
 client.on("message", async (topic, message) => {
+  const topicParts = topic.split("/");
+  const tenantId = topicParts[1];
+  const updateType = topicParts[2];
+
+  let payload: Record<string, unknown>;
   try {
-    const topicParts = topic.split("/");
-    const tenantId = topicParts[1];
-    const updateType = topicParts[2];
-    const payload = JSON.parse(message.toString());
+    payload = JSON.parse(message.toString());
+  } catch {
+    console.error(`[MQTT] Could not parse message on ${topic}`);
+    return;
+  }
 
-    if (updateType === "features") {
-      console.log(`[MQTT] Received features update for tenant ${tenantId}`);
-      await prisma.tenant.update({
-        where: { id: tenantId },
-        data: { features: JSON.stringify(payload) }
-      });
-      console.log(`[MQTT] Features applied locally for ${tenantId}`);
-      // Notify the frontend to re-fetch features in real-time
-      await fetch("http://localhost:3000/api/events", { method: "POST" }).catch(() => {});
-    } 
+  try {
+    // ── tenant/+/info ──────────────────────────────────────────────────────
+    if (updateType === "info") {
+      console.log(`[MQTT] Tenant info sync → ${tenantId}`);
+      await callBackend("/tenant/sync", payload);
+      await notifyFrontend();
+      console.log(`[MQTT] ✓ Tenant ${tenantId} saved to local DB`);
+    }
+
+    // ── tenant/+/features ──────────────────────────────────────────────────
+    else if (updateType === "features") {
+      console.log(`[MQTT] Features update → tenant ${tenantId}`);
+      await callBackend("/tenant/features/sync", { tenantId, features: payload });
+      await notifyFrontend();
+      console.log(`[MQTT] ✓ Features for ${tenantId} saved to local DB`);
+    }
+
+    // ── tenant/+/mcp ───────────────────────────────────────────────────────
     else if (updateType === "mcp") {
-      console.log(`[MQTT] Received MCP update for tenant ${tenantId}`);
-      const { mcpId, isUnlocked } = payload;
-      
-      const config = await prisma.tenantMcpConfig.findFirst({
-        where: { tenantId, mcpId }
-      });
-
-      if (config) {
-        await prisma.tenantMcpConfig.update({
-          where: { id: config.id },
-          data: { isUnlocked }
-        });
-      } else {
-        await prisma.tenantMcpConfig.create({
-          data: { tenantId, mcpId, isUnlocked }
-        });
-      }
-      console.log(`[MQTT] MCP config applied locally for ${tenantId} (${mcpId})`);
+      console.log(`[MQTT] MCP update → tenant ${tenantId}, mcp ${payload.mcpId}`);
+      await callBackend("/tenant/mcp/sync", { tenantId, ...payload });
+      console.log(`[MQTT] ✓ MCP config for ${tenantId}/${payload.mcpId} saved to local DB`);
     }
+
+    // ── tenant/+/users/create ──────────────────────────────────────────────
     else if (updateType === "users" && topicParts[3] === "create") {
-      console.log(`[MQTT] Received new user downstream sync for tenant ${tenantId}`);
-      
-      // Ensure tenant exists locally to prevent foreign key errors
-      await prisma.tenant.upsert({
-        where: { id: payload.tenantId },
-        update: {},
-        create: {
+      console.log(`[MQTT] New user downstream → tenant ${tenantId}, email ${payload.email}`);
+      // Ensure the tenant exists locally before creating its user
+      if (payload.tenantId) {
+        await callBackend("/tenant/sync", {
           id: payload.tenantId,
-          name: "Test Tenant (Synced)"
-        }
-      });
-
-      // Upsert the user into the local database
-      await prisma.user.upsert({
-        where: { id: payload.id },
-        update: {
-          email: payload.email,
-          name: payload.name,
-          password: payload.password,
-          role: payload.role,
-          requiresPasswordChange: payload.requiresPasswordChange,
-          tenantId: payload.tenantId,
-        },
-        create: {
-          id: payload.id,
-          email: payload.email,
-          name: payload.name,
-          password: payload.password,
-          role: payload.role,
-          requiresPasswordChange: payload.requiresPasswordChange,
-          tenantId: payload.tenantId,
-        }
-      });
-      console.log(`[MQTT] New user ${payload.email} saved locally!`);
+          name: (payload.tenantName as string) || "Synced Tenant",
+        }).catch(() => {}); // non-fatal — tenant may already exist
+      }
+      await callBackend("/tenant/users/sync", payload);
+      console.log(`[MQTT] ✓ User ${payload.email} provisioned in local DB`);
     }
+
   } catch (err) {
-    console.error("[MQTT] Failed to process incoming message:", err);
+    console.error(`[MQTT] Failed to process message on ${topic}:`, err);
   }
 });
 
 client.on("error", (err) => {
-  console.error("MQTT Connection Error:", err);
+  console.error("[MQTT] Connection error:", err);
 });

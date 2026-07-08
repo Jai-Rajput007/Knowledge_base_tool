@@ -25,6 +25,15 @@ export function useMcpState() {
 
   useEffect(() => {
     fetchIntegrations();
+    
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data === 'google_auth_success') {
+        fetchIntegrations();
+      }
+    };
+    
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
   }, [fetchIntegrations]);
 
   const handleToggle = async (id: string, currentStatus: boolean) => {
@@ -38,10 +47,26 @@ export function useMcpState() {
     }
   };
 
-  const handleConfigureClick = (id: string) => {
-    setConfiguringId(id);
+  const handleConfigureClick = async (id: string) => {
     const integration = integrations.find(i => i.id === id);
-    if (integration?.config_schema) {
+    if (!integration) return;
+
+    if (integration.provider === "composio" && (!integration.config_schema || Object.keys(integration.config_schema).length === 0 || integration.config_schema.auth_config_id)) {
+      // It's an OAuth integration (like GitHub) that doesn't require manual fields
+      try {
+        setLoading(true);
+        const url = await api.generateComposioLink(id);
+        window.location.href = url;
+      } catch (e) {
+        console.error("Failed to generate connect link", e);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    setConfiguringId(id);
+    if (integration.config_schema) {
       const initialValues: ConfigFormValues = {};
       Object.keys(integration.config_schema).forEach(key => {
         initialValues[key] = integration.config_values?.[key] || "";

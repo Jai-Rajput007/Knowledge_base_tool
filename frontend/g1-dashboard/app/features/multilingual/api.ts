@@ -1,2 +1,0 @@
-// API for multilingual
-export {};

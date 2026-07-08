@@ -63,7 +63,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
     });
     
     // Publish MQTT update to local IoT simulator
-    publishFeatureUpdate(params.id, data);
+    await publishFeatureUpdate(params.id, data);
     
     return NextResponse.json({ success: true });
   } catch (error) {

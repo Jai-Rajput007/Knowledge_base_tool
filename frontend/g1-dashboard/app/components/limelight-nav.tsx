@@ -19,7 +19,8 @@ import {
   FiRadio,
   FiNavigation,
   FiMap,
-  FiMapPin
+  FiMapPin,
+  FiCamera
 } from "react-icons/fi";
 
 // --- Dropdown Contents ---
@@ -54,19 +55,6 @@ const RagMenu = () => (
   </div>
 );
 
-const VoiceMenu = () => (
-  <div className="w-[240px]">
-    <h3 className="mb-3 text-sm font-semibold text-foreground border-b border-border pb-2">Voice Settings</h3>
-    <div className="flex flex-col gap-1">
-      <a href="/voice#cloning" className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-primary transition-colors">
-        <FiMic className="text-lg" /> Voice Cloning
-      </a>
-      <a href="/voice#tuning" className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-primary transition-colors">
-        <FiSliders className="text-lg" /> Tuning
-      </a>
-    </div>
-  </div>
-);
 
 const GestureMenu = () => (
   <div className="w-[240px]">
@@ -93,6 +81,7 @@ const InventoryMenu = () => (
   </div>
 );
 
+
 export type NavItem = {
   id: string;
   icon: React.ReactElement;
@@ -118,28 +107,10 @@ const NavigationMenu = () => (
   </div>
 );
 
-const WakeWordMenu = () => (
-  <div className="p-3 w-48">
-    <h3 className="mb-3 text-sm font-semibold text-foreground border-b border-border pb-2">Wake Word</h3>
-    <div className="space-y-1">
-      <a href="/wake-word#train" className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-primary transition-colors">
-        <FiRadio className="text-lg" /> Train Model
-      </a>
-      <a href="/wake-word#progress" className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-primary transition-colors">
-        <FiSliders className="text-lg" /> Live Progress
-      </a>
-      <a href="/wake-word#history" className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-primary transition-colors">
-        <FiCpu className="text-lg" /> Job History
-      </a>
-    </div>
-  </div>
-);
 
 const defaultNavItems: NavItem[] = [
   { id: "persona",    icon: <FiUser />,       label: "Persona Manager",  href: "/persona",     dropdownComponent: PersonaMenu },
   { id: "rag",        icon: <FiDatabase />,   label: "Robot RAG",        href: "/rag",         dropdownComponent: RagMenu },
-  { id: "voice",      icon: <FiMic />,        label: "Voice Settings",   href: "/voice",       dropdownComponent: VoiceMenu },
-  { id: "wake-word",  icon: <FiRadio />,      label: "Wake Word",        href: "/wake-word",   dropdownComponent: WakeWordMenu },
   { id: "navigation", icon: <FiNavigation />, label: "Navigation",       href: "/navigation",  dropdownComponent: NavigationMenu },
   { id: "gesture",    icon: <FiActivity />,   label: "Gesture Settings", href: "/gesture",     dropdownComponent: GestureMenu },
   { id: "inventory",  icon: <FiBox />,        label: "Robot Inventory",  href: "/inventory",   dropdownComponent: InventoryMenu },

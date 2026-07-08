@@ -1,2 +1,0 @@
-// Hooks for webhook
-export {};

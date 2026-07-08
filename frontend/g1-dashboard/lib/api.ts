@@ -3,10 +3,10 @@
 const getApiUrl = () => {
   if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
   if (typeof window !== "undefined") {
-    // Determine backend URL from the frontend's host but port 8002
-    return `${window.location.protocol}//${window.location.hostname}:8002/api/v1`;
+    // Determine backend URL from the frontend's host but port 8000
+    return `${window.location.protocol}//${window.location.hostname}:8000/api/v1`;
   }
-  return "http://localhost:8002/api/v1";
+  return "http://localhost:8000/api/v1";
 };
 
 const API_BASE_URL = getApiUrl();
@@ -171,6 +171,7 @@ class ApiClient {
       contextStrategy?: "standard" | "hierarchy" | "relevance" | "chronological" | "compress";
       includeMetadataInContext?: boolean;
       includeHierarchyInContext?: boolean;
+      sessionId?: string;
     }
   ) {
     return this.request("/chat/", {
@@ -178,6 +179,7 @@ class ApiClient {
       body: JSON.stringify({
         message,
         document_ids: documentIds,
+        session_id: options?.sessionId,
         enable_query_processing: options?.enableQueryProcessing ?? true,
         use_extracted_filters: options?.useExtractedFilters ?? true,
         section_path: options?.sectionPath,
@@ -213,6 +215,7 @@ class ApiClient {
       contextStrategy?: "standard" | "hierarchy" | "relevance" | "chronological" | "compress";
       includeMetadataInContext?: boolean;
       includeHierarchyInContext?: boolean;
+      sessionId?: string;
     }
   ) {
     const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -227,6 +230,7 @@ class ApiClient {
       body: JSON.stringify({
         message,
         document_ids: documentIds,
+        session_id: options?.sessionId,
         enable_query_processing: options?.enableQueryProcessing ?? true,
         use_extracted_filters: options?.useExtractedFilters ?? true,
         section_path: options?.sectionPath,
@@ -252,6 +256,33 @@ class ApiClient {
     return this.request("/chat/models");
   }
 
+  // Sessions
+  async getSessions() {
+    return this.request("/sessions/");
+  }
+
+  async createSession(title: string) {
+    return this.request("/sessions/", {
+      method: "POST",
+      body: JSON.stringify({ title }),
+    });
+  }
+
+  async getSessionMessages(sessionId: string) {
+    return this.request(`/sessions/${sessionId}/messages`);
+  }
+
+  async updateSession(sessionId: string, title: string) {
+    return this.request(`/sessions/${sessionId}`, {
+      method: "PUT",
+      body: JSON.stringify({ title }),
+    });
+  }
+
+  async deleteSession(sessionId: string) {
+    return this.request(`/sessions/${sessionId}`, { method: "DELETE" });
+  }
+
   // Settings
   async getSettings() {
     return this.request("/settings/");
@@ -274,6 +305,13 @@ class ApiClient {
 
   async getCurrentUser() {
     return this.request("/auth/me");
+  }
+
+  async changePassword(data: any) {
+    return this.request("/auth/change-password", {
+      method: "POST",
+      body: JSON.stringify(data)
+    });
   }
 
   // Admin: user management
@@ -386,6 +424,96 @@ class ApiClient {
       return { error: e.message };
     }
   }
+
+  // ── Personas ───────────────────────────────────────────────────────────────
+
+  async getActivePersona() {
+    return this.request("/personas/persona");
+  }
+
+  async updateActivePersona(payload: any) {
+    return this.request("/personas/persona", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+  }
+
+  async getPersonas() {
+    return this.request("/personas/");
+  }
+
+  async createPersona(payload: any) {
+    return this.request("/personas/", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+  }
+
+  async updatePersona(id: string, payload: any) {
+    return this.request(`/personas/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload)
+    });
+  }
+
+  async generatePersona(payload: any) {
+    return this.request("/personas/generate", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+  }
+
+  async deployPersona(id: string) {
+    return this.request(`/personas/${id}/deploy`, { method: "POST" });
+  }
+
+  async deletePersona(id: string) {
+    return this.request(`/personas/${id}`, { method: "DELETE" });
+  }
+
+  // ── Wakewords ──────────────────────────────────────────────────────────────
+
+  async getWakewords() {
+    return this.request("/wakeword/models");
+  }
+
+  // ── Tenant ─────────────────────────────────────────────────────────────────
+
+  async getTenantProfile() {
+    return this.request("/tenant/profile");
+  }
+
+  async updateTenantProfile(payload: any) {
+    return this.request("/tenant/profile", {
+      method: "PUT",
+      body: JSON.stringify(payload)
+    });
+  }
+
+  async getTenantFeatures() {
+    return this.request("/tenant/features");
+  }
+
+  // ── MCP ────────────────────────────────────────────────────────────────────
+
+  async getMcpIntegrations() {
+    return this.request("/mcp/");
+  }
+
+  async configureMcpIntegration(payload: any) {
+    return this.request("/mcp/configure", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+  }
+
+  async generateComposioLink(mcpId: string) {
+    return this.request("/mcp/composio-link", {
+      method: "POST",
+      body: JSON.stringify({ mcpId })
+    });
+  }
 }
+
 
 export const api = new ApiClient(API_BASE_URL);

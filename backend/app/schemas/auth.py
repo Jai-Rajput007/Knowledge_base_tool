@@ -31,6 +31,7 @@ class UserResponse(UserBase):
     id: int
     role: str
     is_active: int
+    requires_password_change: int
     created_at: datetime
     last_login: Optional[datetime] = None
 

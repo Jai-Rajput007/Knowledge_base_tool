@@ -1,11 +1,15 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { FeatureGate } from "@/app/components/feature-gate";
 import { FiDownload, FiFilter, FiSearch, FiShield } from "react-icons/fi";
-import { motion } from "framer-motion";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
+
+gsap.registerPlugin(useGSAP);
 
 export function AuditingModule() {
+  const containerRef = useRef<HTMLDivElement>(null);
   const [logs] = useState([
     { id: 1, action: "User Login", user: "Admin", ip: "192.168.1.10", time: "2 mins ago", status: "success" },
     { id: 2, action: "Updated Persona", user: "Admin", ip: "192.168.1.10", time: "15 mins ago", status: "success" },
@@ -14,9 +18,19 @@ export function AuditingModule() {
     { id: 5, action: "API Key Generated", user: "Admin", ip: "192.168.1.10", time: "1 day ago", status: "success" },
   ]);
 
+  useGSAP(() => {
+    if (logs.length > 0) {
+      gsap.fromTo(
+        ".audit-row",
+        { opacity: 0, y: 10 },
+        { opacity: 1, y: 0, duration: 0.4, stagger: 0.05, ease: "power2.out" }
+      );
+    }
+  }, { dependencies: [logs], scope: containerRef });
+
   return (
     <FeatureGate featureKey="auditing">
-      <div className="space-y-6">
+      <div ref={containerRef} className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
           <div className="relative w-full sm:w-96">
             <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -45,13 +59,10 @@ export function AuditingModule() {
           </div>
 
           <div className="flex flex-col">
-            {logs.map((log, i) => (
-              <motion.div 
+            {logs.map((log) => (
+              <div 
                 key={log.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-                className="grid grid-cols-5 gap-4 p-4 items-center border-b border-border/50 hover:bg-card/50 transition-colors last:border-0"
+                className="audit-row grid grid-cols-5 gap-4 p-4 items-center border-b border-border/50 hover:bg-card/50 transition-colors last:border-0"
               >
                 <div className="col-span-2 flex items-center gap-3">
                   <div className={`w-2 h-2 rounded-full ${log.status === 'success' ? 'bg-green-500' : 'bg-red-500'}`} />
@@ -63,7 +74,7 @@ export function AuditingModule() {
                 </div>
                 <div className="font-mono text-xs text-muted-foreground">{log.ip}</div>
                 <div className="text-right font-mono text-xs text-muted-foreground">{log.time}</div>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>

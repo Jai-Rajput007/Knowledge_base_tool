@@ -4,9 +4,16 @@ import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { RbacModule } from "@/app/features/rbac";
 import { RollbackModule } from "@/app/features/rollback";
-import { MultilingualModule } from "@/app/features/multilingual";
-import { WebhookModule } from "@/app/features/webhook";
 import { OtaUpdatesModule } from "@/app/features/ota-updates";
+import { VoiceSettingsModule } from "@/app/features/voice-settings";
+
+/**
+ * Settings Page
+ *
+ * This page handles all system settings, including General, Security, API keys, and more.
+ * UPDATED: Integrated VoiceSettingsModule into the Settings panel as a new tab ("voice").
+ * UPDATED: Removed Localization, LLM models, and Webhooks tabs as requested.
+ */
 
 
 function cn(...classes: (string | undefined | null | false)[]) {
@@ -245,22 +252,20 @@ export default function Settings() {
   const allTabs = [
     { id: "general", label: "General", adminOnly: false, hidden: false, icon: "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" },
     { id: "security", label: "Security", adminOnly: false, hidden: false, icon: "M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" },
-    { id: "llm", label: "LLM Models", adminOnly: false, hidden: false, icon: "M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" },
     { id: "embedding", label: "Embedding", adminOnly: false, hidden: true, icon: "M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" },
     { id: "chunking", label: "Chunking", adminOnly: false, hidden: true, icon: "M4 7v10c0 2 1.5 3 3 3h10c1.5 0 3-1 3-3V7c0-2-1.5-3-3-3H7c-1.5 0-3 1-3 3z M9 12h6" },
     { id: "database", label: "Vector DB", adminOnly: false, hidden: true, icon: "M4 7v10c0 2 1.5 3 3 3h10c1.5 0 3-1 3-3V7c0-2-1.5-3-3-3H7c-1.5 0-3 1-3 3z" },
     { id: "api", label: "API Keys", adminOnly: false, hidden: false, icon: "M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" },
+    { id: "voice", label: "Voice", adminOnly: false, hidden: false, icon: "M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" },
     
     { id: "rbac", label: "RBAC", adminOnly: true, hidden: false, icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" },
     { id: "rollback", label: "Rollback", adminOnly: false, hidden: false, icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
-    { id: "multilingual", label: "Localization", adminOnly: false, hidden: false, icon: "M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" },
-    { id: "webhook", label: "Webhooks", adminOnly: false, hidden: false, icon: "M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" },
     { id: "ota", label: "OTA Updates", adminOnly: false, hidden: false, icon: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" },
 
   ];
 
   const tabs = allTabs.filter(t => !t.hidden && (!t.adminOnly || currentUserRole === "admin"));
-  const showSaveButton = !["users", "rbac", "rollback", "multilingual", "webhook", "ota"].includes(activeTab);
+  const showSaveButton = !["users", "rbac", "rollback", "ota", "voice"].includes(activeTab);
 
   return (
     <div className="flex-1 p-6 bg-background">
@@ -273,7 +278,10 @@ export default function Settings() {
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => {
+                  console.log(`[Settings] Switching to tab: ${tab.id}`);
+                  setActiveTab(tab.id);
+                }}
                 className={cn(
                   "w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all",
                   activeTab === tab.id
@@ -380,60 +388,6 @@ export default function Settings() {
                     {passwordStatus === "saving" ? "Updating..." : "Change Password"}
                   </button>
                 </form>
-              </div>
-            )}
-
-            {activeTab === "llm" && (
-              <div className="bg-card border border-border rounded-2xl p-6 space-y-8">
-                <div>
-                  <h2 className="text-xl font-semibold text-card-foreground mb-1">LLM Configuration</h2>
-                  <p className="text-muted-foreground">Configure your language model settings</p>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-card-foreground">Provider</label>
-                    <select value={llmProvider} onChange={(e) => setLlmProvider(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
-                      <option value="ollama">Ollama (Local)</option>
-                      <option value="openai">OpenAI</option>
-                      <option value="anthropic">Anthropic</option>
-                      <option value="cohere">Cohere</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-card-foreground">Model</label>
-                    <select value={llmModel} onChange={(e) => setLlmModel(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
-                      <option value="llama3.2:latest">Llama 3.2</option>
-                      <option value="mistral:latest">Mistral</option>
-                      <option value="gemma:2b">Gemma 2B</option>
-                      <option value="phi3:latest">Phi-3</option>
-                      <option value="codellama:latest">Code Llama</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-card-foreground">Temperature ({temperature})</label>
-                    <input type="range" min="0" max="2" step="0.1" value={temperature}
-                      onChange={(e) => setTemperature(parseFloat(e.target.value))} className="w-full" />
-                    <p className="text-xs text-muted-foreground">Controls randomness: 0 = deterministic, 2 = very random</p>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-card-foreground">Max Tokens</label>
-                    <input type="number" value={maxTokens} onChange={(e) => setMaxTokens(parseInt(e.target.value))}
-                      min="128" max="8192"
-                      className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-card-foreground">Top P ({topP})</label>
-                    <input type="range" min="0" max="1" step="0.05" value={topP}
-                      onChange={(e) => setTopP(parseFloat(e.target.value))} className="w-full" />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-card-foreground">System Prompt</label>
-                  <textarea value={systemPrompt} onChange={(e) => setSystemPrompt(e.target.value)}
-                    rows={4} className="w-full px-4 py-3 bg-background border border-border rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none" />
-                </div>
               </div>
             )}
 
@@ -594,12 +548,18 @@ export default function Settings() {
               </div>
             )}
 
-            
             {activeTab === "rbac" && <RbacModule />}
             {activeTab === "rollback" && <RollbackModule />}
-            {activeTab === "multilingual" && <MultilingualModule />}
-            {activeTab === "webhook" && <WebhookModule />}
             {activeTab === "ota" && <OtaUpdatesModule />}
+            {activeTab === "voice" && (
+              <div className="bg-card border border-border rounded-2xl p-6 space-y-8">
+                <div>
+                  <h2 className="text-xl font-semibold text-card-foreground mb-1">Voice Settings</h2>
+                  <p className="text-muted-foreground">Configure acoustic parameters and speech synthesis</p>
+                </div>
+                <VoiceSettingsModule />
+              </div>
+            )}
           </div>
         </div>
 

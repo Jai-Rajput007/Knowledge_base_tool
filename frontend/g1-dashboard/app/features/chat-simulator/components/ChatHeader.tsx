@@ -7,33 +7,19 @@ interface ChatHeaderProps {
   availableModels: string[];
   messages: Message[];
   clearChat: () => void;
-  showAdvancedOptions: boolean;
-  setShowAdvancedOptions: (show: boolean) => void;
-  hasActiveFilters: boolean;
 }
 
 export function ChatHeader({
-  selectedModel, setSelectedModel, availableModels, messages, clearChat,
-  showAdvancedOptions, setShowAdvancedOptions, hasActiveFilters
+  selectedModel, setSelectedModel, availableModels, messages, clearChat
 }: ChatHeaderProps) {
   return (
     <>
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between mb-2">
           <div>
-            <h1 className="text-xl font-semibold text-foreground">Chat with your Documents</h1>
-            <p className="text-muted-foreground text-sm">Ask questions with hybrid retrieval (vector + metadata + hierarchy)</p>
+            <h1 className="text-xl font-semibold text-foreground">Chat with your robot</h1>
           </div>
           <div className="flex items-center gap-3">
-            <select
-              value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
-              className="px-3 py-1.5 bg-card border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-            >
-              {availableModels.map((m) => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
             {messages.length > 0 && (
               <button
                 onClick={clearChat}
@@ -47,19 +33,6 @@ export function ChatHeader({
             )}
           </div>
         </div>
-
-        <button
-          onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <svg className={`w-4 h-4 transition-transform ${showAdvancedOptions ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-          Advanced Search Options
-          {hasActiveFilters && (
-            <span className="ml-1 px-1.5 py-0.5 bg-primary/20 text-primary text-xs rounded-full">Active</span>
-          )}
-        </button>
       </div>
     </>
   );

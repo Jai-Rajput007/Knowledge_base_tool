@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Floating3DCard } from "@/components/ui/3d-card";
+import { Floating3DCard } from "@/app/components/ui/3d-card";
 import { FeatureGate } from "@/app/components/feature-gate";
 import { usePersonaChange } from "./hooks/usePersonaChange";
 import { RoleBuilderModal } from "./components/RoleBuilderModal";

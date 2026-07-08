@@ -65,28 +65,23 @@ async def get_session_messages(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Get all messages for a specific session from LangGraph checkpointer."""
+    """Get all messages for a specific session from PostgreSQL database."""
     session = db.query(ChatSession).filter(ChatSession.id == session_id, ChatSession.user_id == current_user.id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
         
-    graph = request.app.state.graph
-    state = await graph.aget_state({"configurable": {"thread_id": session_id}})
+    messages = db.query(Message).filter(Message.session_id == session_id).order_by(Message.turn_number.asc()).all()
     
     formatted_messages = []
-    if state and hasattr(state, "values") and "messages" in state.values:
-        for i, msg in enumerate(state.values["messages"]):
-            role = "user" if msg.type == "human" else "assistant"
-            # Using current time as fallback for created_at
-            from datetime import datetime
-            formatted_messages.append({
-                "id": i,
-                "session_id": session_id,
-                "role": role,
-                "content": msg.content,
-                "turn_number": i,
-                "created_at": datetime.utcnow()
-            })
+    for msg in messages:
+        formatted_messages.append({
+            "id": msg.id,
+            "session_id": session_id,
+            "role": msg.role,
+            "content": msg.content,
+            "turn_number": msg.turn_number,
+            "created_at": msg.created_at
+        })
             
     return formatted_messages
 
@@ -154,3 +149,51 @@ async def toggle_pin(
     db.commit()
     db.refresh(session)
     return session
+
+
+@router.delete("/cleanup/old", status_code=status.HTTP_200_OK)
+async def cleanup_old_sessions(
+    days: int = 15,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Auto-delete sessions older than `days` days (default: 15).
+    Pinned sessions are NEVER deleted automatically.
+    Also cascades deletes to messages, memory facts, summaries, and entities.
+    
+    Use days=7 for aggressive cleanup or days=15 for standard LTM retention.
+    """
+    import datetime
+
+    cutoff = datetime.datetime.utcnow() - datetime.timedelta(days=days)
+    logger.info(f"[Cleanup] Deleting sessions older than {days} days (before {cutoff}) for user {current_user.id}")
+
+    # Only delete non-pinned sessions older than cutoff
+    old_sessions = db.query(ChatSession).filter(
+        ChatSession.user_id == current_user.id,
+        ChatSession.updated_at < cutoff,
+        ChatSession.is_pinned == False
+    ).all()
+
+    if not old_sessions:
+        return {"deleted": 0, "message": f"No sessions older than {days} days found."}
+
+    from app.models.session_summary import SessionSummary
+    from app.models.entity import SessionEntity
+
+    deleted_count = 0
+    for session in old_sessions:
+        sid = session.id
+        # Cascade delete all child records
+        db.query(MemoryFact).filter(MemoryFact.source_session_id == sid).delete()
+        db.query(Message).filter(Message.session_id == sid).delete()
+        db.query(SessionSummary).filter(SessionSummary.session_id == sid).delete()
+        db.query(SessionEntity).filter(SessionEntity.session_id == sid).delete()
+        db.delete(session)
+        deleted_count += 1
+        logger.info(f"[Cleanup] Deleted session {sid}")
+
+    db.commit()
+    logger.info(f"[Cleanup] Done. Deleted {deleted_count} sessions.")
+    return {"deleted": deleted_count, "message": f"Deleted {deleted_count} sessions older than {days} days."}

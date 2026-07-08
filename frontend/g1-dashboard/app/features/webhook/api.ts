@@ -1,2 +1,0 @@
-// API for webhook
-export {};

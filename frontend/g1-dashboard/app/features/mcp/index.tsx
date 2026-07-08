@@ -1,13 +1,18 @@
 "use client";
 
-import React from "react";
+import React, { useRef } from "react";
 import { FeatureGate } from "@/app/components/feature-gate";
 import { useMcpState } from "./hooks/useMcpState";
 import { McpHeader } from "./components/McpHeader";
 import { IntegrationCard } from "./components/IntegrationCard";
 import { ConfigModal } from "./components/ConfigModal";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
+
+gsap.registerPlugin(useGSAP);
 
 export function McpModule() {
+  const containerRef = useRef<HTMLDivElement>(null);
   const {
     integrations,
     loading,
@@ -21,16 +26,33 @@ export function McpModule() {
     handleSaveConfig
   } = useMcpState();
 
+  useGSAP(() => {
+    if (!loading && integrations.length > 0) {
+      gsap.fromTo(
+        ".mcp-card",
+        { opacity: 0, y: 30, scale: 0.95 },
+        {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.6,
+          ease: "back.out(1.2)",
+          stagger: 0.05,
+        }
+      );
+    }
+  }, { dependencies: [loading, integrations], scope: containerRef });
+
   const handleFormChange = (key: string, value: string) => {
     setFormValues(prev => ({ ...prev, [key]: value }));
   };
 
   return (
     <FeatureGate featureKey="mcp">
-      <div className="max-w-6xl mx-auto space-y-16 pb-32 pt-8">
+      <div className="max-w-[1600px] mx-auto space-y-16 pb-32 pt-8 px-6 lg:px-12">
         <McpHeader />
 
-        <section id="integrations" className="scroll-mt-28 min-h-[50vh]">
+        <section id="integrations" ref={containerRef} className="scroll-mt-28 min-h-[50vh]">
           {loading ? (
             <div className="flex items-center justify-center p-24 text-muted-foreground font-mono text-sm">
               <svg className="animate-spin w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24">
@@ -44,7 +66,7 @@ export function McpModule() {
               // No integrations available or failed to connect to MCP manager
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
               {integrations.map(integration => (
                 <IntegrationCard 
                   key={integration.id} 

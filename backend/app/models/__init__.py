@@ -9,6 +9,8 @@ from app.models.message import Message
 from app.models.memory_fact import MemoryFact
 from app.models.session_summary import SessionSummary
 from app.models.entity import SessionEntity
+from app.models.persona import Persona, PersonaVersion, PersonaTemplate
+from app.models.tenant import Tenant, McpIntegration, TenantMcpConfig
 
 __all__ = [
     "Document",
@@ -22,4 +24,10 @@ __all__ = [
     "MemoryFact",
     "SessionSummary",
     "SessionEntity",
+    "Persona",
+    "PersonaVersion",
+    "PersonaTemplate",
+    "Tenant",
+    "McpIntegration",
+    "TenantMcpConfig",
 ]

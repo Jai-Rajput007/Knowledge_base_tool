@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CreateTenantModal } from "@/components/super-admin/CreateTenantModal";
-import { TenantInfoModal } from "@/components/super-admin/TenantInfoModal";
+import { CreateTenantModal } from "@/app/components/super-admin/CreateTenantModal";
+import { TenantInfoModal } from "@/app/components/super-admin/TenantInfoModal";
 import { Users, Info, Trash2 } from "lucide-react";
 
 export default function TenantsPage() {

@@ -1,7 +1,7 @@
 import './globals.css';
-import { SuperAdminNavbar } from '@/components/super-admin/SuperAdminNavbar';
+import { SuperAdminNavbar } from "@/app/components/super-admin/SuperAdminNavbar";
 
-import { ThemeProvider } from '@/components/theme-provider';
+import { ThemeProvider } from "@/app/components/theme-provider";
 
 export const metadata = {
   title: 'System Core | Super Admin',

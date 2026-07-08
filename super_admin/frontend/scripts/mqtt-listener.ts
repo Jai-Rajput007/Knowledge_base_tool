@@ -8,6 +8,7 @@ client.on("connect", () => {
   console.log("Super Admin MQTT Listener connected");
   // Subscribe to auth sync events from all AGX robots
   client.subscribe("agx/+/auth_sync");
+  client.subscribe("agx/+/profile_sync");
 });
 
 client.on("message", async (topic, message) => {
@@ -31,6 +32,23 @@ client.on("message", async (topic, message) => {
         }
       });
       console.log(`[MQTT] Master cloud database updated for user ${userId}`);
+    } else if (updateType === "profile_sync") {
+      console.log(`[MQTT] Received upstream profile sync from AGX for tenant ${tenantId}`);
+      
+      const { name, host, hostEmail, companyDescription, companyType, companyLogo } = payload;
+
+      await prisma.tenant.update({
+        where: { id: tenantId },
+        data: {
+          name,
+          host,
+          hostEmail,
+          companyDescription,
+          companyType,
+          companyLogo
+        }
+      });
+      console.log(`[MQTT] Master cloud database updated for tenant profile ${tenantId}`);
     }
   } catch (err) {
     console.error("[MQTT] Failed to process incoming message:", err);

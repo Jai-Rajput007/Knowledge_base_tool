@@ -2,9 +2,10 @@
 
 import React, { useState } from "react";
 import { FiRefreshCw, FiCpu, FiX } from "react-icons/fi";
-import { Floating3DCard } from "@/components/ui/3d-card";
+import { Floating3DCard } from "@/app/components/ui/3d-card";
 import { FeatureGate } from "@/app/components/feature-gate";
 import { usePersonaContext } from "../persona/context";
+import { api } from "@/lib/api";
 
 export function GenerativePersonaModule() {
   const { fetchPersonas } = usePersonaContext();
@@ -20,19 +21,20 @@ export function GenerativePersonaModule() {
   });
 
   const handleGenerate = async () => {
+    if (!genForm.name.trim()) {
+      alert("Please provide at least an internal name for this profile.");
+      return;
+    }
+    
     setGenerating(true);
     try {
-      const res = await fetch("/api/personas/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(genForm),
-      });
-      if (res.ok) {
+      const res = await api.generatePersona(genForm);
+      if (res.data?.success) {
         await fetchPersonas();
         setIsOpen(false);
         setGenForm({ name: "", robotName: "", role: "", location: "", context: "" });
       } else {
-        alert("Failed to generate persona");
+        alert(res.error || "Generation failed.");
       }
     } catch (e) {
       console.error(e);

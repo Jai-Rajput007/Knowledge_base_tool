@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
-import { McpConfigTab } from "@/components/super-admin/McpConfigTab";
-import { FeaturesConfigTab } from "@/components/super-admin/FeaturesConfigTab";
-import { getIcon } from "@/components/icons";
+import { McpConfigTab } from "@/app/components/super-admin/McpConfigTab";
+import { FeaturesConfigTab } from "@/app/components/super-admin/FeaturesConfigTab";
+import { getIcon } from "@/app/components/icons";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 

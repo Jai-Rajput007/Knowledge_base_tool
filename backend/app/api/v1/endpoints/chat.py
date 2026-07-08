@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 from app.core.logging import logger
+from app.core.security import get_current_user
+from app.models.user import User
 from app.services.chat_service import chat_service, ChatRequest as ChatServiceRequest
 
 router = APIRouter()
@@ -22,6 +24,8 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     """Chat request schema with query processing, hierarchy, and context building support."""
     message: str
+    session_id: Optional[str] = None
+    user_id: Optional[int] = None
     document_ids: Optional[List[str]] = None
     
     # Query processing
@@ -68,7 +72,8 @@ class ChatResponse(BaseModel):
 @router.post("/", response_model=ChatResponse)
 async def chat(
     request: ChatRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """Send a chat message and get AI response with RAG."""
     
@@ -78,6 +83,8 @@ async def chat(
         # Create chat service request with query processing, hierarchy, and context options
         service_request = ChatServiceRequest(
             message=request.message,
+            session_id=request.session_id,
+            user_id=current_user.id,  # Always use authenticated user's ID
             document_ids=request.document_ids,
             metadata_filters=request.metadata_filters,
             enable_query_processing=request.enable_query_processing,
@@ -93,8 +100,8 @@ async def chat(
             stream=False,
         )
         
-        # Process chat with RAG, hierarchy, and prefiltering
-        response = await chat_service.chat(service_request)
+        # Process chat with RAG, hierarchy, prefiltering, and memory
+        response = await chat_service.chat(service_request, db=db)
         
         # Format sources with hierarchy info
         sources = []
@@ -143,6 +150,8 @@ async def chat_stream(
             # Create chat service request with query processing, hierarchy, and context options
             service_request = ChatServiceRequest(
                 message=request.message,
+                session_id=request.session_id,
+                user_id=request.user_id,
                 document_ids=request.document_ids,
                 metadata_filters=request.metadata_filters,
                 enable_query_processing=request.enable_query_processing,
@@ -160,7 +169,7 @@ async def chat_stream(
             )
             
             # Stream response from Ollama
-            async for chunk in chat_service.chat_stream(service_request):
+            async for chunk in chat_service.chat_stream(service_request, db=db):
                 yield f"data: {chunk}\n\n"
             
             yield "data: [DONE]\n\n"

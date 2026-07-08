@@ -21,6 +21,7 @@ model Tenant {
   id           String             @id @default(uuid())
   name               String
   host               String?
+  hostEmail          String?
   companyDescription String?
   companyType        String?
   companyLogo        String?

@@ -37,15 +37,20 @@ class OllamaProvider(LLMProvider):
         try:
             import ollama
             
-            response = ollama.chat(
-                model=self.model,
-                messages=messages,
-                options={
+            
+            call_kwargs = {
+                "model": self.model,
+                "messages": messages,
+                "options": {
                     "temperature": kwargs.get("temperature", self.temperature),
                     "num_predict": kwargs.get("max_tokens", self.max_tokens),
                     "top_p": kwargs.get("top_p", self.top_p),
                 }
-            )
+            }
+            if "format" in kwargs:
+                call_kwargs["format"] = kwargs["format"]
+                
+            response = ollama.chat(**call_kwargs)
             
             return response["message"]["content"]
         except Exception as e:
@@ -57,16 +62,20 @@ class OllamaProvider(LLMProvider):
         try:
             import ollama
             
-            stream = ollama.chat(
-                model=self.model,
-                messages=messages,
-                stream=True,
-                options={
+            call_kwargs = {
+                "model": self.model,
+                "messages": messages,
+                "stream": True,
+                "options": {
                     "temperature": kwargs.get("temperature", self.temperature),
                     "num_predict": kwargs.get("max_tokens", self.max_tokens),
                     "top_p": kwargs.get("top_p", self.top_p),
                 }
-            )
+            }
+            if "format" in kwargs:
+                call_kwargs["format"] = kwargs["format"]
+                
+            stream = ollama.chat(**call_kwargs)
             
             for chunk in stream:
                 if "message" in chunk and "content" in chunk["message"]:
@@ -156,7 +165,8 @@ class LLMService:
         self,
         user_message: str,
         context: Optional[str] = None,
-        system_prompt: Optional[str] = None
+        system_prompt: Optional[str] = None,
+        **kwargs
     ) -> str:
         """Generate chat completion with optional RAG context."""
         
@@ -177,13 +187,14 @@ class LLMService:
         messages.append({"role": "user", "content": user_message})
         
         logger.info(f"Generating chat completion")
-        return self.provider.chat(messages)
+        return self.provider.chat(messages, **kwargs)
     
     async def chat_stream(
         self,
         user_message: str,
         context: Optional[str] = None,
-        system_prompt: Optional[str] = None
+        system_prompt: Optional[str] = None,
+        **kwargs
     ) -> AsyncGenerator[str, None]:
         """Generate streaming chat completion."""
         
@@ -203,7 +214,7 @@ class LLMService:
         messages.append({"role": "user", "content": user_message})
         
         logger.info(f"Generating streaming chat completion")
-        async for chunk in self.provider.chat_stream(messages):
+        async for chunk in self.provider.chat_stream(messages, **kwargs):
             yield chunk
 
 

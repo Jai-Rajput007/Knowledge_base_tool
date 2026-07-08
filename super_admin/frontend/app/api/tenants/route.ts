@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from 'bcryptjs';
-import { publishUserSync } from '@/lib/mqtt';
+import { publishUserSync, publishTenantSync } from '@/lib/mqtt';
 
 export async function GET() {
   try {
@@ -42,6 +42,7 @@ export async function POST(request: Request) {
         data: {
           name: data.name,
           host: data.host,
+          hostEmail: data.email,
           companyDescription: data.companyDescription,
           companyType: data.companyType,
           companyLogo: data.companyLogo,
@@ -92,6 +93,16 @@ export async function POST(request: Request) {
       password: newUser.password,
       role: newUser.role,
       requiresPasswordChange: newUser.requiresPasswordChange
+    });
+
+    publishTenantSync(newTenant.id, {
+      id: newTenant.id,
+      name: newTenant.name,
+      host: newTenant.host,
+      hostEmail: newTenant.hostEmail,
+      companyDescription: newTenant.companyDescription,
+      companyType: newTenant.companyType,
+      companyLogo: newTenant.companyLogo,
     });
 
     await prisma.tenantMcpConfig.create({

@@ -1,4 +1,5 @@
 from typing import List, Dict, Any, Optional
+import re
 from app.services.llm_service import llm_service
 from app.core.logging import logger
 
@@ -16,9 +17,12 @@ class CoreferenceService:
         if not history:
             return query
             
-        # Check if query likely contains pronouns
-        pronouns = ["it", "they", "them", "this", "that", "those", "he", "she", "him", "her"]
-        if not any(f" {p} " in f" {query.lower()} " for p in pronouns):
+        # Check if query likely contains pronouns or location references
+        pronouns = ["it", "they", "them", "this", "that", "those", "he", "she", "him", "her", "here", "there"]
+        
+        # Use regex to match whole words regardless of punctuation
+        pattern = r'\b(?:' + '|'.join(pronouns) + r')\b'
+        if not re.search(pattern, query.lower()):
             return query
             
         try:

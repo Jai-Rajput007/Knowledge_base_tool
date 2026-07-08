@@ -1,7 +1,7 @@
 "use client";
 
 import { useTheme } from "./theme-provider";
-import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
+import { AnimatedThemeToggler } from "@/app/components/ui/animated-theme-toggler";
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();

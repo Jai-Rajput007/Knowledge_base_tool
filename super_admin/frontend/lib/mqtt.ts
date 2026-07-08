@@ -1,48 +1,49 @@
 import mqtt from "mqtt";
 
-// Connect to the local Mosquitto broker (IoT Simulator)
-const client = mqtt.connect("mqtt://localhost:1883");
+let client: mqtt.MqttClient | null = null;
 
-client.on("connect", () => {
-  console.log("Super Admin connected to MQTT Broker (IoT Simulator)");
-});
+const getClient = async (): Promise<mqtt.MqttClient> => {
+  if (client && client.connected) return client;
+  
+  if (!client) {
+    client = mqtt.connect("mqtt://localhost:1883");
+    client.on("error", (err) => console.error("MQTT Error:", err));
+  }
 
-client.on("error", (err) => {
-  console.error("MQTT Connection Error:", err);
-});
+  if (client.connected) return client;
 
-export const publishFeatureUpdate = (tenantId: string, features: any) => {
-  if (client.connected) {
-    const topic = `tenant/${tenantId}/features`;
-    client.publish(topic, JSON.stringify(features), { qos: 1 }, (err) => {
-      if (err) console.error(`Failed to publish to ${topic}:`, err);
-      else console.log(`Published features update to ${topic}`);
+  return new Promise((resolve) => {
+    client!.once("connect", () => {
+      console.log("Super Admin connected to MQTT Broker (IoT Simulator)");
+      resolve(client!);
     });
-  } else {
-    console.warn("MQTT Client disconnected. Could not publish feature update.");
+  });
+};
+
+const publishAsync = async (topic: string, message: any) => {
+  try {
+    const c = await getClient();
+    c.publish(topic, JSON.stringify(message), { qos: 1 }, (err) => {
+      if (err) console.error(`[MQTT] Failed to publish to ${topic}:`, err);
+      else console.log(`[MQTT] Published to ${topic}`);
+    });
+  } catch (err) {
+    console.error("[MQTT] Publisher error:", err);
   }
 };
 
-export const publishMcpUpdate = (tenantId: string, mcpConfig: any) => {
-  if (client.connected) {
-    const topic = `tenant/${tenantId}/mcp`;
-    client.publish(topic, JSON.stringify(mcpConfig), { qos: 1 }, (err) => {
-      if (err) console.error(`Failed to publish to ${topic}:`, err);
-      else console.log(`Published MCP update to ${topic}`);
-    });
-  } else {
-    console.warn("MQTT Client disconnected. Could not publish MCP update.");
-  }
+export const publishFeatureUpdate = async (tenantId: string, features: any) => {
+  await publishAsync(`tenant/${tenantId}/features`, features);
 };
 
-export const publishUserSync = (tenantId: string, userData: any) => {
-  if (client.connected) {
-    const topic = `tenant/${tenantId}/users/create`;
-    client.publish(topic, JSON.stringify(userData), { qos: 1 }, (err) => {
-      if (err) console.error(`Failed to publish to ${topic}:`, err);
-      else console.log(`Published user downstream sync to ${topic}`);
-    });
-  } else {
-    console.warn("MQTT Client disconnected. Could not publish user sync.");
-  }
+export const publishMcpUpdate = async (tenantId: string, mcpConfig: any) => {
+  await publishAsync(`tenant/${tenantId}/mcp`, mcpConfig);
+};
+
+export const publishUserSync = async (tenantId: string, userData: any) => {
+  await publishAsync(`tenant/${tenantId}/users/create`, userData);
+};
+
+export const publishTenantSync = async (tenantId: string, tenantData: any) => {
+  await publishAsync(`tenant/${tenantId}/info`, tenantData);
 };

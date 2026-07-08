@@ -24,22 +24,29 @@ class MemoryOrchestrator:
         """
         Build a comprehensive context string from all memory layers.
         Returns a dict with 'context_text' and 'resolved_query'.
+        
+        STM window: last 15 full turns (30 messages) are loaded.
+        Coreference resolution uses the full 15-turn history.
+        LLM prompt context uses the last 15 turns (to match STM window).
         """
         try:
-            # 1. Get STM history
-            stm_history = self.stm.get_context(session_id, k=5)
-            history_dicts = [{"role": "user" if msg.type == "human" else "assistant", "content": msg.content} for msg in stm_history]
+            # 1. Get STM history — last 15 full turns (30 messages)
+            stm_history = self.stm.get_context(session_id, k=15)
+            history_dicts = [
+                {"role": "user" if msg.type == "human" else "assistant", "content": msg.content}
+                for msg in stm_history
+            ]
             
-            # 2. Resolve Coreferences (Pronouns)
+            # 2. Resolve Coreferences using full 15-turn history
+            #    e.g. "How is the weather here?" -> "How is the weather in Indore?"
             resolved_query = await self.coref.resolve(query, history_dicts)
             logger.info(f"Resolved query for memory search: '{query}' -> '{resolved_query}'")
             
-            # 3. Format STM text (Limit to last 4 messages to prevent prompt pollution)
+            # 3. Format STM text — pass ALL 15 turns to LLM prompt (not just last 4)
             stm_text = ""
             if stm_history:
-                recent_history = stm_history[-4:]
                 stm_text = "Recent conversation history:\n"
-                for msg in recent_history:
+                for msg in stm_history:
                     role = "User" if msg.type == "human" else "Assistant"
                     stm_text += f"{role}: {msg.content}\n"
             

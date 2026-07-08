@@ -12,15 +12,12 @@ import {
   FiSettings,
   FiChevronDown,
   FiChevronsRight,
-  FiLogOut,
 } from "react-icons/fi";
 import { motion } from "motion/react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { TenantProfileModal } from "@/components/TenantProfileModal";
+import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/ui/avatar";
 
 export const Sidebar = ({ tenant }: { tenant?: any }) => {
   const [open, setOpen] = useState(false);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const pathname = usePathname();
 
   return (
@@ -34,12 +31,12 @@ export const Sidebar = ({ tenant }: { tenant?: any }) => {
         width: open ? "225px" : "fit-content",
       }}
     >
-      <TitleSection open={open} onOpenProfile={() => setIsProfileOpen(true)} tenant={tenant} />
+      <TitleSection open={open} tenant={tenant} pathname={pathname} />
 
       <div className="space-y-1 flex-1 overflow-y-auto overflow-x-hidden no-scrollbar pb-14">
         <Option
           Icon={FiTerminal}
-          title="MCP"
+          title="Integrations"
           href="/mcp"
           selected={pathname === "/mcp"}
           open={open}
@@ -61,8 +58,8 @@ export const Sidebar = ({ tenant }: { tenant?: any }) => {
         <Option
           Icon={FiCamera}
           title="FRS"
-          href="/frs"
-          selected={pathname === "/frs"}
+          href="/employees"
+          selected={pathname === "/employees"}
           open={open}
         />
         <Option
@@ -72,45 +69,18 @@ export const Sidebar = ({ tenant }: { tenant?: any }) => {
           selected={pathname === "/audit-logs"}
           open={open}
         />
+      </div>
+
+      <div className="pt-4 mt-4 border-t border-border shrink-0">
         <Option
           Icon={FiSettings}
-          title="One Settings"
+          title="Settings"
           href="/settings"
           selected={pathname === "/settings"}
           open={open}
         />
-        
-        <div className="pt-4 mt-4 border-t border-border">
-          <button
-            onClick={async () => {
-              await fetch('/api/auth/logout', { method: 'POST' });
-              window.location.href = '/';
-            }}
-            className="relative flex h-10 w-full items-center rounded-md transition-colors text-red-500 hover:bg-red-500/10"
-          >
-            <motion.div layout className="grid h-full w-10 shrink-0 place-content-center text-lg">
-              <FiLogOut />
-            </motion.div>
-            {open && (
-              <motion.span
-                layout
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.125 }}
-                className="text-xs font-medium whitespace-nowrap"
-              >
-                Log Out
-              </motion.span>
-            )}
-          </button>
-        </div>
       </div>
     </motion.nav>
-    <TenantProfileModal 
-      isOpen={isProfileOpen} 
-      onClose={() => setIsProfileOpen(false)} 
-      tenant={tenant}
-    />
     </>
   );
 };
@@ -164,23 +134,24 @@ const Option = ({ Icon, title, href, selected, open, notifs }: any) => {
   );
 };
 
-const TitleSection = ({ open, onOpenProfile, tenant }: { open: boolean, onOpenProfile: () => void, tenant: any }) => {
+const TitleSection = ({ open, tenant, pathname }: { open: boolean, tenant: any, pathname: string }) => {
   const logo = tenant?.companyLogo;
   const initial = tenant?.name ? tenant.name.charAt(0).toUpperCase() : "G";
   const tenantName = tenant?.name || "G1 Universe";
+  const router = useRouter();
 
   return (
     <div className="mb-3 border-b border-border pb-3">
       <button 
-        onClick={onOpenProfile} 
-        className="flex w-full flex-col cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-accent p-2 text-center"
+        onClick={() => router.push("/profile")} 
+        className={`flex w-full flex-col cursor-pointer items-center justify-center rounded-md transition-colors p-2 text-center ${pathname === "/profile" ? "bg-primary/10" : "hover:bg-accent"}`}
       >
         <motion.div layout className="shrink-0">
-          <Avatar className="h-10 w-10 rounded-md border border-border shadow-sm mx-auto">
+          <Avatar className="h-10 w-10 rounded-full border border-border shadow-sm mx-auto">
             {logo ? (
-              <AvatarImage src={logo} alt={tenantName} className="object-cover" />
+              <AvatarImage src={logo} alt={tenantName} className="object-cover rounded-full" />
             ) : null}
-            <AvatarFallback className="bg-primary text-primary-foreground font-semibold rounded-md">
+            <AvatarFallback className="bg-primary text-primary-foreground font-semibold rounded-full">
               {initial}
             </AvatarFallback>
           </Avatar>
@@ -191,9 +162,11 @@ const TitleSection = ({ open, onOpenProfile, tenant }: { open: boolean, onOpenPr
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             transition={{ delay: 0.125 }}
-            className="mt-2 whitespace-nowrap overflow-hidden"
+            className="mt-2 whitespace-nowrap overflow-hidden flex flex-col items-center"
           >
-            <span className="block text-sm font-semibold text-foreground">{tenantName}</span>
+            <span className="block text-sm font-semibold text-foreground">
+              {tenant?.host || tenantName}
+            </span>
           </motion.div>
         )}
       </button>

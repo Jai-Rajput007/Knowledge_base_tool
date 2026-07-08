@@ -21,6 +21,21 @@ export function useChatState() {
   const [enableQueryProcessing, setEnableQueryProcessing] = useState(true);
   const [useExtractedFilters, setUseExtractedFilters] = useState(true);
 
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  
+  // Load sessions
+  const loadSessions = async () => {
+    try {
+      const res = await api.getSessions();
+      if (res.data) setSessions(res.data);
+    } catch (e) {}
+  };
+  
+  useEffect(() => {
+    loadSessions();
+  }, []);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -53,6 +68,23 @@ export function useChatState() {
     const text = promptText || input;
     if (!text.trim() || isLoading) return;
 
+    let currentSessionId = activeSessionId;
+    if (!currentSessionId) {
+      try {
+        const res = await api.createSession(text.substring(0, 50));
+        if (res.data) {
+          currentSessionId = res.data.id;
+          setActiveSessionId(currentSessionId);
+          await loadSessions();
+        }
+      } catch (e) {}
+    } else if (messages.length === 0) {
+      try {
+        await api.updateSession(currentSessionId, text.substring(0, 50));
+        loadSessions(); // Update the sidebar title asynchronously
+      } catch (e) {}
+    }
+
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
@@ -77,6 +109,7 @@ export function useChatState() {
 
     try {
       const res = await api.sendMessage(text, selectedDocIds.length > 0 ? selectedDocIds : undefined, {
+        sessionId: currentSessionId || undefined,
         enableQueryProcessing,
         useExtractedFilters,
         sectionPath: sectionPath || undefined,
@@ -130,6 +163,51 @@ export function useChatState() {
     setIsLoading(false);
   };
 
+
+  const handleSelectSession = async (id: string) => {
+    setActiveSessionId(id);
+    try {
+      const res = await api.getSessionMessages(id);
+      if (res.data) {
+        setMessages(res.data.map((m: any) => ({
+          id: m.id.toString(),
+          role: m.role,
+          content: m.content,
+          timestamp: new Date(m.created_at)
+        })));
+      }
+    } catch (e) {
+      console.error("Failed to load messages", e);
+    }
+  };
+
+  const handleNewChat = async () => {
+    try {
+      const res = await api.createSession("New Chat");
+      if (res.data) {
+        setActiveSessionId(res.data.id);
+        await loadSessions();
+      } else {
+        setActiveSessionId(null);
+      }
+    } catch (e) {
+      console.error("Failed to create new session", e);
+      setActiveSessionId(null);
+    }
+    setMessages([]);
+    setShowSources(null);
+  };
+
+  const handleDeleteSession = async (id: string) => {
+    try {
+      await api.deleteSession(id);
+      if (activeSessionId === id) handleNewChat();
+      await loadSessions();
+    } catch (e) {
+      console.error("Failed to delete session", e);
+    }
+  };
+
   const clearChat = () => {
     setMessages([]);
     setShowSources(null);
@@ -142,6 +220,7 @@ export function useChatState() {
     parentSection, setParentSection, contentTypes, setContentTypes,
     includeParentContext, setIncludeParentContext, contextStrategy, setContextStrategy,
     enableQueryProcessing, setEnableQueryProcessing, useExtractedFilters, setUseExtractedFilters,
-    sendMessage, clearChat, selectedDocIds, setSelectedDocIds
+    sendMessage, clearChat, selectedDocIds, setSelectedDocIds,
+    sessions, activeSessionId, handleSelectSession, handleNewChat, handleDeleteSession
   };
 }

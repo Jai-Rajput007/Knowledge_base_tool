@@ -8,6 +8,9 @@ import secrets
 
 from app.db.database import Base
 
+_BCRYPT_SENTINEL = "__bcrypt__"  # stored in `salt` to flag bcrypt-hashed passwords
+
+
 
 class User(Base):
     """User model for authentication."""
@@ -20,6 +23,7 @@ class User(Base):
     hashed_password = Column(String(255), nullable=False)
     salt = Column(String(32), nullable=False)
     role = Column(String(20), nullable=False, default="user")  # "admin" or "user"
+    requires_password_change = Column(Integer, default=0) # SQLite/SQLAlchemy Boolean compatibility (0/1)
     is_active = Column(Integer, default=1)
     created_at = Column(DateTime, default=datetime.utcnow)
     last_login = Column(DateTime, nullable=True)
@@ -34,10 +38,24 @@ class User(Base):
     sessions = relationship("Session", back_populates="user", cascade="all, delete-orphan")
 
     def set_password(self, password: str):
+        """Hash a plaintext password with sha256+salt (local users)."""
         self.salt = secrets.token_hex(16)
         self.hashed_password = hashlib.sha256((password + self.salt).encode()).hexdigest()
 
+    def set_bcrypt_password(self, bcrypt_hash: str):
+        """Store a bcrypt hash received from the Super Admin as-is."""
+        self.salt = _BCRYPT_SENTINEL
+        self.hashed_password = bcrypt_hash
+
     def check_password(self, password: str) -> bool:
+        if self.salt == _BCRYPT_SENTINEL:
+            # Password was synced from Super Admin — use bcrypt to verify
+            try:
+                import bcrypt
+                return bcrypt.checkpw(password.encode(), self.hashed_password.encode())
+            except Exception:
+                return False
+        # Local sha256+salt verification
         hashed = hashlib.sha256((password + self.salt).encode()).hexdigest()
         return hashed == self.hashed_password
 
@@ -48,6 +66,7 @@ class User(Base):
             "email": self.email,
             "role": self.role,
             "is_active": self.is_active,
+            "requires_password_change": self.requires_password_change,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "last_login": self.last_login.isoformat() if self.last_login else None
         }

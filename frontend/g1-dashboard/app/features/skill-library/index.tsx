@@ -1,11 +1,16 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { FeatureGate } from "@/app/components/feature-gate";
 import { FiDownload, FiSearch, FiCode } from "react-icons/fi";
-import { motion } from "framer-motion";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
+
+gsap.registerPlugin(useGSAP);
 
 export function SkillLibraryModule() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  
   const [skills] = useState([
     { id: 1, name: "Weather Integration", category: "Utility", author: "G1 Core", installed: true },
     { id: 2, name: "Calendar Management", category: "Productivity", author: "G1 Core", installed: false },
@@ -13,9 +18,19 @@ export function SkillLibraryModule() {
     { id: 4, name: "Smart Home Sync", category: "IoT", author: "G1 Core", installed: true },
   ]);
 
+  useGSAP(() => {
+    if (skills.length > 0) {
+      gsap.fromTo(
+        ".skill-card",
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.4, stagger: 0.05, ease: "power2.out" }
+      );
+    }
+  }, { dependencies: [skills], scope: containerRef });
+
   return (
     <FeatureGate featureKey="skillLibrary">
-      <div className="space-y-6">
+      <div ref={containerRef} className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
           <div className="relative w-full sm:w-96">
             <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -28,13 +43,10 @@ export function SkillLibraryModule() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {skills.map((skill, i) => (
-            <motion.div 
+          {skills.map((skill) => (
+            <div 
               key={skill.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-              className="p-6 border border-border bg-card/30 rounded-xl hover:bg-card/60 transition-colors flex flex-col justify-between"
+              className="skill-card p-6 border border-border bg-card/30 rounded-xl hover:bg-card/60 transition-colors flex flex-col justify-between"
             >
               <div>
                 <div className="flex justify-between items-start mb-4">
@@ -60,7 +72,7 @@ export function SkillLibraryModule() {
                   </button>
                 )}
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>

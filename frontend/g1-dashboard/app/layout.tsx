@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
 
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+
 
 export const metadata: Metadata = {
   title: "G1 RAG Dashboard",
@@ -46,8 +46,14 @@ export default async function RootLayout({
       isLoggedIn = true;
       role = session.role;
       requiresPasswordChange = session.requiresPasswordChange === true;
-      if (session.tenantId) {
-        tenantData = await prisma.tenant.findUnique({ where: { id: session.tenantId } });
+      
+      try {
+        const res = await fetch("http://localhost:8000/api/v1/tenant/profile", { cache: 'no-store' });
+        if (res.ok) {
+          tenantData = await res.json();
+        }
+      } catch (e) {
+        console.error("Failed to fetch tenant data:", e);
       }
     }
   }

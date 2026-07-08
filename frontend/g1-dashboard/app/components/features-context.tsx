@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { api } from "@/lib/api";
 
 export type FeaturesMap = Record<string, boolean>;
 
@@ -24,10 +25,9 @@ export function FeaturesProvider({ children }: { children: React.ReactNode }) {
 
   const fetchFeatures = useCallback(async () => {
     try {
-      const res = await fetch("/api/tenant/features");
-      if (res.ok) {
-        const data = await res.json();
-        setFeatures(data);
+      const res = await api.getTenantFeatures();
+      if (res.data) {
+        setFeatures(res.data);
       }
     } catch {
       // silently fail — features will all default to false

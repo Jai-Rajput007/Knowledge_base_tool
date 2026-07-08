@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { publishTenantSync } from '@/lib/mqtt';
 
 export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   const params = await context.params;
@@ -23,12 +24,24 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
       data: {
         name: data.name,
         host: data.host,
+        hostEmail: data.hostEmail,
         companyDescription: data.companyDescription,
         companyType: data.companyType,
         companyLogo: data.companyLogo,
         features: data.features
       }
     });
+
+    publishTenantSync(updatedTenant.id, {
+      id: updatedTenant.id,
+      name: updatedTenant.name,
+      host: updatedTenant.host,
+      hostEmail: updatedTenant.hostEmail,
+      companyDescription: updatedTenant.companyDescription,
+      companyType: updatedTenant.companyType,
+      companyLogo: updatedTenant.companyLogo,
+    });
+
     return NextResponse.json(updatedTenant);
   } catch (error) {
     console.error("Failed to update tenant:", error);

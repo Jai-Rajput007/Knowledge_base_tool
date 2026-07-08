@@ -1,6 +1,6 @@
-import { StatCard } from '@/components/stat-card';
-import { ActivityFeed } from '@/components/activity-feed';
-import { getIcon } from '@/components/icons';
+import { StatCard } from "@/app/components/stat-card";
+import { ActivityFeed } from "@/app/components/activity-feed";
+import { getIcon } from "@/app/components/icons";
 
 const quickAccessCards = [
   {
@@ -30,6 +30,13 @@ const quickAccessCards = [
     icon: 'templates',
     href: '/persona#templates',
     gradient: 'from-accent-blue/20 to-success/20',
+  },
+  {
+    title: 'Facial Recognition',
+    description: 'Add users to the facial recognition system (FRS)',
+    icon: 'robots',
+    href: '/employees',
+    gradient: 'from-accent-purple/20 to-accent-blue/20',
   },
 ];
 

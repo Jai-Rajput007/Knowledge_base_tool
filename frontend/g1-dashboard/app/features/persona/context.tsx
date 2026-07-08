@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { api } from "@/lib/api";
 
 interface PersonaContextType {
   personas: any[];
@@ -31,13 +32,11 @@ export function PersonaProvider({ children }: { children: React.ReactNode }) {
   const fetchPersonas = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/personas");
-      const data = await res.json();
-      setPersonas(Array.isArray(data) ? data : []);
+      const res = await api.getPersonas();
+      setPersonas(Array.isArray(res.data) ? res.data : []);
       
-      fetch("/api/persona")
-        .then(r => r.json())
-        .then(d => setSource(d._source || "db"))
+      api.getActivePersona()
+        .then(r => setSource(r.data?._source || "db"))
         .catch(() => setSource("db"));
     } catch (e) {
       console.error(e);
@@ -48,10 +47,9 @@ export function PersonaProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => { 
     fetchPersonas(); 
-    fetch("/api/wakewords")
-      .then(res => res.json())
-      .then(data => {
-        if (data.models) setAvailableWakewords(data.models);
+    api.getWakewords()
+      .then(res => {
+        if (res.data?.models) setAvailableWakewords(res.data.models);
       })
       .catch(err => console.error("Failed to load wakewords:", err));
   }, [fetchPersonas]);

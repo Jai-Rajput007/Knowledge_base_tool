@@ -1,2 +1,0 @@
-// Hooks for multilingual
-export {};

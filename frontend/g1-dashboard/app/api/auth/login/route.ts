@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { prisma } from '@/lib/prisma';
 import { createToken } from '@/lib/auth';
 import type { UserRole } from '@/lib/mock-db';
-import bcrypt from 'bcryptjs';
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,46 +16,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find user in local Prisma database
-    const user = await prisma.user.findUnique({
-      where: { email },
-      include: { tenant: true }
+    // Proxy to FastAPI backend
+    const apiRes = await fetch('http://localhost:8000/api/v1/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: email, password })
     });
 
-    if (!user) {
+    if (!apiRes.ok) {
       return NextResponse.json(
         { error: 'Invalid email or password' },
         { status: 401 }
       );
     }
 
-    // Check password (supporting both plaintext seeded data and bcrypt hashes)
-    const isMatch = user.password.startsWith('$2')
-      ? await bcrypt.compare(password, user.password)
-      : user.password === password;
-
-    if (!isMatch) {
-      return NextResponse.json(
-        { error: 'Invalid email or password' },
-        { status: 401 }
-      );
-    }
+    const data = await apiRes.json();
+    const user = data.user;
 
     // Create encrypted PASETO token
     const roleString = user.role.toLowerCase() as UserRole;
 
     const token = await createToken({
-      sub: user.id,
+      sub: user.id.toString(),
       email: user.email,
-      name: user.name,
+      name: user.username,
       role: roleString,
-      requiresPasswordChange: user.requiresPasswordChange,
-      tenantId: user.tenant?.id,
-      tenantName: user.tenant?.name,
+      requiresPasswordChange: user.requires_password_change === 1,
+      tenantId: user.tenant_id,
+      tenantName: user.tenant_name || "Default Tenant",
     });
 
     // Determine redirect
-    const redirectTo = user.requiresPasswordChange ? '/change-password' : '/dashboard'; 
+    const redirectTo = '/dashboard'; 
 
     // Set HttpOnly cookie via next/headers
     const cookieStore = await cookies();
@@ -75,9 +65,10 @@ export async function POST(request: NextRequest) {
       {
         success: true,
         redirectTo,
+        access_token: data.access_token,
         user: {
           id: user.id,
-          name: user.name,
+          name: user.username,
           email: user.email,
           role: roleString,
         },

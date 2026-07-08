@@ -33,6 +33,9 @@ ollama==0.1.7
 httpx==0.25.2
 aiohttp==3.9.1
 
+# Web Search
+duckduckgo-search>=5.0.0
+
 # Utilities
 python-dotenv==1.0.0
 tenacity==8.2.3

@@ -27,7 +27,12 @@ class AuthService:
             raise e
 
     def authenticate_user(self, username: str, password: str):
-        db_user = self.db.query(User).filter(User.username == username).first()
+        # Match by username OR email so the frontend can send either
+        db_user = (
+            self.db.query(User)
+            .filter((User.username == username) | (User.email == username))
+            .first()
+        )
         if db_user and db_user.check_password(password):
             return db_user
         return None

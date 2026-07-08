@@ -30,21 +30,24 @@ export default function ChangePasswordPage() {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/auth/change-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ oldPassword, newPassword }),
+      const { api } = await import('@/lib/api');
+      const res = await api.changePassword({ 
+        current_password: oldPassword, 
+        new_password: newPassword 
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || 'Failed to change password');
+      if (res.error) {
+        setError(res.error || 'Failed to change password');
         setLoading(false);
         return;
       }
 
-      router.push(data.redirectTo || '/dashboard');
+      // Sync Next.js PASETO cookie to remove requiresPasswordChange flag
+      await fetch('/api/auth/change-password', {
+        method: 'PUT',
+      });
+
+      router.push('/dashboard');
       router.refresh();
     } catch {
       setError('Something went wrong. Please try again.');
