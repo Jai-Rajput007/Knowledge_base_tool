@@ -16,6 +16,7 @@ import { ThemeToggle } from "@/app/components/theme-toggle";
 
 const navItems = [
   { name: "Tenants", link: "/tenants" },
+  { name: "Support Tickets", link: "/tickets" },
   { name: "Permissions", link: "/permissions" },
   { name: "Integrations", link: "/integrations" },
   { name: "Audit Logs", link: "/audit-logs" },

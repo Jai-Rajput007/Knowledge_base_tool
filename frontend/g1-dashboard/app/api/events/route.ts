@@ -1,39 +1,31 @@
-import { eventBus } from '@/lib/eventEmitter';
+/**
+ * /api/events — Lightweight real-time notification endpoint.
+ *
+ * Architecture:
+ *   POST  → Called by the MQTT listener whenever state changes. Bumps a
+ *            monotonic counter stored on the global object.
+ *   GET   → Returns immediately with the current counter value.
+ *            The client polls every few seconds and compares counters.
+ *
+ * Why not SSE / long-polling?
+ *   Turbopack (Next.js 16 dev mode) uses Node's AsyncHook to track every
+ *   Promise created inside route handlers. Long-lived Promises (SSE streams,
+ *   long-poll Promises held by setTimeout) are never GC'd by Turbopack's
+ *   internal Map, eventually hitting "RangeError: Map maximum size exceeded"
+ *   and crashing the entire dev server. Returning immediately avoids this.
+ */
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: Request) {
-  const encoder = new TextEncoder();
-  const stream = new ReadableStream({
-    start(controller) {
-      controller.enqueue(encoder.encode('retry: 1000\n\n'));
+// Monotonic update counter persisted across hot reloads via globalThis
+const g = globalThis as unknown as { __eventSeq: number };
+if (g.__eventSeq == null) g.__eventSeq = 0;
 
-      const onUpdate = (eventData: any) => {
-        try {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(eventData)}\n\n`));
-        } catch (e) {
-          // ignore
-        }
-      };
-
-      eventBus.on('features_updated', onUpdate);
-
-      request.signal.addEventListener('abort', () => {
-        eventBus.off('features_updated', onUpdate);
-      });
-    }
-  });
-
-  return new Response(stream, {
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache, no-transform',
-      'Connection': 'keep-alive',
-    },
-  });
+export async function GET() {
+  return Response.json({ seq: g.__eventSeq });
 }
 
-export async function POST(request: Request) {
-  eventBus.emit('features_updated', { time: Date.now() });
-  return Response.json({ success: true });
+export async function POST() {
+  g.__eventSeq += 1;
+  return Response.json({ success: true, seq: g.__eventSeq });
 }

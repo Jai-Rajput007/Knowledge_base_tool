@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.tenant import Tenant, TenantMcpConfig
 from app.models.user import User
+from app.models.support_ticket import SupportTicket
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -60,6 +61,66 @@ async def update_tenant_profile(payload: Dict[Any, Any] = Body(...), db: Session
     })
     
     return tenant
+
+@router.post("/tickets")
+async def create_tenant_ticket(payload: Dict[Any, Any] = Body(...), db: Session = Depends(get_db)):
+    tenant_id = payload.get("tenantId")
+    name = payload.get("name")
+    email = payload.get("email")
+    subject = payload.get("subject")
+    description = payload.get("description")
+    
+    if not all([tenant_id, name, email, subject, description]):
+        raise HTTPException(status_code=400, detail="Missing required fields for ticket")
+        
+    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+        
+    ticket = SupportTicket(
+        tenantId=tenant.id,
+        name=name,
+        email=email,
+        subject=subject,
+        description=description,
+        status="OPEN"
+    )
+    db.add(ticket)
+    db.commit()
+    db.refresh(ticket)
+    
+    # Publish via MQTT to Super Admin
+    try:
+        import paho.mqtt.client as mqtt
+        client = mqtt.Client()
+        client.connect("localhost", 1883, 60)
+        topic = f"tickets/created"
+        ticket_data = {
+            "id": ticket.id,
+            "tenantId": ticket.tenantId,
+            "name": ticket.name,
+            "email": ticket.email,
+            "subject": ticket.subject,
+            "description": ticket.description,
+            "status": ticket.status,
+            "createdAt": ticket.createdAt.isoformat()
+        }
+        client.publish(topic, json.dumps(ticket_data), qos=1)
+        client.disconnect()
+        logger.info(f"[MQTT] Published new ticket {ticket.id} to {topic}")
+    except Exception as e:
+        logger.error(f"MQTT Connection Error while publishing ticket: {e}")
+        
+    return ticket
+
+@router.get("/tickets")
+async def get_tenant_tickets(db: Session = Depends(get_db)):
+    # In single tenant fallback, get the first tenant
+    tenant = db.query(Tenant).order_by(Tenant.updatedAt.desc()).first()
+    if not tenant:
+        return []
+    tickets = db.query(SupportTicket).filter(SupportTicket.tenantId == tenant.id).order_by(SupportTicket.createdAt.desc()).all()
+    return tickets
 
 @router.get("/features")
 async def get_tenant_features(db: Session = Depends(get_db)):
@@ -191,3 +252,22 @@ async def sync_user(payload: Dict[str, Any] = Body(...), db: Session = Depends(g
     db.commit()
     db.refresh(user)
     return {"ok": True, "email": email, "role": role}
+
+@router.post("/tickets/sync", status_code=status.HTTP_200_OK)
+async def sync_ticket_status(payload: Dict[str, Any] = Body(...), db: Session = Depends(get_db)):
+    """Sync ticket status update received from Super Admin via MQTT."""
+    ticket_id = payload.get("id")
+    status_val = payload.get("status")
+    
+    if not ticket_id or not status_val:
+        raise HTTPException(status_code=400, detail="id and status required")
+        
+    ticket = db.query(SupportTicket).filter(SupportTicket.id == ticket_id).first()
+    if not ticket:
+        logger.warning(f"[MQTT Sync] Ticket {ticket_id} not found locally.")
+        return {"ok": False, "error": "not found"}
+        
+    ticket.status = status_val
+    db.commit()
+    logger.info(f"[MQTT Sync] Updated ticket {ticket_id} status to {status_val}")
+    return {"ok": True, "id": ticket_id, "status": status_val}

@@ -30,7 +30,9 @@ export function FeaturesConfigTab({ tenantId }: { tenantId: string }) {
     { key: "emotions", name: "Emotions", desc: "Enable visual and vocal emotional responses while communicating." },
     { key: "communicationGestures", name: "Communication Gestures", desc: "Enable physical gestures while the robot is explaining something." },
     { key: "navigation", name: "Navigation", desc: "Enable the robot's physical autonomous navigation features." },
-    { key: "featureSuggestions", name: "Feature Suggestions", desc: "Provide intelligent feature suggestions according to the specific robot model." }
+    { key: "featureSuggestions", name: "Feature Suggestions", desc: "Provide intelligent feature suggestions according to the specific robot model." },
+    { key: "frs", name: "Facial Recognition System", desc: "Enable the facial recognition employee tracking module." },
+    { key: "tickets", name: "Support Tickets", desc: "Enable the support ticketing and issue tracking module." }
   ];
 
   useEffect(() => {
@@ -69,6 +71,29 @@ export function FeaturesConfigTab({ tenantId }: { tenantId: string }) {
     }
   };
 
+  const handleToggleAll = async (enableAll: boolean) => {
+    const newFeatures: Record<string, boolean> = {};
+    AVAILABLE_FEATURES.forEach(f => {
+      newFeatures[f.key] = enableAll;
+    });
+    setFeatures(newFeatures); // Optimistic UI update
+    
+    setSaving(true);
+    try {
+      await fetch(`/api/tenants/${tenantId}/features`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newFeatures),
+      });
+    } catch (e) {
+      console.error(e);
+      alert("Failed to update features.");
+      setFeatures(features); // Rollback on fail
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) {
     return <div className="animate-pulse space-y-4">
       <div className="h-10 bg-muted rounded w-1/3"></div>
@@ -78,7 +103,7 @@ export function FeaturesConfigTab({ tenantId }: { tenantId: string }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl">
+      <div className="flex flex-col md:flex-row md:items-center justify-between bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl gap-4">
         <div>
           <h3 className="text-sm font-bold text-blue-400 uppercase tracking-widest flex items-center gap-2">
             <Sparkles className="w-4 h-4" /> Platform Features
@@ -86,6 +111,22 @@ export function FeaturesConfigTab({ tenantId }: { tenantId: string }) {
           <p className="text-xs text-blue-400/80 mt-1">
             Toggle global platform capabilities for this specific tenant. These apply across all their users and robots.
           </p>
+        </div>
+        <div className="flex flex-shrink-0 items-center gap-2">
+          <button
+            disabled={saving}
+            onClick={() => handleToggleAll(true)}
+            className="px-3 py-1.5 text-xs font-semibold bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:bg-purple-500/30 rounded-lg transition-colors disabled:opacity-50"
+          >
+            Enable All
+          </button>
+          <button
+            disabled={saving}
+            onClick={() => handleToggleAll(false)}
+            className="px-3 py-1.5 text-xs font-semibold bg-foreground/5 text-foreground/70 border border-foreground/10 hover:bg-foreground/10 rounded-lg transition-colors disabled:opacity-50"
+          >
+            Disable All
+          </button>
         </div>
       </div>
 

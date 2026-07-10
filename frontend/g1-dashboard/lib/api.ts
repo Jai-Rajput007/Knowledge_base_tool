@@ -9,7 +9,7 @@ const getApiUrl = () => {
   return "http://localhost:8000/api/v1";
 };
 
-const API_BASE_URL = getApiUrl();
+export const API_BASE_URL = getApiUrl();
 
 interface ApiResponse<T> {
   data?: T;

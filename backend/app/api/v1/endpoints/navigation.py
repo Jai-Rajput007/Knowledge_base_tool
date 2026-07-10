@@ -1,6 +1,16 @@
-"""Navigation API — talks to robot_agent (port 7788) and manages locations.json."""
+"""
+Navigation API — talks to robot_agent C++ binary (port 7788) via raw TCP.
+
+Environment variables (set in .env):
+  ROBOT_AGENT_HOST     — IP of the AGX running robot_agent (default: 192.168.1.61)
+  ROBOT_AGENT_PORT     — TCP port of robot_agent (default: 7788)
+  LOCATIONS_JSON_PATH  — Absolute path to locations.json on the machine running this
+                         backend. On the AGX this is inside humanoid_nlp/config/.
+                         On a dev laptop, point to a local copy.
+"""
 
 import json
+import os
 import pathlib
 import socket
 from typing import Optional
@@ -21,10 +31,11 @@ def _robot_port() -> int:
     return settings.ROBOT_AGENT_PORT   # set in .env as ROBOT_AGENT_PORT
 
 # locations.json lives in humanoid_nlp/config/ on the AGX.
-# For the dashboard we keep a local copy at the path below and
-# sync it to the robot when it changes.
+# Set LOCATIONS_JSON_PATH in .env to override the default path.
+# On a dev laptop, create a local copy and point LOCATIONS_JSON_PATH at it.
+_DEFAULT_LOCATIONS_PATH = "/home/surya/my_research/humanoid/humanoid_nlp/config/locations.json"
 LOCATIONS_PATH = pathlib.Path(
-    "/home/surya/my_research/humanoid/humanoid_nlp/config/locations.json"
+    os.getenv("LOCATIONS_JSON_PATH", _DEFAULT_LOCATIONS_PATH)
 )
 
 SLAM_API_IDS = {

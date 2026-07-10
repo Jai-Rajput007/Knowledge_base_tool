@@ -1,13 +1,22 @@
 import mqtt from "mqtt";
 
-let client: mqtt.MqttClient | null = null;
+const MQTT_URL = process.env.MQTT_URL || "mqtt://localhost:1883";
+
+const globalForMqtt = globalThis as unknown as {
+  mqttClient: mqtt.MqttClient | undefined;
+};
+
+let client = globalForMqtt.mqttClient;
 
 const getClient = async (): Promise<mqtt.MqttClient> => {
   if (client && client.connected) return client;
   
   if (!client) {
-    client = mqtt.connect("mqtt://localhost:1883");
+    client = mqtt.connect(MQTT_URL, { reconnectPeriod: 5000 });
     client.on("error", (err) => console.error("MQTT Error:", err));
+    if (process.env.NODE_ENV !== "production") {
+      globalForMqtt.mqttClient = client;
+    }
   }
 
   if (client.connected) return client;
@@ -46,4 +55,8 @@ export const publishUserSync = async (tenantId: string, userData: any) => {
 
 export const publishTenantSync = async (tenantId: string, tenantData: any) => {
   await publishAsync(`tenant/${tenantId}/info`, tenantData);
+};
+
+export const publishTicketStatus = async (tenantId: string, ticketId: string, status: string) => {
+  await publishAsync(`tenant/${tenantId}/tickets/status`, { id: ticketId, status });
 };

@@ -11,6 +11,7 @@ from app.models.session_summary import SessionSummary
 from app.models.entity import SessionEntity
 from app.models.persona import Persona, PersonaVersion, PersonaTemplate
 from app.models.tenant import Tenant, McpIntegration, TenantMcpConfig
+from app.models.support_ticket import SupportTicket
 
 __all__ = [
     "Document",
@@ -30,4 +31,5 @@ __all__ = [
     "Tenant",
     "McpIntegration",
     "TenantMcpConfig",
+    "SupportTicket",
 ]

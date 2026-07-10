@@ -1,7 +1,7 @@
 import mqtt from "mqtt";
 
-const BACKEND = "http://localhost:8000/api/v1";
-const FRONTEND_EVENTS = "http://localhost:3000/api/events";
+const BACKEND = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+const FRONTEND_EVENTS = process.env.FRONTEND_EVENTS_URL || "http://localhost:3000/api/events";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 async function callBackend(path: string, body: object): Promise<void> {
@@ -21,16 +21,23 @@ async function notifyFrontend(): Promise<void> {
 }
 
 // ── MQTT ─────────────────────────────────────────────────────────────────────
-const client = mqtt.connect("mqtt://localhost:1883");
+const MQTT_URL = process.env.MQTT_URL || "mqtt://localhost:1883";
+const client = mqtt.connect(MQTT_URL, {
+  clientId: `g1-dashboard-listener-${process.env.NODE_ENV === 'production' ? 'prod' : 'dev'}`,
+  clean: false, // Persistent session: broker queues messages while offline
+  reconnectPeriod: 5000,
+  connectTimeout: 30000,
+});
 
 client.on("connect", () => {
   console.log("[MQTT] AGX Client connected to broker (IoT Simulator)");
   // In production an AGX only subscribes to its OWN tenant topic.
   // For local dev we subscribe to all tenants.
-  client.subscribe("tenant/+/info");
-  client.subscribe("tenant/+/features");
-  client.subscribe("tenant/+/mcp");
-  client.subscribe("tenant/+/users/create");
+  client.subscribe("tenant/+/info", { qos: 1 });
+  client.subscribe("tenant/+/features", { qos: 1 });
+  client.subscribe("tenant/+/mcp", { qos: 1 });
+  client.subscribe("tenant/+/users/create", { qos: 1 });
+  client.subscribe("tenant/+/tickets/status", { qos: 1 });
 });
 
 client.on("message", async (topic, message) => {
@@ -84,6 +91,14 @@ client.on("message", async (topic, message) => {
       console.log(`[MQTT] ✓ User ${payload.email} provisioned in local DB`);
     }
 
+    // ── tenant/+/tickets/status ─────────────────────────────────────────────
+    else if (updateType === "tickets" && topicParts[3] === "status") {
+      console.log(`[MQTT] Ticket status update downstream → tenant ${tenantId}, ticket ${payload.id}`);
+      await callBackend("/tenant/tickets/sync", payload);
+      await notifyFrontend();
+      console.log(`[MQTT] ✓ Ticket ${payload.id} status updated to ${payload.status}`);
+    }
+
   } catch (err) {
     console.error(`[MQTT] Failed to process message on ${topic}:`, err);
   }
@@ -91,4 +106,16 @@ client.on("message", async (topic, message) => {
 
 client.on("error", (err) => {
   console.error("[MQTT] Connection error:", err);
+});
+
+client.on("offline", () => {
+  console.warn("[MQTT] Listener went offline. Broker unreachable.");
+});
+
+client.on("reconnect", () => {
+  console.log("[MQTT] Attempting to reconnect to broker...");
+});
+
+client.on("close", () => {
+  console.warn("[MQTT] Connection closed.");
 });

@@ -21,7 +21,7 @@ PHOTO_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 # ── Employee CRUD ─────────────────────────────────────────────────────────────
 
 @router.get("/", response_model=List[EmployeeResponse])
-def list_employees(db: Session = Depends(get_db), _: User = Depends(require_admin)):
+def list_employees(db: Session = Depends(get_db), _: User = Depends(get_current_user)):
     employees = EmployeeService(db).list_employees()
     return [EmployeeResponse.from_user(e) for e in employees]
 
@@ -34,7 +34,7 @@ async def create_employee(
     department: Optional[str] = Form(None),
     photos: List[UploadFile] = File(...),
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    _: User = Depends(get_current_user),
 ):
     svc = EmployeeService(db)
 
@@ -69,7 +69,7 @@ async def add_photos(
     employee_id: str,
     photos: List[UploadFile] = File(...),
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    _: User = Depends(get_current_user),
 ):
     svc = EmployeeService(db)
     user = svc.get_by_employee_id(employee_id)
@@ -98,7 +98,7 @@ async def add_photos(
 def delete_employee(
     employee_id: str,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    _: User = Depends(get_current_user),
 ):
     svc = EmployeeService(db)
     user = svc.get_by_employee_id(employee_id)
@@ -113,7 +113,7 @@ def delete_employee(
 async def bulk_import(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    _: User = Depends(get_current_user),
 ):
     """
     Excel format:

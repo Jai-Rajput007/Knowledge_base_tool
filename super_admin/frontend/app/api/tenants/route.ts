@@ -68,7 +68,8 @@ export async function POST(request: Request) {
             emotions: false,
             communicationGestures: false,
             navigation: false,
-            featureSuggestions: false
+            featureSuggestions: false,
+            frs: false
           })
         }
     });

@@ -13,8 +13,8 @@ export function useMcpState() {
     try {
       setLoading(true);
       const res = await api.getMcpIntegrations();
-      if (res.data?.integrations) {
-        setIntegrations(res.data.integrations);
+      if ((res.data as any)?.integrations) {
+        setIntegrations((res.data as any).integrations);
       }
     } catch (error) {
       console.error("Failed to load integrations", error);

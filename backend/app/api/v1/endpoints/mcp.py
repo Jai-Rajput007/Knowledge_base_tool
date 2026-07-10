@@ -1,3 +1,4 @@
+import os
 from typing import Any, Dict, List
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
@@ -188,7 +189,7 @@ import httpx
 CLIENT_ID = '687399754252-2nt7j6i3qljcoje1a61kjlqu0mpgnlrt.apps.googleusercontent.com'
 CLIENT_SECRET = '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'
 # Notice we are now redirecting back to FastAPI
-REDIRECT_URI = 'http://localhost:8000/api/v1/mcp/google/callback'
+REDIRECT_URI = os.getenv("GOOGLE_AUTH_REDIRECT_URI", 'http://localhost:8000/api/v1/mcp/google/callback')
 SCOPES = ' '.join([
     'https://www.googleapis.com/auth/gmail.modify',
     'https://www.googleapis.com/auth/calendar',

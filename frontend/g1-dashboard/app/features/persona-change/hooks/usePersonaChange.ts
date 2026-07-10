@@ -131,7 +131,7 @@ export function usePersonaChange() {
           message: res.error,
         });
       } else {
-        const data = res.data || {};
+        const data = (res.data as any) || {};
         setSaveResult({
           success: data.success !== false,
           robot_synced: data.robot_synced ?? false,

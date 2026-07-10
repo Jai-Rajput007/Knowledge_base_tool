@@ -1,5 +1,6 @@
 """Application configuration management."""
 
+import os
 from typing import List, Optional
 from pydantic_settings import BaseSettings
 
@@ -63,12 +64,12 @@ class Settings(BaseSettings):
     RERANKER_CANDIDATES: int = 20  # fed to reranker; top TOP_K returned to LLM
 
     # Security
-    SECRET_KEY: str = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7")
 
     # Admin seed account
     ADMIN_USERNAME: str = "admin"
     ADMIN_EMAIL: str = "admin@g1system.local"
-    ADMIN_PASSWORD: str = "admin123"
+    ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD", "admin123")
 
     # API Keys (optional)
     OPENAI_API_KEY: Optional[str] = None
@@ -76,7 +77,7 @@ class Settings(BaseSettings):
     COHERE_API_KEY: Optional[str] = None
 
     # FRS (Facial Recognition Service)
-    FRS_URL: str = "http://localhost:8001"
+    FRS_URL: str = os.getenv("FRS_URL", "http://localhost:8001")
 
     # File Upload
     UPLOAD_DIR: str = "./uploads"
@@ -87,9 +88,14 @@ class Settings(BaseSettings):
     def allowed_extensions_list(self) -> List[str]:
         return [e.strip() for e in self.ALLOWED_EXTENSIONS.split(",") if e.strip()]
 
-    # Robot agent (runs on AGX — connect via WiFi IP from laptop)
-    ROBOT_AGENT_HOST:       str = "192.168.1.61"   # AGX WiFi IP reachable from this machine
+    # Robot agent (C++ binary — runs on AGX, connect via TCP)
+    ROBOT_AGENT_HOST:       str = "192.168.123.164"   # AGX WiFi IP reachable from this machine
     ROBOT_AGENT_PORT:       int = 7788
+
+    # Robot sync (Python FastAPI — runs locally alongside main.py, HTTP interface for gesture recording etc.)
+    ROBOT_SYNC_HOST:        str = "127.0.0.1"   # runs on laptop; override in .env if on AGX
+    ROBOT_SYNC_PORT:        int = 9000
+
 
     # Wake word training
     # "local_agx" = train on robot GPU | "kaggle" = train on Kaggle cloud GPU

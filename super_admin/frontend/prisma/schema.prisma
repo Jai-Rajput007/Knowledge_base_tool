@@ -31,6 +31,7 @@ model Tenant {
   updatedAt          DateTime           @updatedAt
   users        User[]
   mcpConfigs   TenantMcpConfig[]
+  supportTickets SupportTicket[]
 }
 
 model User {
@@ -57,4 +58,17 @@ model TenantMcpConfig {
   updatedAt  DateTime @updatedAt
   
   @@unique([tenantId, mcpId])
+}
+
+model SupportTicket {
+  id          String   @id 
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String
+  email       String
+  subject     String
+  description String
+  status      String   @default("OPEN")
+  createdAt   DateTime
+  updatedAt   DateTime @updatedAt
 }

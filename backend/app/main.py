@@ -48,10 +48,13 @@ def create_application() -> FastAPI:
         debug=settings.DEBUG
     )
 
+    import os
+    allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:3001").split(",")
+
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=False,
+        allow_origins=allowed_origins,
+        allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )

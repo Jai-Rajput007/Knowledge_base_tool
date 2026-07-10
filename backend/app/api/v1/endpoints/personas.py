@@ -11,7 +11,9 @@ from app.models.persona import Persona, PersonaVersion
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-ROBOT_SYNC_URL = os.getenv("ROBOT_SYNC_URL", "http://192.168.1.61:9000")
+from app.core.config import settings
+
+ROBOT_SYNC_URL = f"http://{settings.ROBOT_SYNC_HOST}:{settings.ROBOT_SYNC_PORT}"
 
 @router.get("/persona")
 async def get_active_persona(db: Session = Depends(get_db)):
@@ -144,6 +146,69 @@ async def delete_persona(id: str, db: Session = Depends(get_db)):
         db.delete(persona)
         db.commit()
     return {"success": True}
+
+
+@router.post("/{id}/deploy")
+async def deploy_persona(id: str, db: Session = Depends(get_db)):
+    """
+    Deploy a saved persona to the robot.
+    - Marks it as isActive in the DB
+    - Pushes the full persona payload to robot_sync at port 9000
+    - robot_sync writes persona.json and sends SIGHUP to main.py for hot-reload
+    """
+    persona = db.query(Persona).filter(Persona.id == id).first()
+    if not persona:
+        raise HTTPException(status_code=404, detail="Persona not found")
+
+    # Deactivate all others first
+    db.query(Persona).filter(Persona.id != id).update({"isActive": False})
+    persona.isActive = True
+    db.commit()
+    db.refresh(persona)
+
+    try:
+        rules = json.loads(persona.conversationRules) if isinstance(persona.conversationRules, str) else (persona.conversationRules or [])
+    except Exception:
+        rules = []
+
+    robot_payload = {
+        "identity": {
+            "name":     persona.robotName or "",
+            "company":  persona.robotCompany or "",
+            "location": persona.robotLocation or "",
+            "role":     persona.robotRole or "",
+            "voice":    persona.robotVoice or "Male",
+        },
+        "system_prompt":       persona.systemPrompt or "",
+        "conversation_rules":  rules,
+        "wake_word":           persona.wakeWord or "hey_jarvis",
+    }
+
+    robot_synced = False
+    message = ""
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            response = await client.post(f"{ROBOT_SYNC_URL}/persona", json=robot_payload)
+            if response.status_code == 200:
+                robot_synced = True
+                message = "Persona deployed and hot-reloaded on robot instantly"
+                persona.syncStatus = "synced"
+            else:
+                message = f"robot_sync responded with {response.status_code}"
+                persona.syncStatus = "pending"
+    except Exception as e:
+        message = f"robot_sync unreachable: {e}"
+        persona.syncStatus = "pending"
+        logger.warning(f"[deploy] {message}")
+
+    db.commit()
+
+    return {
+        "success":      True,
+        "robot_synced": robot_synced,
+        "message":      message,
+        "persona_id":   id,
+    }
 
 @router.post("/generate")
 async def generate_persona(payload: Dict[Any, Any] = Body(...), db: Session = Depends(get_db)):

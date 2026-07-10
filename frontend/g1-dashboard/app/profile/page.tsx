@@ -19,7 +19,7 @@ export default async function ProfilePage() {
 
   let tenant = null;
   try {
-    const res = await fetch("http://localhost:8000/api/v1/tenant/profile", { cache: 'no-store' });
+    const res = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1") + "/tenant/profile", { cache: 'no-store' });
     if (res.ok) {
       tenant = await res.json();
     }

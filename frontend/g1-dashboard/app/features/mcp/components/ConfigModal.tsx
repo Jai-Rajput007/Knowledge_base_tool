@@ -62,7 +62,7 @@ export function ConfigModal({
                   : 'Authorize AGX Assistant to access your Gmail, Calendar, and Drive securely.'}
               </p>
               <button 
-                onClick={() => window.open('http://localhost:8000/api/v1/mcp/google/login', '_blank')}
+                onClick={() => window.open((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1") + '/mcp/google/login', '_blank')}
                 className={`mt-4 px-6 py-3 font-semibold rounded-md shadow flex items-center gap-3 transition-colors ${
                   integration.isConfigured 
                     ? 'bg-secondary text-secondary-foreground hover:bg-secondary/80' 

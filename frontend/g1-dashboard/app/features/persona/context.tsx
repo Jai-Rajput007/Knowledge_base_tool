@@ -36,7 +36,7 @@ export function PersonaProvider({ children }: { children: React.ReactNode }) {
       setPersonas(Array.isArray(res.data) ? res.data : []);
       
       api.getActivePersona()
-        .then(r => setSource(r.data?._source || "db"))
+        .then(r => setSource((r.data as any)?._source || "db"))
         .catch(() => setSource("db"));
     } catch (e) {
       console.error(e);
@@ -49,7 +49,7 @@ export function PersonaProvider({ children }: { children: React.ReactNode }) {
     fetchPersonas(); 
     api.getWakewords()
       .then(res => {
-        if (res.data?.models) setAvailableWakewords(res.data.models);
+        if ((res.data as any)?.models) setAvailableWakewords((res.data as any).models);
       })
       .catch(err => console.error("Failed to load wakewords:", err));
   }, [fetchPersonas]);

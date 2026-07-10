@@ -9,7 +9,9 @@ import {
   SiGooglecloud, SiQuickbooks, SiStripe, SiShopify, 
   SiWoocommerce, SiZoom, SiTelegram, SiNotion, SiConfluence, 
   SiWikipedia, SiDiscord, SiGooglecalendar, SiGoogledrive, 
-  SiGoogledocs, SiBrave, SiDuckduckgo, SiGooglemaps
+  SiGoogledocs, SiBrave, SiDuckduckgo, SiGooglemaps,
+  SiGmail, SiGooglesheets, SiGoogleslides, SiGoogleforms,
+  SiGooglechat, SiGoogletasks
 } from "@icons-pack/react-simple-icons";
 
 interface IntegrationCardProps {
@@ -45,7 +47,28 @@ export function IntegrationCard({ integration, onToggle, onConfigure }: Integrat
   const getBrandIcon = (name: string, isEnabled: boolean) => {
     const iconClass = `w-12 h-12 transition-all ${isEnabled ? 'opacity-100 scale-105' : 'opacity-80 group-hover:opacity-100 group-hover:scale-110'}`;
     const n = name.toLowerCase();
+
+    // Specific exact matches based on DB names
+    if (n === 'weather') return <Sun className={iconClass} style={{ color: '#EAB308' }} />;
+    if (n === 'local search') return <SiGooglemaps className={iconClass} color="default" />;
+    if (n === 'news') return <Newspaper className={iconClass} style={{ color: '#64748B' }} />;
+    if (n === 'wikipedia') return <SiWikipedia className={iconClass} color="default" />;
+    if (n === 'currency converter') return <Coins className={iconClass} style={{ color: '#22C55E' }} />;
+    if (n === 'web search') return <SiDuckduckgo className={iconClass} color="default" />;
+    if (n === 'custom search') return <Search className={iconClass} style={{ color: '#F43F5E' }} />;
     
+    // Google Suite (using exact names for matching or includes)
+    if (n.includes('gmail')) return <SiGmail className={iconClass} color="default" />;
+    if (n.includes('google drive')) return <SiGoogledrive className={iconClass} color="default" />;
+    if (n.includes('google calendar')) return <SiGooglecalendar className={iconClass} color="default" />;
+    if (n.includes('google docs')) return <SiGoogledocs className={iconClass} color="default" />;
+    if (n.includes('google sheets')) return <SiGooglesheets className={iconClass} color="default" />;
+    if (n.includes('google slides')) return <SiGoogleslides className={iconClass} color="default" />;
+    if (n.includes('google forms')) return <SiGoogleforms className={iconClass} color="default" />;
+    if (n.includes('google chat')) return <SiGooglechat className={iconClass} color="default" />;
+    if (n.includes('google tasks')) return <SiGoogletasks className={iconClass} color="default" />;
+
+    // Fallbacks for other generic apps
     if (n.includes('slack')) return <MessageSquare className={iconClass} style={{ color: '#4A154B' }} />;
     if (n.includes('salesforce')) return <Cloud className={iconClass} style={{ color: '#00A1E0' }} />;
     if (n.includes('oracle')) return <Briefcase className={iconClass} style={{ color: '#C74634' }} />;
@@ -57,20 +80,17 @@ export function IntegrationCard({ integration, onToggle, onConfigure }: Integrat
     if (n.includes('word') || n.includes('excel') || n.includes('microsoft 365')) return <FileText className={iconClass} style={{ color: '#185ABD' }} />;
     if (n.includes('aws') || n.includes('amazon')) return <Cloud className={iconClass} style={{ color: '#FF9900' }} />;
 
-    if (n.includes('weather')) return <Sun className={iconClass} style={{ color: '#EAB308' }} />;
-    if (n.includes('currency')) return <Coins className={iconClass} style={{ color: '#22C55E' }} />;
     if (n.includes('face recognition')) return <ScanFace className={iconClass} style={{ color: '#6366F1' }} />;
     if (n.includes('person detection')) return <User className={iconClass} style={{ color: '#3B82F6' }} />;
     if (n.includes('ppe detection')) return <HardHat className={iconClass} style={{ color: '#F97316' }} />;
-    if (n.includes('github')) return <svg viewBox="0 0 24 24" className={iconClass} fill="currentColor" style={{ color: '#E5E7EB' }}><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>;
     if (n.includes('navigation') || n.includes('ros2')) return <Navigation className={iconClass} style={{ color: '#0EA5E9' }} />;
     if (n.includes('battery')) return <Battery className={iconClass} style={{ color: '#10B981' }} />;
     if (n.includes('camera')) return <Camera className={iconClass} style={{ color: '#D946EF' }} />;
     if (n.includes('diagnostics')) return <Activity className={iconClass} style={{ color: '#EF4444' }} />;
     if (n.includes('timezone')) return <Clock className={iconClass} style={{ color: '#8B5CF6' }} />;
-    if (n.includes('news')) return <Newspaper className={iconClass} style={{ color: '#64748B' }} />;
     if (n.includes('search')) return <Search className={iconClass} style={{ color: '#F43F5E' }} />;
 
+    // Common tools in react-simple-icons
     if (n.includes('jira')) return <SiJira className={iconClass} color="default" />;
     if (n.includes('github')) return <SiGithub className={iconClass} color="default" />;
     if (n.includes('gitlab')) return <SiGitlab className={iconClass} color="default" />;
@@ -89,19 +109,13 @@ export function IntegrationCard({ integration, onToggle, onConfigure }: Integrat
     if (n.includes('telegram')) return <SiTelegram className={iconClass} color="default" />;
     if (n.includes('notion')) return <SiNotion className={iconClass} color="default" />;
     if (n.includes('confluence')) return <SiConfluence className={iconClass} color="default" />;
-    if (n.includes('wikipedia')) return <SiWikipedia className={iconClass} color="default" />;
     if (n.includes('discord')) return <SiDiscord className={iconClass} color="default" />;
-    if (n.includes('google calendar')) return <SiGooglecalendar className={iconClass} color="default" />;
-    if (n.includes('google drive')) return <SiGoogledrive className={iconClass} color="default" />;
-    if (n.includes('docs') || n.includes('sheets')) return <SiGoogledocs className={iconClass} color="default" />;
     if (n.includes('brave')) return <SiBrave className={iconClass} color="default" />;
-    if (n.includes('duckduckgo')) return <SiDuckduckgo className={iconClass} color="default" />;
-    if (n.includes('maps')) return <SiGooglemaps className={iconClass} color="default" />;
 
     return <Puzzle className={iconClass} />;
   };
 
-  const isPro = integration.tier === "PRO" || false;
+  const isPro = (integration as any).tier === "PRO" || false;
   // In the DB tier isn't natively "PRO", assuming mapping or falling back
   // Wait, Integration type might not have tier and isUnlocked in our new types.ts.
   // We'll fall back gracefully or assume it from the object if it exists.

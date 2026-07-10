@@ -28,7 +28,7 @@ export function useChatState() {
   const loadSessions = async () => {
     try {
       const res = await api.getSessions();
-      if (res.data) setSessions(res.data);
+      if (res.data) setSessions(res.data as any[]);
     } catch (e) {}
   };
   
@@ -73,7 +73,7 @@ export function useChatState() {
       try {
         const res = await api.createSession(text.substring(0, 50));
         if (res.data) {
-          currentSessionId = res.data.id;
+          currentSessionId = (res.data as any).id;
           setActiveSessionId(currentSessionId);
           await loadSessions();
         }
@@ -169,7 +169,7 @@ export function useChatState() {
     try {
       const res = await api.getSessionMessages(id);
       if (res.data) {
-        setMessages(res.data.map((m: any) => ({
+        setMessages((res.data as any[]).map((m: any) => ({
           id: m.id.toString(),
           role: m.role,
           content: m.content,
@@ -185,7 +185,7 @@ export function useChatState() {
     try {
       const res = await api.createSession("New Chat");
       if (res.data) {
-        setActiveSessionId(res.data.id);
+        setActiveSessionId((res.data as any).id);
         await loadSessions();
       } else {
         setActiveSessionId(null);

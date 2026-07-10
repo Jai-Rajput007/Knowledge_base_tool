@@ -12,6 +12,7 @@ import {
   FiSettings,
   FiChevronDown,
   FiChevronsRight,
+  FiLifeBuoy,
 } from "react-icons/fi";
 import { motion } from "motion/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/ui/avatar";
@@ -71,7 +72,14 @@ export const Sidebar = ({ tenant }: { tenant?: any }) => {
         />
       </div>
 
-      <div className="pt-4 mt-4 border-t border-border shrink-0">
+      <div className="pt-4 mt-4 border-t border-border shrink-0 space-y-1">
+        <Option
+          Icon={FiLifeBuoy}
+          title="Support Tickets"
+          href="/tickets"
+          selected={pathname === "/tickets"}
+          open={open}
+        />
         <Option
           Icon={FiSettings}
           title="Settings"

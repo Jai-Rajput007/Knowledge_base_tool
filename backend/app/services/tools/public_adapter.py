@@ -5,12 +5,8 @@ from typing import List, Dict, Any
 from app.services.tools.base import BaseToolAdapter
 from app.core.logging import logger
 
-# Try to import duckduckgo_search, fallback if not installed yet
-try:
-    from duckduckgo_search import DDGS
-    HAS_DDGS = True
-except ImportError:
-    HAS_DDGS = False
+# We now use local SearXNG via Docker
+HAS_SEARXNG = True
 
 PUBLIC_TOOLS = [
     {
@@ -158,12 +154,12 @@ PUBLIC_TOOLS = [
         "type": "function",
         "function": {
             "name": "search_local_places",
-            "description": "Searches the web for restaurants, cafes, or businesses. MUST include the location.",
+            "description": "Searches the web for restaurants, cafes, or businesses. MUST include the location. You MUST extract actual business names from the snippets rather than just returning URLs.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "query": {"type": "string", "description": "What to search for, e.g., 'best Italian restaurants'."},
-                    "location": {"type": "string", "description": "The city/location. If the user did not provide one, ASK THEM for their location first before calling this."}
+                    "query": {"type": "string", "description": "What to search for. Advise: append words like 'list of names' to get better snippets, e.g., 'names of best Italian restaurants'."},
+                    "location": {"type": "string", "description": "The city/location. If the user did not provide one, ASK THEM for their location first before calling this tool."}
                 },
                 "required": ["query", "location"]
             }
@@ -188,7 +184,7 @@ PUBLIC_TOOLS = [
         "type": "function",
         "function": {
             "name": "search_web",
-            "description": "Searches the general web for any query using DuckDuckGo.",
+            "description": "Searches the general web for any query. Use this for general knowledge questions (e.g., 'Where is X?').",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -500,53 +496,72 @@ class PublicToolsAdapter(BaseToolAdapter):
         return "Search failed."
 
     async def _search_web(self, query: str) -> str:
-        if not HAS_DDGS:
-            return "Error: duckduckgo_search package is not installed on the server. Please ask the user to install it via 'pip install duckduckgo-search'."
         if not query:
             return "Error: query is required."
             
         try:
-            import asyncio
+            import httpx
             
-            def do_search():
-                results = []
-                with DDGS() as ddgs:
-                    for r in ddgs.text(query, max_results=5):
-                        results.append(f"Title: {r.get('title')}\nLink: {r.get('href')}\nSnippet: {r.get('body')}\n")
-                return "\n".join(results)
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                params = {
+                    "q": query,
+                    "format": "json"
+                }
+                response = await client.get("http://localhost:8080/search", params=params)
                 
-            loop = asyncio.get_event_loop()
-            result_str = await loop.run_in_executor(None, do_search)
-            
-            if not result_str:
-                return f"No results found for '{query}'"
-            return f"Web Search Results for '{query}':\n\n{result_str}"
-            
+                if response.status_code != 200:
+                    return f"Search failed with status code: {response.status_code}"
+                    
+                data = response.json()
+                results = data.get("results", [])
+                
+                if not results:
+                    return f"No results found for '{query}'"
+                
+                output = []
+                for r in results[:5]:
+                    title = r.get("title", "")
+                    link = r.get("url", "")
+                    snippet = r.get("content", "")
+                    output.append(f"Title: {title}\nLink: {link}\nSnippet: {snippet}\n")
+                
+                return f"Web Search Results for '{query}':\n\n" + "\n".join(output)
+                
         except Exception as e:
             return f"Web search failed: {str(e)}"
-
+            
     async def _search_news(self, query: str) -> str:
-        if not HAS_DDGS:
-            return "Error: duckduckgo_search package is not installed."
         if not query:
             return "Error: query is required."
             
         try:
-            import asyncio
+            import httpx
             
-            def do_search():
-                results = []
-                with DDGS() as ddgs:
-                    for r in ddgs.news(query, max_results=5):
-                        results.append(f"Headline: {r.get('title')}\nSource: {r.get('source')}\nDate: {r.get('date')}\nLink: {r.get('url')}\nSummary: {r.get('body')}\n")
-                return "\n".join(results)
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                params = {
+                    "q": query,
+                    "format": "json",
+                    "categories": "news"
+                }
+                response = await client.get("http://localhost:8080/search", params=params)
                 
-            loop = asyncio.get_event_loop()
-            result_str = await loop.run_in_executor(None, do_search)
-            
-            if not result_str:
-                return f"No news found for '{query}'"
-            return f"News Results for '{query}':\n\n{result_str}"
-            
+                if response.status_code != 200:
+                    return f"News search failed with status code: {response.status_code}"
+                    
+                data = response.json()
+                results = data.get("results", [])
+                
+                if not results:
+                    return f"No news results found for '{query}'"
+                
+                output = []
+                for r in results[:5]:
+                    title = r.get("title", "")
+                    link = r.get("url", "")
+                    snippet = r.get("content", "")
+                    output.append(f"Title: {title}\nLink: {link}\nSnippet: {snippet}\n")
+                
+                return f"News Search Results for '{query}':\n\n" + "\n".join(output)
+                
         except Exception as e:
             return f"News search failed: {str(e)}"

@@ -29,7 +29,7 @@ export function GenerativePersonaModule() {
     setGenerating(true);
     try {
       const res = await api.generatePersona(genForm);
-      if (res.data?.success) {
+      if ((res.data as any)?.success) {
         await fetchPersonas();
         setIsOpen(false);
         setGenForm({ name: "", robotName: "", role: "", location: "", context: "" });

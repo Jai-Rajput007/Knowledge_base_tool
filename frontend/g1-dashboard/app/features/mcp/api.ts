@@ -9,7 +9,7 @@ export const api = {
     const data = res.data;
     
     // Map the backend data format to the frontend expected format (is_active)
-    const integrations: Integration[] = (data || []).map((item: any) => ({
+    const integrations: Integration[] = ((data as any[]) || []).map((item: any) => ({
       id: item.id,
       name: item.name,
       description: item.description,
@@ -33,6 +33,6 @@ export const api = {
   generateComposioLink: async (mcpId: string): Promise<string> => {
     const res = await coreApi.generateComposioLink(mcpId);
     if (res.error) throw new Error(res.error);
-    return res.data.redirectUrl;
+    return (res.data as any).redirectUrl;
   }
 };

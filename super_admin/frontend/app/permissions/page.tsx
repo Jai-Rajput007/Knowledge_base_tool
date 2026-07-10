@@ -53,7 +53,9 @@ export default function PermissionsPage() {
             { id: "emotions", name: "Emotions", desc: "Enable visual and vocal emotional responses while communicating.", enabled: 0, total: 1, type: "Beta" },
             { id: "communicationGestures", name: "Communication Gestures", desc: "Enable physical gestures while the robot is explaining something.", enabled: 0, total: 1, type: "Beta" },
             { id: "navigation", name: "Navigation", desc: "Enable the robot's physical autonomous navigation features.", enabled: 0, total: 1, type: "Enterprise Only" },
-            { id: "featureSuggestions", name: "Feature Suggestions", desc: "Provide intelligent feature suggestions according to the specific robot model.", enabled: 0, total: 1, type: "Beta" }
+            { id: "featureSuggestions", name: "Feature Suggestions", desc: "Provide intelligent feature suggestions according to the specific robot model.", enabled: 0, total: 1, type: "Beta" },
+            { id: "frs", name: "Facial Recognition System", desc: "Enable the facial recognition employee tracking module.", enabled: 0, total: 1, type: "Core Feature" },
+            { id: "tickets", name: "Support Tickets", desc: "Enable the support ticketing and issue tracking module.", enabled: 0, total: 1, type: "Core Feature" }
           ].map((feature) => (
             <div key={feature.id} className="p-5 flex items-center justify-between hover:bg-foreground/5 transition-colors">
               <div className="flex flex-col gap-1">

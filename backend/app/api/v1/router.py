@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import documents, chat, settings, dashboard, health, retrieve, auth, sessions, memory, employees, wakeword, navigation, personas, tenant, mcp
+from app.api.v1.endpoints import documents, chat, settings, dashboard, health, retrieve, auth, sessions, memory, employees, wakeword, navigation, personas, tenant, mcp, gestures
 
 api_router = APIRouter()
 
@@ -21,3 +21,4 @@ api_router.include_router(navigation.router,prefix="/navigation",tags=["navigati
 api_router.include_router(personas.router,  prefix="/personas",  tags=["personas"])
 api_router.include_router(tenant.router,    prefix="/tenant",    tags=["tenant"])
 api_router.include_router(mcp.router,       prefix="/mcp",       tags=["mcp"])
+api_router.include_router(gestures.router,  prefix="/gestures",  tags=["gestures"])

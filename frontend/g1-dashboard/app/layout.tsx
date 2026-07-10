@@ -48,7 +48,7 @@ export default async function RootLayout({
       requiresPasswordChange = session.requiresPasswordChange === true;
       
       try {
-        const res = await fetch("http://localhost:8000/api/v1/tenant/profile", { cache: 'no-store' });
+        const res = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1") + "/tenant/profile", { cache: 'no-store' });
         if (res.ok) {
           tenantData = await res.json();
         }
