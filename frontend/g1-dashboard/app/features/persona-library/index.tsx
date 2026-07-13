@@ -187,7 +187,7 @@ export function PersonaLibraryModule() {
                     try {
                       rules = typeof selectedPersona.conversationRules === 'string' ? JSON.parse(selectedPersona.conversationRules) : (selectedPersona.conversationRules || []);
                     } catch(e) {}
-                    return Array.isArray(rules) ? rules.map((r: string, i: number) => <li key={i}>{r}</li>) : null;
+                    return Array.isArray(rules) ? rules.map((r: any, i: number) => <li key={i}>{typeof r === 'string' ? r : r.rule}</li>) : null;
                   })()}
                 </ul>
               </div>

@@ -26,6 +26,8 @@ def publish_upstream_sync(tenant_id: str, profile_data: dict):
         logger.error(f"MQTT Connection Error: {e}")
 
 
+from app.core.security import RequireRole
+
 @router.get("/profile")
 async def get_tenant_profile(db: Session = Depends(get_db)):
     # Just return the most recently updated tenant for now (single tenant mode fallback)
@@ -34,7 +36,7 @@ async def get_tenant_profile(db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Tenant not found")
     return tenant
 
-@router.put("/profile")
+@router.put("/profile", dependencies=[Depends(RequireRole(["admin"]))])
 async def update_tenant_profile(payload: Dict[Any, Any] = Body(...), db: Session = Depends(get_db)):
     tenant_id = payload.get("id")
     if not tenant_id:
@@ -62,7 +64,7 @@ async def update_tenant_profile(payload: Dict[Any, Any] = Body(...), db: Session
     
     return tenant
 
-@router.post("/tickets")
+@router.post("/tickets", dependencies=[Depends(RequireRole(["admin"]))])
 async def create_tenant_ticket(payload: Dict[Any, Any] = Body(...), db: Session = Depends(get_db)):
     tenant_id = payload.get("tenantId")
     name = payload.get("name")
@@ -113,7 +115,7 @@ async def create_tenant_ticket(payload: Dict[Any, Any] = Body(...), db: Session 
         
     return ticket
 
-@router.get("/tickets")
+@router.get("/tickets", dependencies=[Depends(RequireRole(["admin"]))])
 async def get_tenant_tickets(db: Session = Depends(get_db)):
     # In single tenant fallback, get the first tenant
     tenant = db.query(Tenant).order_by(Tenant.updatedAt.desc()).first()
@@ -134,11 +136,13 @@ async def get_tenant_features(db: Session = Depends(get_db)):
     return features
 
 
+sync_router = APIRouter()
+
 # ── MQTT Downstream Sync Endpoints ───────────────────────────────────────────
 # Called by the client-side mqtt-listener.ts when data arrives from Super Admin.
 # These are the ONLY authorised writers to the client DB from the MQTT pipeline.
 
-@router.post("/sync", status_code=status.HTTP_200_OK)
+@sync_router.post("/sync", status_code=status.HTTP_200_OK)
 async def sync_tenant_info(payload: Dict[str, Any] = Body(...), db: Session = Depends(get_db)):
     """Upsert tenant info received from Super Admin via MQTT."""
     tenant_id = payload.get("id")
@@ -171,7 +175,7 @@ async def sync_tenant_info(payload: Dict[str, Any] = Body(...), db: Session = De
     return {"ok": True, "tenant_id": tenant_id}
 
 
-@router.post("/features/sync", status_code=status.HTTP_200_OK)
+@sync_router.post("/features/sync", status_code=status.HTTP_200_OK)
 async def sync_tenant_features(payload: Dict[str, Any] = Body(...), db: Session = Depends(get_db)):
     """Update tenant features received from Super Admin via MQTT."""
     tenant_id = payload.get("tenantId")
@@ -189,7 +193,7 @@ async def sync_tenant_features(payload: Dict[str, Any] = Body(...), db: Session 
     return {"ok": True, "tenant_id": tenant_id}
 
 
-@router.post("/mcp/sync", status_code=status.HTTP_200_OK)
+@sync_router.post("/mcp/sync", status_code=status.HTTP_200_OK)
 async def sync_tenant_mcp(payload: Dict[str, Any] = Body(...), db: Session = Depends(get_db)):
     """Update MCP unlock status received from Super Admin via MQTT."""
     tenant_id = payload.get("tenantId")
@@ -215,14 +219,17 @@ async def sync_tenant_mcp(payload: Dict[str, Any] = Body(...), db: Session = Dep
     return {"ok": True, "tenant_id": tenant_id, "mcp_id": mcp_id}
 
 
-@router.post("/users/sync", status_code=status.HTTP_200_OK)
+@sync_router.post("/users/sync", status_code=status.HTTP_200_OK)
 async def sync_user(payload: Dict[str, Any] = Body(...), db: Session = Depends(get_db)):
     """Upsert a user received from Super Admin via MQTT (downstream provisioning)."""
     email = payload.get("email")
+    tenant_id = payload.get("tenantId")
     name = payload.get("name") or payload.get("username")
     username = (name or "").strip() or (email.split("@")[0] if email else None)
     password = payload.get("password", "")
     role = payload.get("role", "user").lower()
+    if role == "client":
+        role = "admin"
     requires_pw_change = payload.get("requiresPasswordChange", False)
 
     if not email or not password:
@@ -234,6 +241,7 @@ async def sync_user(payload: Dict[str, Any] = Body(...), db: Session = Depends(g
     user = db.query(User).filter(User.email == email).first()
     if user:
         user.role = role
+        user.tenant_id = tenant_id
         user.requires_password_change = 1 if requires_pw_change else 0
         if is_bcrypt:
             user.set_bcrypt_password(password)
@@ -241,7 +249,7 @@ async def sync_user(payload: Dict[str, Any] = Body(...), db: Session = Depends(g
             user.set_password(password)  # plaintext fallback
         logger.info(f"[MQTT Sync] Updated user {email} (bcrypt={is_bcrypt})")
     else:
-        user = User(username=username, email=email, role=role, requires_password_change=1 if requires_pw_change else 0)
+        user = User(username=username, email=email, role=role, tenant_id=tenant_id, requires_password_change=1 if requires_pw_change else 0)
         if is_bcrypt:
             user.set_bcrypt_password(password)
         else:
@@ -253,7 +261,7 @@ async def sync_user(payload: Dict[str, Any] = Body(...), db: Session = Depends(g
     db.refresh(user)
     return {"ok": True, "email": email, "role": role}
 
-@router.post("/tickets/sync", status_code=status.HTTP_200_OK)
+@sync_router.post("/tickets/sync", status_code=status.HTTP_200_OK)
 async def sync_ticket_status(payload: Dict[str, Any] = Body(...), db: Session = Depends(get_db)):
     """Sync ticket status update received from Super Admin via MQTT."""
     ticket_id = payload.get("id")
@@ -271,3 +279,26 @@ async def sync_ticket_status(payload: Dict[str, Any] = Body(...), db: Session = 
     db.commit()
     logger.info(f"[MQTT Sync] Updated ticket {ticket_id} status to {status_val}")
     return {"ok": True, "id": ticket_id, "status": status_val}
+
+
+@sync_router.post("/sync-delete", status_code=status.HTTP_200_OK)
+async def sync_delete_tenant(payload: Dict[str, Any] = Body(...), db: Session = Depends(get_db)):
+    """Delete a tenant and all its associated users from local DB."""
+    tenant_id = payload.get("id")
+    if not tenant_id:
+        raise HTTPException(status_code=400, detail="Tenant ID required in payload")
+
+    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    if tenant:
+        db.delete(tenant)
+        logger.info(f"[MQTT Sync] Deleted tenant {tenant_id}")
+        
+    users = db.query(User).filter(User.tenant_id == tenant_id).all()
+    for user in users:
+        db.delete(user)
+    
+    if users:
+        logger.info(f"[MQTT Sync] Deleted {len(users)} users for tenant {tenant_id}")
+
+    db.commit()
+    return {"ok": True, "tenant_id": tenant_id}

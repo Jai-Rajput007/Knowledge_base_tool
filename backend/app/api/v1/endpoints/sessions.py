@@ -153,16 +153,16 @@ async def toggle_pin(
 
 @router.delete("/cleanup/old", status_code=status.HTTP_200_OK)
 async def cleanup_old_sessions(
-    days: int = 15,
+    days: int = 7,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
-    Auto-delete sessions older than `days` days (default: 15).
+    Auto-delete sessions older than `days` days (default: 7).
     Pinned sessions are NEVER deleted automatically.
     Also cascades deletes to messages, memory facts, summaries, and entities.
     
-    Use days=7 for aggressive cleanup or days=15 for standard LTM retention.
+    Use days=7 for aggressive cleanup.
     """
     import datetime
 

@@ -54,10 +54,15 @@ def create_application() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=allowed_origins,
+        allow_origin_regex=r"http://(localhost|127\.0\.0\.1|0\.0\.0\.0|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+):300[0-9]",
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    from app.api.middleware.audit_middleware import AuditLogMiddleware
+    
+    app.add_middleware(AuditLogMiddleware)
 
     upload_dir = Path(settings.UPLOAD_DIR)
     upload_dir.mkdir(parents=True, exist_ok=True)
@@ -71,6 +76,21 @@ def create_application() -> FastAPI:
         init_db()
         logger.info("Database initialized")
         _seed_admin()
+        
+        # Clean up old audit logs (older than 30 days)
+        try:
+            from app.models.audit_log import AuditLog
+            from datetime import datetime, timedelta
+            db = SessionLocal()
+            cutoff = datetime.utcnow() - timedelta(days=30)
+            deleted = db.query(AuditLog).filter(AuditLog.created_at < cutoff).delete()
+            db.commit()
+            logger.info(f"Cleaned up {deleted} old audit logs (older than 30 days)")
+        except Exception as e:
+            logger.error(f"Failed to cleanup old audit logs: {e}")
+        finally:
+            db.close()
+            
         asyncio.create_task(_resume_wakeword_jobs())
 
     @app.on_event("shutdown")

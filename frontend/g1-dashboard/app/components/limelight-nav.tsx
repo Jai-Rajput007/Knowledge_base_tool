@@ -118,7 +118,8 @@ const defaultNavItems: NavItem[] = [
 
 export const LimelightNav = ({
   items = defaultNavItems,
-}: { items?: NavItem[] }) => {
+  role
+}: { items?: NavItem[], role?: string | null }) => {
   const pathname = usePathname();
   const [activeIndex, setActiveIndex] = useState(0);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
@@ -129,7 +130,14 @@ export const LimelightNav = ({
   const navItemRefs = useRef<(HTMLAnchorElement | null)[]>([]);
   const limelightRef = useRef<HTMLDivElement | null>(null);
 
-  const visibleItems = items;
+  const isAdmin = role === "admin";
+  const isEditor = role === "editor" || isAdmin;
+
+  // Filter items based on role
+  const visibleItems = items.filter(item => {
+    if (item.id === "inventory" && !isAdmin) return false; // Only Admin sees Inventory
+    return true;
+  });
 
   useLayoutEffect(() => {
     const index = visibleItems.findIndex((item) => item.href === pathname);

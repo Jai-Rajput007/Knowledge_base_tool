@@ -51,6 +51,7 @@ def init_db():
     from app.models import user
     from app.models import session, message, memory_fact, session_summary, entity
     from app.models import wakeword_job
+    from app.models import audit_log
 
     Base.metadata.create_all(bind=engine)
     _migrate_add_role_column()

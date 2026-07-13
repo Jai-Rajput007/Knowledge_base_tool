@@ -10,7 +10,7 @@ class Persona(Base):
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String(255), nullable=False, default="Main Robot Persona")
     version = Column(Integer, default=1)
-    isActive = Column(Boolean, default=True)
+    isActive = Column(Boolean, default=False)
     isTemplate = Column(Boolean, default=False)
     
     robotName = Column(String(255), default="Jarvis")

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { api, API_BASE_URL } from '@/lib/api';
 
 export interface Gesture {
   name: string;
@@ -7,10 +8,10 @@ export interface Gesture {
   modified: string;
 }
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+const API = API_BASE_URL;
 
 export function useGestures() {
-  const [robotIp, setRobotIp] = useState('192.168.1.50');
+  const [robotIp, setRobotIp] = useState('192.168.123.222');
   const [isHealthy, setIsHealthy] = useState<boolean | null>(null);
   const [gestures, setGestures] = useState<Gesture[]>([]);
   const [isRecording, setIsRecording] = useState(false);
@@ -32,7 +33,10 @@ export function useGestures() {
 
   const checkHealth = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/gestures/health${getQuery()}`);
+      const token = api.getToken();
+      const res = await fetch(`${API}/gestures/health${getQuery()}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       if (res.ok) {
         setIsHealthy(true);
       } else {
@@ -46,7 +50,10 @@ export function useGestures() {
   const fetchGestures = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/gestures/custom${getQuery()}`);
+      const token = api.getToken();
+      const res = await fetch(`${API}/gestures/custom${getQuery()}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       if (res.ok) {
         const data = await res.json();
         setGestures(data.gestures || []);
@@ -71,9 +78,13 @@ export function useGestures() {
     try {
       const formData = new URLSearchParams();
       formData.append('name', name);
+      const token = api.getToken();
       const res = await fetch(`${API}/gestures/custom/record/start${getQuery()}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: { 
+          'Content-Type': 'application/x-www-form-urlencoded',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
         body: formData.toString(),
       });
       if (res.ok) {
@@ -90,8 +101,10 @@ export function useGestures() {
 
   const stopRecording = async () => {
     try {
+      const token = api.getToken();
       await fetch(`${API}/gestures/custom/record/stop${getQuery()}`, {
         method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       setIsRecording(false);
       setRecordingName('');
@@ -103,8 +116,10 @@ export function useGestures() {
 
   const playGesture = async (name: string) => {
     try {
+      const token = api.getToken();
       await fetch(`${API}/gestures/custom/${encodeURIComponent(name)}/play${getQuery()}`, {
         method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
     } catch (e) {
       console.error('Failed to play gesture', e);
@@ -114,8 +129,10 @@ export function useGestures() {
   const deleteGesture = async (name: string) => {
     if (!confirm(`Delete gesture '${name}'? This cannot be undone.`)) return;
     try {
+      const token = api.getToken();
       await fetch(`${API}/gestures/custom/${encodeURIComponent(name)}${getQuery()}`, {
         method: 'DELETE',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       fetchGestures();
     } catch (e) {

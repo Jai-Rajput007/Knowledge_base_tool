@@ -10,8 +10,10 @@ from app.core.config import settings
 
 router = APIRouter()
 
+from app.core.security import RequireRole
+
 @router.get("/")
-def get_integrations(db: Session = Depends(get_db)):
+def get_integrations(db: Session = Depends(get_db), current_user = Depends(RequireRole(["admin"]))):
     try:
         # 1. Get all available integrations
         integrations = db.query(McpIntegration).order_by(McpIntegration.category.asc()).all()
@@ -61,7 +63,7 @@ def get_integrations(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail="Failed to fetch MCP integrations")
 
 @router.post("/configure")
-async def configure_integration(request: Request, db: Session = Depends(get_db)):
+async def configure_integration(request: Request, db: Session = Depends(get_db), current_user = Depends(RequireRole(["admin"]))):
     try:
         body = await request.json()
         mcp_id = body.get("mcpId")
@@ -110,7 +112,7 @@ async def configure_integration(request: Request, db: Session = Depends(get_db))
         raise HTTPException(status_code=500, detail="Failed to update config")
 
 @router.post("/composio-link")
-async def composio_link(request: Request, db: Session = Depends(get_db)):
+async def composio_link(request: Request, db: Session = Depends(get_db), current_user = Depends(RequireRole(["admin"]))):
     try:
         body = await request.json()
         mcp_id = body.get("mcpId")

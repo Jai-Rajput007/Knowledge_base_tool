@@ -12,7 +12,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
-    role: Literal["admin", "user"] = "user"
+    role: Literal["admin", "editor", "user", "viewer"] = "user"
 
 
 class UserLogin(BaseModel):
@@ -22,13 +22,14 @@ class UserLogin(BaseModel):
 
 class UserUpdate(BaseModel):
     email: Optional[str] = None
-    role: Optional[Literal["admin", "user"]] = None
+    role: Optional[Literal["admin", "editor", "user", "viewer"]] = None
     is_active: Optional[int] = None
     password: Optional[str] = None
 
 
 class UserResponse(UserBase):
     id: int
+    tenant_id: Optional[str] = None
     role: str
     is_active: int
     requires_password_change: int

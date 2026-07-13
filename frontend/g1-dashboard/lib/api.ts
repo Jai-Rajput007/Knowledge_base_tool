@@ -319,7 +319,7 @@ class ApiClient {
     return this.request("/auth/users");
   }
 
-  async createUser(userData: { username: string; email: string; password: string; role: "admin" | "user" }) {
+  async createUser(userData: { username: string; email: string; password: string; role: "admin" | "editor" | "user" | "viewer" }) {
     return this.request("/auth/users", {
       method: "POST",
       body: JSON.stringify(userData),
@@ -512,6 +512,12 @@ class ApiClient {
       method: "POST",
       body: JSON.stringify({ mcpId })
     });
+  }
+
+  // ── Audit Logs ─────────────────────────────────────────────────────────────
+  
+  async getAuditLogs(limit = 50, offset = 0) {
+    return this.request(`/audit-logs?limit=${limit}&offset=${offset}`);
   }
 }
 

@@ -17,9 +17,13 @@ import {
 import { motion } from "motion/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/ui/avatar";
 
-export const Sidebar = ({ tenant }: { tenant?: any }) => {
+export const Sidebar = ({ tenant, role }: { tenant?: any, role?: string | null }) => {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+
+  const isAdmin = role === "admin";
+  const isEditor = role === "editor" || isAdmin;
+  const isUser = role === "user" || isEditor;
 
   return (
     <>
@@ -63,13 +67,15 @@ export const Sidebar = ({ tenant }: { tenant?: any }) => {
           selected={pathname === "/employees"}
           open={open}
         />
-        <Option
-          Icon={FiFileText}
-          title="Audit Logs"
-          href="/audit-logs"
-          selected={pathname === "/audit-logs"}
-          open={open}
-        />
+        {isAdmin && (
+          <Option
+            Icon={FiFileText}
+            title="Audit Logs"
+            href="/audit-logs"
+            selected={pathname === "/audit-logs"}
+            open={open}
+          />
+        )}
       </div>
 
       <div className="pt-4 mt-4 border-t border-border shrink-0 space-y-1">
@@ -80,13 +86,15 @@ export const Sidebar = ({ tenant }: { tenant?: any }) => {
           selected={pathname === "/tickets"}
           open={open}
         />
-        <Option
-          Icon={FiSettings}
-          title="Settings"
-          href="/settings"
-          selected={pathname === "/settings"}
-          open={open}
-        />
+        {isAdmin && (
+          <Option
+            Icon={FiSettings}
+            title="Settings"
+            href="/settings"
+            selected={pathname === "/settings"}
+            open={open}
+          />
+        )}
       </div>
     </motion.nav>
     </>

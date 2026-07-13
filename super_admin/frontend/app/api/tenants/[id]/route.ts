@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { publishTenantSync } from '@/lib/mqtt';
+import { publishTenantSync, publishTenantDelete } from '@/lib/mqtt';
 
 export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   const params = await context.params;
@@ -55,6 +55,10 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
     await prisma.tenant.delete({
       where: { id: params.id }
     });
+    
+    // Publish deletion event over MQTT using the reliable publishAsync mechanism
+    await publishTenantDelete(params.id);
+    
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Failed to delete tenant:", error);

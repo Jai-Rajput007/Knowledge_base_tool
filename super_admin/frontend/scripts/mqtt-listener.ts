@@ -45,7 +45,7 @@ client.on("message", async (topic, message) => {
 
       // Update the master cloud database with the new password hash
       await prisma.user.update({
-        where: { id: userId },
+        where: { id: String(userId) },
         data: {
           password: passwordHash,
           requiresPasswordChange

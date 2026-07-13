@@ -469,7 +469,7 @@ class PublicToolsAdapter(BaseToolAdapter):
         from_curr = str(from_curr).upper()
         to_curr = str(to_curr).upper()
         
-        url = f"https://api.frankfurter.app/latest?amount={amount}&from={from_curr}&to={to_curr}"
+        url = f"https://api.frankfurter.dev/v1/latest?amount={amount}&base={from_curr}&symbols={to_curr}"
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.get(url)
             if resp.status_code != 200:
@@ -485,14 +485,22 @@ class PublicToolsAdapter(BaseToolAdapter):
     async def _search_wikipedia(self, query: str) -> str:
         if not query: return "Error: query is required."
         url = f"https://en.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro=1&explaintext=1&titles={urllib.parse.quote(query)}"
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        headers = {"User-Agent": "AntigravityAssistant/1.0 (https://antigravity.dev; bot@antigravity.dev) httpx/0.24"}
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=True, headers=headers) as client:
             resp = await client.get(url)
-            pages = resp.json().get("query", {}).get("pages", {})
-            for page_id, page_data in pages.items():
-                if page_id == "-1":
-                    return f"No Wikipedia article found for '{query}'"
-                extract = page_data.get("extract", "")
-                return f"Wikipedia Summary for {query}:\n{extract[:1500]}..."
+            if resp.status_code != 200:
+                return f"Wikipedia search failed with status {resp.status_code}"
+            
+            try:
+                pages = resp.json().get("query", {}).get("pages", {})
+                for page_id, page_data in pages.items():
+                    if page_id == "-1":
+                        return f"No Wikipedia article found for '{query}'"
+                    extract = page_data.get("extract", "")
+                    return f"Wikipedia Summary for {query}:\n{extract[:1500]}..."
+            except Exception as e:
+                return f"Error parsing Wikipedia response: {e}"
+                
         return "Search failed."
 
     async def _search_web(self, query: str) -> str:

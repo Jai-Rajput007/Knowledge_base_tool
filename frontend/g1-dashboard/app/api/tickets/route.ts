@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 
 const BACKEND_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1") + "/tenant";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const authHeader = req.headers.get("Authorization") || "";
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
     const res = await fetch(`${BACKEND_URL}/tickets`, { 
       cache: 'no-store',
+      headers: { "Authorization": authHeader },
       signal: controller.signal
     });
     clearTimeout(timeoutId);
@@ -21,12 +23,16 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    const authHeader = req.headers.get("Authorization") || "";
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
 
     const res = await fetch(`${BACKEND_URL}/tickets`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': authHeader
+      },
       body: JSON.stringify(body),
       signal: controller.signal
     });

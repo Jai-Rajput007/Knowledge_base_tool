@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
       name: 'g1_session',
       value: token,
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: false, // Access is over local network HTTP (192.168.x.x) so Secure must be false
       sameSite: 'lax',
       path: '/',
       maxAge: 8 * 60 * 60, // 8 hours

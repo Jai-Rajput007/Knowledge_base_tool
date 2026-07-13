@@ -10,17 +10,18 @@ class AuthService:
     def __init__(self, db: Session):
         self.db = db
 
-    def create_user(self, username: str, email: str, password: str, role: str = "user") -> User:
+    def create_user(self, username: str, email: str, password: str, role: str = "user", tenant_id: str = None) -> User:
         try:
             user = User()
             user.username = username
             user.email = email
             user.role = role
+            user.tenant_id = tenant_id
             user.set_password(password)
             self.db.add(user)
             self.db.commit()
             self.db.refresh(user)
-            logger.info(f"User created: {username} (role={role})")
+            logger.info(f"User created: {username} (role={role}, tenant={tenant_id})")
             return user
         except Exception as e:
             self.db.rollback()
@@ -46,8 +47,11 @@ class AuthService:
     def get_user_by_id(self, user_id: int):
         return self.db.query(User).filter(User.id == user_id).first()
 
-    def list_users(self):
-        return self.db.query(User).filter(User.employee_id.is_(None)).order_by(User.created_at).all()
+    def list_users(self, tenant_id: str = None):
+        query = self.db.query(User).filter(User.employee_id.is_(None))
+        if tenant_id:
+            query = query.filter(User.tenant_id == tenant_id)
+        return query.order_by(User.created_at).all()
 
     def update_user(self, user_id: int, **fields) -> User:
         user = self.get_user_by_id(user_id)

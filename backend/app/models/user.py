@@ -18,6 +18,7 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(String(50), nullable=True, index=True)
     username = Column(String(50), unique=True, nullable=False, index=True)
     email = Column(String(100), unique=True, nullable=False, index=True)
     hashed_password = Column(String(255), nullable=False)
@@ -62,6 +63,7 @@ class User(Base):
     def to_dict(self):
         return {
             "id": self.id,
+            "tenant_id": self.tenant_id,
             "username": self.username,
             "email": self.email,
             "role": self.role,

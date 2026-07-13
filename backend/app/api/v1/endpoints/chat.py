@@ -139,7 +139,8 @@ async def chat(
 @router.post("/stream")
 async def chat_stream(
     request: ChatRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """Stream chat response with RAG."""
     
@@ -151,7 +152,7 @@ async def chat_stream(
             service_request = ChatServiceRequest(
                 message=request.message,
                 session_id=request.session_id,
-                user_id=request.user_id,
+                user_id=current_user.id,
                 document_ids=request.document_ids,
                 metadata_filters=request.metadata_filters,
                 enable_query_processing=request.enable_query_processing,

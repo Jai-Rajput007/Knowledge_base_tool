@@ -424,7 +424,7 @@ Question/Command: {query}"""
             has_hierarchy=bool(request.section_path or request.parent_section)
         )
         user_prompt = self._build_user_prompt(processed.cleaned_query, assembled.context_text)
-        response_text = await self._call_ollama(system_prompt, user_prompt, state=state)
+        response_text = await self._call_ollama(system_prompt, user_prompt, state=state, user_id=request.user_id)
         
         if orchestrator:
             stm_history = orchestrator.stm.get_history(request.session_id)
@@ -534,7 +534,7 @@ Question/Command: {query}"""
 
 
         full_response = ""
-        async for chunk in self._call_ollama_stream(system_prompt, user_prompt, state=state):
+        async for chunk in self._call_ollama_stream(system_prompt, user_prompt, state=state, user_id=request.user_id):
             full_response += chunk
             yield chunk
             
@@ -545,7 +545,7 @@ Question/Command: {query}"""
             await orchestrator.post_process_message(request.session_id, request.user_id, turn_number, stm_history.messages)
 
     
-    def _get_credentials_map(self, state: str = "GENERAL") -> Dict[str, str]:
+    def _get_credentials_map(self, state: str = "GENERAL", user_id: Optional[int] = None) -> Dict[str, str]:
         """Fetches unlocked credentials, isolated strictly by the active State."""
         creds_map = {}
         
@@ -556,11 +556,22 @@ Question/Command: {query}"""
         try:
             from app.db.database import SessionLocal
             from app.models.tenant import TenantMcpConfig, McpIntegration
+            from app.models.user import User
             
             with SessionLocal() as db:
-                configs = db.query(TenantMcpConfig).join(McpIntegration).filter(
-                    TenantMcpConfig.isEnabled == True
-                ).all()
+                if user_id:
+                    user = db.query(User).filter(User.id == user_id).first()
+                    if user:
+                        configs = db.query(TenantMcpConfig).join(McpIntegration).filter(
+                            TenantMcpConfig.isEnabled == True,
+                            TenantMcpConfig.tenantId == user.tenant_id
+                        ).all()
+                    else:
+                        configs = []
+                else:
+                    configs = db.query(TenantMcpConfig).join(McpIntegration).filter(
+                        TenantMcpConfig.isEnabled == True
+                    ).all()
                 
                 for config in configs:
                     provider = config.mcp_integration.provider if hasattr(config, 'mcp_integration') else None
@@ -593,11 +604,29 @@ Question/Command: {query}"""
         # For PUBLIC_TOOLS state — only enable public integrations the tenant has turned ON
         if state == "PUBLIC_TOOLS":
             try:
+                from importlib import import_module
                 from app.db.database import SessionLocal as _SL
                 from app.models.tenant import TenantMcpConfig as _TCC, McpIntegration as _MI
+                from app.models.user import User as _User
                 import json as _json
 
                 with _SL() as _db:
+                    if user_id:
+                        # Find all public integrations enabled for this specific user via tenant
+                        _TU = getattr(import_module("app.models.user"), "TenantUser", None)
+                        if _TU:
+                            t_configs = _db.query(_TCC).join(_MI).join(_TU, _TU.tenantId == _TCC.tenantId).filter(
+                                _MI.provider == "public",
+                                _TCC.isEnabled == True,
+                                _TU.id == user_id
+                            ).all()
+                        else:
+                            t_configs = []
+                    else:
+                        t_configs = _db.query(_TCC).join(_MI).filter(
+                            _MI.provider == "public",
+                            _TCC.isEnabled == True
+                        ).all()
                     # Find all public integrations that are enabled for this tenant
                     enabled_public = (
                         _db.query(_MI)
@@ -621,7 +650,8 @@ Question/Command: {query}"""
         self,
         system_prompt: str,
         user_prompt: str,
-        state: str = "GENERAL"
+        state: str = "GENERAL",
+        user_id: Optional[int] = None
     ) -> str:
         """Call Ollama API for completion using /api/chat with modular tool support."""
         from app.services.tools import tool_registry_service
@@ -632,7 +662,7 @@ Question/Command: {query}"""
             {"role": "user", "content": user_prompt}
         ]
 
-        creds_map = self._get_credentials_map(state=state)
+        creds_map = self._get_credentials_map(state=state, user_id=user_id)
         tool_registry_service.load_adapters(creds_map)
 
         # Pass the raw user query — ComposioAdapter extracts keywords internally
@@ -692,9 +722,10 @@ Question/Command: {query}"""
         self,
         system_prompt: str,
         user_prompt: str,
-        state: str = "GENERAL"
-    ) -> AsyncGenerator[str, None]:
-        """Stream from Ollama API using /api/chat with modular tool support."""
+        state: str = "GENERAL",
+        user_id: Optional[int] = None
+    ):
+        """Call Ollama API for streaming completion using /api/chat with modular tool support."""
         from app.services.tools import tool_registry_service
         url = f"{self.ollama_base_url}/api/chat"
 
@@ -703,7 +734,7 @@ Question/Command: {query}"""
             {"role": "user", "content": user_prompt}
         ]
 
-        creds_map = self._get_credentials_map(state=state)
+        creds_map = self._get_credentials_map(state=state, user_id=user_id)
         tool_registry_service.load_adapters(creds_map)
 
         user_query = user_prompt.split("Question/Command:")[-1].strip() if "Question/Command:" in user_prompt else user_prompt

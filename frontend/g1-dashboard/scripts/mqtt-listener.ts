@@ -38,6 +38,7 @@ client.on("connect", () => {
   client.subscribe("tenant/+/mcp", { qos: 1 });
   client.subscribe("tenant/+/users/create", { qos: 1 });
   client.subscribe("tenant/+/tickets/status", { qos: 1 });
+  client.subscribe("tenant/+/delete", { qos: 1 });
 });
 
 client.on("message", async (topic, message) => {
@@ -97,6 +98,14 @@ client.on("message", async (topic, message) => {
       await callBackend("/tenant/tickets/sync", payload);
       await notifyFrontend();
       console.log(`[MQTT] ✓ Ticket ${payload.id} status updated to ${payload.status}`);
+    }
+
+    // ── tenant/+/delete ──────────────────────────────────────────────────────
+    else if (updateType === "delete") {
+      console.log(`[MQTT] Tenant delete downstream → tenant ${tenantId}`);
+      await callBackend("/tenant/sync-delete", { id: tenantId });
+      await notifyFrontend();
+      console.log(`[MQTT] ✓ Tenant ${tenantId} and its users deleted from local DB`);
     }
 
   } catch (err) {

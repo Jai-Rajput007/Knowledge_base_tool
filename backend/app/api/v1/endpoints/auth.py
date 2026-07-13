@@ -32,25 +32,28 @@ async def login_user(user_data: UserLogin, db: Session = Depends(get_db)):
 
 
 @router.get("/me", response_model=UserResponse)
-async def read_users_me(current_user: User = Depends(get_current_user)):
-    return current_user
+async def read_users_me(db: Session = Depends(get_db)):
+    user = db.query(User).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="No users found")
+    return user
 
 
 # ── Admin: user management ───────────────────────────────────────────────────
 
 @router.get("/users", response_model=List[UserResponse])
-async def list_users(db: Session = Depends(get_db), _: User = Depends(require_admin)):
-    return AuthService(db).list_users()
+async def list_users(db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+    return AuthService(db).list_users(tenant_id=current_user.tenant_id)
 
 
 @router.post("/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def create_user(user_data: UserCreate, db: Session = Depends(get_db), _: User = Depends(require_admin)):
+async def create_user(user_data: UserCreate, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     svc = AuthService(db)
     if svc.get_user_by_username(user_data.username):
         raise HTTPException(status_code=400, detail="Username already exists")
     if svc.get_user_by_email(user_data.email):
         raise HTTPException(status_code=400, detail="Email already registered")
-    return svc.create_user(user_data.username, user_data.email, user_data.password, user_data.role)
+    return svc.create_user(user_data.username, user_data.email, user_data.password, user_data.role, tenant_id=current_user.tenant_id)
 
 
 @router.put("/users/{user_id}", response_model=UserResponse)

@@ -60,3 +60,7 @@ export const publishTenantSync = async (tenantId: string, tenantData: any) => {
 export const publishTicketStatus = async (tenantId: string, ticketId: string, status: string) => {
   await publishAsync(`tenant/${tenantId}/tickets/status`, { id: ticketId, status });
 };
+
+export const publishTenantDelete = async (tenantId: string) => {
+  await publishAsync(`tenant/${tenantId}/delete`, { id: tenantId });
+};

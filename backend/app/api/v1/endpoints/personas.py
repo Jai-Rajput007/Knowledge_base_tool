@@ -119,6 +119,7 @@ async def list_personas(db: Session = Depends(get_db)):
 
 @router.post("/")
 async def create_persona(payload: Dict[Any, Any] = Body(...), db: Session = Depends(get_db)):
+    payload["isActive"] = False
     new_persona = Persona(**payload)
     db.add(new_persona)
     db.commit()

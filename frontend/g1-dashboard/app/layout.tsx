@@ -72,12 +72,12 @@ export default async function RootLayout({
     >
       <body className="min-h-full flex bg-background text-foreground">
         <ThemeProvider>
-          {showRagUi && <Sidebar tenant={tenantData} />}
+          {showRagUi && <Sidebar tenant={tenantData} role={role} />}
           
-          <div className={`flex flex-col flex-1 relative min-h-screen max-w-full ${showRagUi ? 'pl-[88px]' : ''}`}>
-            {showRagUi && <LimelightNav />}
+            <div className={`flex flex-col flex-1 relative min-h-screen max-w-full ${showRagUi ? 'pl-[88px]' : ''}`}>
+             {showRagUi && <LimelightNav role={role} />}
             
-            <HeaderActions isLoggedIn={isLoggedIn} />
+             <HeaderActions isLoggedIn={isLoggedIn} />
             
             <main className={`flex-1 ${isPublicPage ? '' : 'p-6 pt-32'}`}>
               <AuthGuard>

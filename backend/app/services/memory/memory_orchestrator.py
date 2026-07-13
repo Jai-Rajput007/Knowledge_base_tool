@@ -85,7 +85,9 @@ class MemoryOrchestrator:
 
     async def post_process_message(self, session_id: str, user_id: int, turn_number: int, messages: List[Any] = None):
         """
-        Run background tasks after an assistant response: fact extraction and periodic summarization.
+        Run background tasks after an assistant response.
+        NOTE: Fact extraction (LTM) and Summarization have been disabled per user request.
+        The system now relies entirely on FRS summaries for the physical robot, and stateless chat (STM only) for the web.
         """
         # Only trigger after assistant responses (even turn numbers)
         if turn_number % 2 != 0:
@@ -94,35 +96,16 @@ class MemoryOrchestrator:
         exchange_count = turn_number // 2
         
         try:
-            # 1. Fact extraction (every exchange)
-            if True:
-                # Use provided langgraph messages if available, else fallback
-                if messages:
-                    recent_msgs = messages[-6:]
-                    from langchain_core.messages import HumanMessage, AIMessage
-                    msg_dicts = [{"role": "user" if isinstance(msg, HumanMessage) else "assistant", "content": msg.content} for msg in recent_msgs]
-                else:
-                    msg_dicts = []
-                
-                if msg_dicts:
-                    user_name = "The user"
-                    if self.store:
-                        profile_item = await self.store.aget(("sessions", str(session_id)), "profile")
-                        if profile_item and profile_item.value.get("name"):
-                            user_name = profile_item.value.get("name")
-                    
-                    await self.ltm.extract_facts_from_chat(user_id, session_id, msg_dicts, user_name)
-                    logger.info(f"Triggered fact extraction for session {session_id} (Exchange {exchange_count})")
+            # 1. Fact extraction (every exchange) - DISABLED
+            # await self.ltm.extract_facts_from_chat(...)
             
-            # 2. Summarization (every 10 full exchanges)
-            if exchange_count % 10 == 0:
-                await self.summarizer.summarize_recent_turns(session_id, last_n_messages=20)
-                logger.info(f"Triggered summarization for session {session_id} (Exchange {exchange_count})")
+            # 2. Summarization (every 10 full exchanges) - DISABLED
+            # await self.summarizer.summarize_recent_turns(...)
             
-            # 3. Archival Summarization (every 30 full exchanges)
-            if exchange_count % 30 == 0:
-                await self.summarizer.archive_session_summary(session_id, user_id)
-                logger.info(f"Triggered archival summarization for session {session_id} (Exchange {exchange_count})")
+            # 3. Archival Summarization (every 30 full exchanges) - DISABLED
+            # await self.summarizer.archive_session_summary(...)
+            
+            pass # No post-processing needed currently
                 
         except Exception as e:
             logger.error(f"Error in memory post-processing: {e}")

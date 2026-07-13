@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 import openpyxl
 
 from app.db.database import get_db
-from app.core.security import get_current_user, require_admin
+from app.core.security import get_current_user, require_admin, RequireRole
 from app.models.user import User
 from app.services.employee_service import EmployeeService
 from app.schemas.employee import EmployeeResponse, BulkEnrollResult, ContextResponse, ContextSummaryRequest
@@ -21,7 +21,7 @@ PHOTO_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 # ── Employee CRUD ─────────────────────────────────────────────────────────────
 
 @router.get("/", response_model=List[EmployeeResponse])
-def list_employees(db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+def list_employees(db: Session = Depends(get_db)):
     employees = EmployeeService(db).list_employees()
     return [EmployeeResponse.from_user(e) for e in employees]
 
@@ -33,8 +33,7 @@ async def create_employee(
     email: Optional[str] = Form(None),
     department: Optional[str] = Form(None),
     photos: List[UploadFile] = File(...),
-    db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     svc = EmployeeService(db)
 
@@ -68,8 +67,7 @@ async def create_employee(
 async def add_photos(
     employee_id: str,
     photos: List[UploadFile] = File(...),
-    db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     svc = EmployeeService(db)
     user = svc.get_by_employee_id(employee_id)
@@ -97,8 +95,7 @@ async def add_photos(
 @router.delete("/{employee_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_employee(
     employee_id: str,
-    db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     svc = EmployeeService(db)
     user = svc.get_by_employee_id(employee_id)
@@ -112,8 +109,7 @@ def delete_employee(
 @router.post("/bulk", response_model=BulkEnrollResult)
 async def bulk_import(
     file: UploadFile = File(...),
-    db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """
     Excel format:

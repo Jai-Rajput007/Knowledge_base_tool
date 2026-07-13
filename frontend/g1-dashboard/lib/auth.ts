@@ -68,14 +68,14 @@ export async function getSession(): Promise<TokenPayload | null> {
  */
 export function createSessionCookie(token: string): string {
   const maxAge = 8 * 60 * 60; // 8 hours
-  return `${COOKIE_NAME}=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${maxAge}`;
+  return `${COOKIE_NAME}=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${maxAge}`;
 }
 
 /**
  * Returns headers to clear the session cookie.
  */
 export function clearSessionCookie(): string {
-  return `${COOKIE_NAME}=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`;
+  return `${COOKIE_NAME}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`;
 }
 
 export { COOKIE_NAME };

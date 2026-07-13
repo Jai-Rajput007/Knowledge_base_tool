@@ -13,6 +13,11 @@ type Ticket = {
   createdAt: string;
 };
 
+const getAuthHeaders = (): Record<string, string> => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+};
+
 export function SupportTicketsModule() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,7 +41,7 @@ export function SupportTicketsModule() {
     // Each GET returns immediately — no hanging Promises to leak in Turbopack.
     const intervalId = setInterval(async () => {
       try {
-        const res = await fetch("/api/events");
+        const res = await fetch("/api/events", { headers: getAuthHeaders() });
         if (!res.ok) return;
         const data = await res.json();
         const newSeq = data.seq as number;
@@ -61,7 +66,9 @@ export function SupportTicketsModule() {
   const fetchProfileAndTickets = async () => {
     try {
       // Fetch profile directly via proxy if available or backend
-      const profileRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1") + "/tenant/profile");
+      const profileRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1") + "/tenant/profile", {
+        headers: getAuthHeaders()
+      });
       if (profileRes.ok) {
         setTenantProfile(await profileRes.json());
       }
@@ -75,7 +82,7 @@ export function SupportTicketsModule() {
 
   const fetchTicketsOnly = async () => {
     try {
-      const res = await fetch("/api/tickets");
+      const res = await fetch("/api/tickets", { headers: getAuthHeaders() });
       const data = await res.json();
       if (data.tickets && Array.isArray(data.tickets)) {
         // Check if any status changed
@@ -111,7 +118,7 @@ export function SupportTicketsModule() {
     try {
       const res = await fetch("/api/tickets", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({
           tenantId: tenantProfile.id,
           name: tenantProfile.name || "Tenant Admin",
@@ -146,7 +153,7 @@ export function SupportTicketsModule() {
   };
 
   return (
-    <FeatureGate featureKey="support-tickets">
+    <FeatureGate featureKey="tickets">
       <div className="h-full p-8 max-w-5xl mx-auto space-y-8 overflow-y-auto pb-32">
         {/* Toast Notification */}
         <AnimatePresence>
