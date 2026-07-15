@@ -80,39 +80,19 @@ class ToolRegistryService:
         # Apply Tool RAG Semantic Filtering if there are many tools
         if query and len(all_tools) > 10:
             try:
-                from qdrant_client import QdrantClient
-                from app.services.embedding_service import embedding_service
+                from app.services.tool_retriever import tool_retriever_service
                 
-                logger.info(f"[ToolRegistry] Semantic filtering {len(all_tools)} tools for query: {query}")
-                query_vector = embedding_service.embed_query(query)
-                client = QdrantClient(path="./qdrant_db")
+                top_tool_names = tool_retriever_service.retrieve_tools(query, top_k=7)
                 
-                try:
-                    results = client.search(
-                        collection_name="global_tools",
-                        query_vector=query_vector,
-                        limit=7,
-                        with_payload=True
-                    )
-                except AttributeError:
-                    results = client.query_points(
-                        collection_name="global_tools",
-                        query=query_vector,
-                        limit=7,
-                        with_payload=True
-                    ).points
+                if top_tool_names:
+                    filtered_tools = []
+                    for t in all_tools:
+                        name = t.get("function", {}).get("name")
+                        if name in top_tool_names:
+                            filtered_tools.append(t)
                     
-                top_tool_names = [r.payload.get("tool_name") for r in results if r.payload]
-                logger.info(f"[ToolRegistry] Selected top tools: {top_tool_names}")
-                
-                filtered_tools = []
-                for t in all_tools:
-                    name = t.get("function", {}).get("name")
-                    if name in top_tool_names:
-                        filtered_tools.append(t)
-                
-                if filtered_tools:
-                    all_tools = filtered_tools
+                    if filtered_tools:
+                        all_tools = filtered_tools
             except Exception as e:
                 logger.error(f"[ToolRegistry] Tool RAG filtering failed: {e}")
                 

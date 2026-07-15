@@ -48,11 +48,20 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-bg-primary relative overflow-hidden px-4">
-      {/* Background effects */}
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-accent-blue/5 rounded-full blur-3xl" />
-      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-accent-purple/5 rounded-full blur-3xl" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-accent-cyan/3 rounded-full blur-3xl" />
+    <div className="flex min-h-screen items-center justify-center relative overflow-hidden px-4">
+      {/* Local Video Background */}
+      <video 
+        autoPlay 
+        loop 
+        muted 
+        playsInline 
+        className="absolute inset-0 w-full h-full object-cover -z-20"
+      >
+        <source src="/bg.mp4" type="video/mp4" />
+      </video>
+
+      {/* Dark overlay for better text readability and glassmorphism contrast */}
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] -z-10"></div>
 
       <div className="relative z-10 w-full max-w-[420px]">
         {/* Logo */}
@@ -74,17 +83,17 @@ export default function SignInPage() {
               <path d="M9 15h6" />
             </svg>
           </div>
-          <span className="text-xl font-bold text-text-primary">G1 Robot Platform</span>
+          <span className="text-xl font-bold text-white">G1 Robot Platform</span>
         </div>
 
         {/* Card */}
-        <div className="bg-bg-secondary/80 backdrop-blur-xl rounded-2xl border border-border p-8 shadow-2xl shadow-black/20">
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-text-primary mb-1.5">
-              Welcome back
+        <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-8 shadow-2xl shadow-black/40">
+          <div className="mb-8 text-center">
+            <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">
+              Sign In
             </h1>
-            <p className="text-sm text-text-muted">
-              Sign in to your account to continue
+            <p className="text-sm text-gray-300">
+              Enter your credentials to continue
             </p>
           </div>
 
@@ -103,8 +112,8 @@ export default function SignInPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Email */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-text-secondary mb-1.5">
-                Email address
+              <label htmlFor="email" className="block text-sm font-medium text-gray-200 mb-1.5">
+                Username / Email
               </label>
               <input
                 id="email"
@@ -114,13 +123,13 @@ export default function SignInPage() {
                 placeholder="admin@g1platform.com"
                 required
                 autoComplete="email"
-                className="w-full h-11 px-4 rounded-lg bg-bg-elevated border border-border text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-blue/60 focus:ring-1 focus:ring-accent-blue/20 transition-all"
+                className="w-full h-11 px-4 rounded-full bg-white/5 border border-white/10 text-sm text-white placeholder:text-gray-400 focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/30 transition-all backdrop-blur-sm"
               />
             </div>
 
             {/* Password */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-text-secondary mb-1.5">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-200 mb-1.5">
                 Password
               </label>
               <div className="relative">
@@ -132,12 +141,12 @@ export default function SignInPage() {
                   placeholder="••••••••"
                   required
                   autoComplete="current-password"
-                  className="w-full h-11 px-4 pr-11 rounded-lg bg-bg-elevated border border-border text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-blue/60 focus:ring-1 focus:ring-accent-blue/20 transition-all"
+                  className="w-full h-11 px-4 pr-11 rounded-full bg-white/5 border border-white/10 text-sm text-white placeholder:text-gray-400 focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/30 transition-all backdrop-blur-sm"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-secondary transition-colors cursor-pointer"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors cursor-pointer"
                   tabIndex={-1}
                 >
                   {showPassword ? (
@@ -160,7 +169,7 @@ export default function SignInPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-11 rounded-lg bg-gradient-to-r from-accent-blue to-accent-purple text-white text-sm font-semibold hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-accent-blue/50 focus:ring-offset-2 focus:ring-offset-bg-secondary transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
+              className="w-full h-11 rounded-full bg-white/20 hover:bg-white/30 border border-white/30 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-white/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2 backdrop-blur-sm"
             >
               {loading ? (
                 <>
@@ -174,29 +183,18 @@ export default function SignInPage() {
                 'Sign in'
               )}
             </button>
+            {/* Additional Links below button */}
+            <div className="flex justify-between items-center text-xs text-gray-300 pt-2">
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input type="checkbox" className="rounded border-white/20 bg-white/10 text-white focus:ring-white/30" />
+                <span>Remember Me</span>
+              </label>
+              <a href="#" className="hover:text-white transition-colors">Forgot Password?</a>
+            </div>
           </form>
         </div>
 
-        {/* Demo credentials */}
-        <div className="mt-6 p-4 rounded-xl bg-bg-secondary/50 border border-border/50">
-          <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">Demo Credentials</p>
-          <div className="space-y-2 text-xs font-mono">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-accent-purple/10 text-accent-purple font-semibold">Super Admin</span>
-              <span className="text-text-secondary">admin@g1platform.com / Admin@123</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-accent-blue/10 text-accent-blue font-semibold">Client</span>
-              <span className="text-text-secondary">client@g1universe.com / Client@123</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-accent-cyan/10 text-accent-cyan font-semibold">Viewer</span>
-              <span className="text-text-secondary">viewer@g1universe.com / Viewer@123</span>
-            </div>
-          </div>
-        </div>
-
-        <p className="text-center text-xs text-text-muted mt-6">
+        <p className="text-center text-xs text-gray-400 mt-6 font-medium">
           Secured with PASETO v4 encrypted tokens
         </p>
       </div>

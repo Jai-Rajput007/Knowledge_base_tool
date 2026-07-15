@@ -43,7 +43,7 @@ const PersonaMenu = () => (
 
 const RagMenu = () => (
   <div className="w-[240px]">
-    <h3 className="mb-3 text-sm font-semibold text-foreground border-b border-border pb-2">Robot RAG</h3>
+    <h3 className="mb-3 text-sm font-semibold text-foreground border-b border-border pb-2">Knowledge Hub</h3>
     <div className="flex flex-col gap-1">
       <a href="/rag#document" className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-primary transition-colors">
         <FiDatabase className="text-lg" /> Document RAG
@@ -110,7 +110,7 @@ const NavigationMenu = () => (
 
 const defaultNavItems: NavItem[] = [
   { id: "persona",    icon: <FiUser />,       label: "Persona Manager",  href: "/persona",     dropdownComponent: PersonaMenu },
-  { id: "rag",        icon: <FiDatabase />,   label: "Robot RAG",        href: "/rag",         dropdownComponent: RagMenu },
+  { id: "rag",        icon: <FiDatabase />,   label: "Knowledge Hub",        href: "/rag",         dropdownComponent: RagMenu },
   { id: "navigation", icon: <FiNavigation />, label: "Navigation",       href: "/navigation",  dropdownComponent: NavigationMenu },
   { id: "gesture",    icon: <FiActivity />,   label: "Gesture Settings", href: "/gesture",     dropdownComponent: GestureMenu },
   { id: "inventory",  icon: <FiBox />,        label: "Robot Inventory",  href: "/inventory",   dropdownComponent: InventoryMenu },

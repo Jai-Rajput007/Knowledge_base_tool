@@ -34,8 +34,14 @@ module.exports = {
       cwd: "./backend",
       script: "/home/jai/miniconda3/envs/nlp-env/bin/python3",
       args: "main.py",
+      interpreter: "none",
       restart_delay: 3000,
       max_restarts: 20,
+      env: {
+        CONDA_DEFAULT_ENV: "nlp-env",
+        CONDA_PREFIX: "/home/jai/miniconda3/envs/nlp-env",
+        PATH: "/home/jai/miniconda3/envs/nlp-env/bin:/home/jai/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+      },
     },
     // {
     //   name: "g1-frs-server",
@@ -45,14 +51,29 @@ module.exports = {
     //   restart_delay: 5000,
     //   max_restarts: 20,
     // },
-    // {
-    //   name: "g1-robot-sync",
-    //   cwd: "../g1-nlp",
-    //   script: "/home/jai/miniconda3/envs/nlp-env/bin/uvicorn",
-    //   args: "robot_sync:app --host 0.0.0.0 --port 9000",
-    //   restart_delay: 5000,
-    //   max_restarts: 20,
-    // },
+    {
+      name: "g1-robot-sync",
+      cwd: "../g1-nlp",
+      script: "/home/jai/miniconda3/envs/nlp-env/bin/uvicorn",
+      args: "robot_sync:app --host 0.0.0.0 --port 9000",
+      interpreter: "none",
+      restart_delay: 5000,
+      max_restarts: 20,
+      env: {
+        CONDA_DEFAULT_ENV: "nlp-env",
+        CONDA_PREFIX: "/home/jai/miniconda3/envs/nlp-env",
+        PATH: "/home/jai/miniconda3/envs/nlp-env/bin:/home/jai/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+      },
+    },
+    {
+      name: "g1-robot-agent",
+      cwd: "../g1-nlp/cpp/build",
+      script: "./robot_agent",
+      args: "enp4s0",
+      interpreter: "none",
+      restart_delay: 3000,
+      max_restarts: 20,
+    },
     {
       name: "g1-sa-mqtt-listener",
       cwd: "./super_admin/frontend",
@@ -60,6 +81,14 @@ module.exports = {
       args: "run mqtt:listen",
       restart_delay: 5000,
       max_restarts: 50,
+    },
+    {
+      name: "g1-graphify-watcher",
+      cwd: "../",
+      script: "/home/jai/.local/bin/graphify",
+      args: ". --watch",
+      interpreter: "none",
+      restart_delay: 10000,
     }
   ]
 };

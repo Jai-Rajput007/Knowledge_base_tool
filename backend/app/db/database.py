@@ -47,7 +47,7 @@ def get_db() -> Session:
 
 def init_db():
     """Initialize database tables."""
-    from app.models import document, activity, setting
+    from app.models import document, activity, setting, tool
     from app.models import user
     from app.models import session, message, memory_fact, session_summary, entity
     from app.models import wakeword_job

@@ -654,7 +654,7 @@ Question/Command: {query}"""
         user_id: Optional[int] = None
     ) -> str:
         """Call Ollama API for completion using /api/chat with modular tool support."""
-        from app.services.tools import tool_registry_service
+        from app.services.tools.registry import ToolRegistryService
         url = f"{self.ollama_base_url}/api/chat"
 
         messages = [
@@ -663,6 +663,7 @@ Question/Command: {query}"""
         ]
 
         creds_map = self._get_credentials_map(state=state, user_id=user_id)
+        tool_registry_service = ToolRegistryService()
         tool_registry_service.load_adapters(creds_map)
 
         # Pass the raw user query — ComposioAdapter extracts keywords internally
@@ -726,7 +727,7 @@ Question/Command: {query}"""
         user_id: Optional[int] = None
     ):
         """Call Ollama API for streaming completion using /api/chat with modular tool support."""
-        from app.services.tools import tool_registry_service
+        from app.services.tools.registry import ToolRegistryService
         url = f"{self.ollama_base_url}/api/chat"
 
         messages = [
@@ -735,6 +736,7 @@ Question/Command: {query}"""
         ]
 
         creds_map = self._get_credentials_map(state=state, user_id=user_id)
+        tool_registry_service = ToolRegistryService()
         tool_registry_service.load_adapters(creds_map)
 
         user_query = user_prompt.split("Question/Command:")[-1].strip() if "Question/Command:" in user_prompt else user_prompt

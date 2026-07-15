@@ -1,40 +1,38 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { api } from "@/lib/api";
+import Link from "next/link";
 import { ThemeToggle } from "./theme-toggle";
 import { FiBell } from "react-icons/fi";
+import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/ui/avatar";
 
 /**
  * HeaderActions Component
- * 
- * Displays top-right global actions like Notifications, Theme Toggle, and Login/Logout.
- * UPDATED: Added a Notification button that routes to /notifications.
+ *
+ * Displays top-right global actions: Notifications, Theme Toggle, and Profile Avatar (or Login).
+ * UPDATED: Replaced Logout button with a Profile Avatar link.
+ *          Logout is now in the sidebar.
  */
 
-export function HeaderActions({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
+export function HeaderActions({ isLoggedIn = false, tenant }: { isLoggedIn?: boolean; tenant?: any }) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const handleLogout = async () => {
-    // Call our secure PASETO logout endpoint
-    await fetch('/api/auth/logout', { method: 'POST' });
-    
-    // Hard refresh so all server components refetch cleanly
-    window.location.href = '/sign-in';
-  };
-
   const isAuthPage = pathname.startsWith("/auth") || pathname.startsWith("/sign-in");
 
+  // Build the avatar for the profile link
+  const logo = tenant?.companyLogo;
+  const initial = tenant?.name ? tenant.name.charAt(0).toUpperCase() : "U";
+  const tenantName = tenant?.name || "User Profile";
+
   return (
-    <div className="fixed top-6 right-6 z-50 flex items-center gap-4">
+    <div className="fixed top-6 right-6 z-50 flex items-center gap-3">
+      {/* Notification bell */}
       {!isAuthPage && isLoggedIn && (
         <button
           onClick={() => {
             console.log("[HeaderActions] Navigating to Notifications page");
-            router.push('/notifications');
+            router.push("/notifications");
           }}
           className="p-2.5 rounded-xl bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors relative shadow-sm"
           title="Notifications"
@@ -43,17 +41,27 @@ export function HeaderActions({ isLoggedIn = false }: { isLoggedIn?: boolean }) 
           <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full animate-pulse" />
         </button>
       )}
+
+      {/* Theme toggle */}
       <ThemeToggle />
+
+      {/* Profile avatar (logged in) or Login button (logged out) */}
       {!isAuthPage && (
         isLoggedIn ? (
-          <button 
-            onClick={handleLogout}
-            className="px-4 py-2 text-sm bg-destructive/10 text-destructive rounded-lg font-semibold hover:bg-destructive/20 transition-colors"
+          <Link
+            href="/profile"
+            className="rounded-full hover:ring-2 hover:ring-primary/40 transition-all"
+            title="Profile"
           >
-            Logout
-          </button>
+            <Avatar className="h-11 w-11 rounded-full border-2 border-border shadow-sm cursor-pointer hover:border-primary transition-colors">
+              {logo ? <AvatarImage src={logo} alt={tenantName} className="object-cover rounded-full" /> : null}
+              <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-[15px] rounded-full">
+                {initial}
+              </AvatarFallback>
+            </Avatar>
+          </Link>
         ) : (
-          <Link 
+          <Link
             href="/sign-in"
             className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors shadow-md shadow-primary/20"
           >
