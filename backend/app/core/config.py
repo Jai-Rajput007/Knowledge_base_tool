@@ -2,6 +2,7 @@
 
 import os
 from typing import List, Optional
+from pydantic import model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -30,7 +31,7 @@ class Settings(BaseSettings):
 
     # LLM Configuration
     LLM_PROVIDER: str = "ollama"
-    LLM_MODEL: str = "qwen2.5:7b"
+    LLM_MODEL: str = "qwen3.5:9b"
     LLM_TEMPERATURE: float = 0.7
     LLM_MAX_TOKENS: int = 8192
     LLM_TOP_P: float = 0.9
@@ -88,13 +89,26 @@ class Settings(BaseSettings):
     def allowed_extensions_list(self) -> List[str]:
         return [e.strip() for e in self.ALLOWED_EXTENSIONS.split(",") if e.strip()]
 
+    # ── Device Mode (pc vs agx) ──
+    # If "agx", overrides FRS, Robot Agent, and Robot Sync to point to AGX_IP
+    DEVICE_MODE: str = os.getenv("DEVICE_MODE", "pc").lower()
+    AGX_IP: str = os.getenv("AGX_IP", "192.168.123.166")
+
     # Robot agent (C++ binary — runs on AGX, connect via TCP)
-    ROBOT_AGENT_HOST:       str = "192.168.123.164"   # AGX WiFi IP reachable from this machine
+    ROBOT_AGENT_HOST:       str = "192.168.123.164"   # default for PC mode
     ROBOT_AGENT_PORT:       int = 7788
 
     # Robot sync (Python FastAPI — runs locally alongside main.py, HTTP interface for gesture recording etc.)
-    ROBOT_SYNC_HOST:        str = "127.0.0.1"   # runs on laptop; override in .env if on AGX
+    ROBOT_SYNC_HOST:        str = "127.0.0.1"   # default for PC mode
     ROBOT_SYNC_PORT:        int = 9000
+
+    @model_validator(mode="after")
+    def override_for_agx(self) -> "Settings":
+        if self.DEVICE_MODE == "agx":
+            self.FRS_URL = f"http://{self.AGX_IP}:8001"
+            self.ROBOT_AGENT_HOST = self.AGX_IP
+            self.ROBOT_SYNC_HOST = self.AGX_IP
+        return self
 
 
     # Wake word training
