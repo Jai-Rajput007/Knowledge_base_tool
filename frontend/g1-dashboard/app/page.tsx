@@ -1,6 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from 'next/dynamic';
+
+const Spline = dynamic(
+  () => import('@splinetool/react-spline'),
+  { ssr: false }
+);
 
 const features = [
   {
@@ -43,41 +49,64 @@ export default function Home() {
   return (
     <div className="flex-1 flex flex-col">
       {/* Hero */}
-      <section className="flex-1 flex flex-col items-center justify-center px-4 py-20 text-center">
-        <div className="max-w-3xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent border border-border mb-8">
-            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-sm text-accent-foreground font-medium">System Online</span>
-          </div>
+      <section className="flex-1 flex flex-col items-center justify-center px-4 py-10 lg:py-20 relative overflow-hidden">
+        <div className="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
+          
+          {/* Left Content */}
+          <div className="text-left">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent border border-border mb-8">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <span className="text-sm text-accent-foreground font-medium">System Online</span>
+            </div>
 
-          <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-4 tracking-tight">
-            <span className="text-primary">G1</span> Knowledge Base
-          </h1>
-          <p className="text-lg text-muted-foreground mb-3 font-medium">Management Dashboard</p>
+            <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-4 tracking-tight leading-tight">
+              Robot In Your <span className="text-primary">Hands</span>
+            </h1>
+            <p className="text-lg text-primary mb-3 font-bold uppercase tracking-widest">
+              Control your Unitree robots with VEDA
+            </p>
 
-          <p className="text-base text-muted-foreground mb-10 max-w-xl mx-auto leading-relaxed">
-            Internal administration panel for managing the G1 humanoid robot's knowledge base.
-            Upload documents, verify responses, and manage system users.
-          </p>
+            <p className="text-base text-muted-foreground mb-10 max-w-xl leading-relaxed">
+              The ultimate command center for your humanoid robotics fleet. Deploy advanced knowledge bases, configure real-time integrations, and seamlessly orchestrate robot actions from a single, powerful interface.
+            </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
-            <div>
+            <div className="flex flex-col sm:flex-row items-center sm:items-start justify-start gap-4 mb-10">
+              <div>
+                <Link
+                  href="/sign-in"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary text-primary-foreground rounded-xl font-semibold text-lg hover:opacity-90 transition-all shadow-lg shadow-primary/25 w-full sm:w-auto"
+                >
+                  Sign In to Dashboard
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </Link>
+              </div>
               <Link
-                href="/sign-in"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary text-primary-foreground rounded-xl font-semibold text-lg hover:opacity-90 transition-all shadow-lg shadow-primary/25"
+                href="/sign-up"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-card text-card-foreground border border-border rounded-xl font-semibold text-lg hover:bg-accent transition-all shadow-sm w-full sm:w-auto"
               >
-                Sign In to Dashboard
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
+                Create Account
               </Link>
             </div>
-            <Link
-              href="/sign-up"
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-card text-card-foreground border border-border rounded-xl font-semibold text-lg hover:bg-accent transition-all shadow-sm"
-            >
-              Create Account
-            </Link>
+          </div>
+
+          {/* Right Spline 3D Model with Background Text */}
+          <div className="h-[400px] lg:h-[600px] w-full relative flex items-center justify-center">
+            
+            {/* Giant VEDA Background Text */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0 -translate-y-12 lg:-translate-y-20">
+              <h2 className="text-[120px] lg:text-[220px] font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-foreground/20 dark:from-foreground/30 to-foreground/0 select-none leading-none">
+                VEDA
+              </h2>
+            </div>
+
+            {/* The Spline Robot */}
+            <div className="absolute inset-0 z-10">
+              <Spline 
+                scene="/scene.splinecode" 
+              />
+            </div>
           </div>
         </div>
 
