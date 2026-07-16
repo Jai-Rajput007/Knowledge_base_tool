@@ -1,7 +1,7 @@
 import json
 import uuid
 from app.db.database import SessionLocal
-from app.models.persona import PersonaTemplate
+from app.models.persona import Persona, PersonaTemplate
 from app.models.tenant import McpIntegration
 from app.core.logging import logger
 
@@ -193,18 +193,24 @@ def _seed_personas(db):
     
     count = 0
     for t in templates:
-        existing = db.query(PersonaTemplate).filter(PersonaTemplate.name == t["name"]).first()
+        existing = db.query(Persona).filter(Persona.name == t["name"], Persona.isTemplate == True).first()
         if not existing:
-            pt = PersonaTemplate(
+            # Parse templateData to map to Persona fields
+            t_data = json.loads(t["templateData"])
+            p = Persona(
                 id=str(uuid.uuid4()),
                 name=t["name"],
-                description=t["description"],
-                category=t["category"],
-                tags=t["tags"],
-                isSystem=t["isSystem"],
-                templateData=t["templateData"]
+                robotName=t_data.get("robotRole", ""),
+                robotLocation=t_data.get("robotLocation", ""),
+                robotRole=t_data.get("robotRole", ""),
+                robotVoice=t_data.get("robotVoice", "Female"),
+                systemPrompt=t_data.get("systemPrompt", ""),
+                conversationRules=t_data.get("conversationRules", "[]"),
+                isTemplate=True,
+                isActive=False,
+                syncStatus="not_synced"
             )
-            db.add(pt)
+            db.add(p)
             count += 1
     if count > 0:
         logger.info(f"Seeded {count} persona templates.")
