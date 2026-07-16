@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import dynamic from 'next/dynamic';
+import { ShimmerButton } from "@/components/ui/shimmer-button";
 
 const Spline = dynamic(
   () => import('@splinetool/react-spline'),
@@ -71,17 +72,16 @@ export default function Home() {
             </p>
 
             <div className="flex flex-col sm:flex-row items-center sm:items-start justify-start gap-4 mb-10">
-              <div>
-                <Link
-                  href="/sign-in"
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary text-primary-foreground rounded-xl font-semibold text-lg hover:opacity-90 transition-all shadow-lg shadow-primary/25 w-full sm:w-auto"
-                >
-                  Sign In to Dashboard
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                  </svg>
-                </Link>
-              </div>
+              <Link href="/sign-in" className="w-full sm:w-auto">
+                <ShimmerButton background="var(--primary)" className="shadow-lg shadow-primary/25 w-full sm:w-auto px-8 py-4 rounded-xl">
+                  <span className="flex items-center gap-2 font-semibold text-lg text-primary-foreground whitespace-nowrap">
+                    Sign In to Dashboard
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    </svg>
+                  </span>
+                </ShimmerButton>
+              </Link>
             </div>
           </div>
 
