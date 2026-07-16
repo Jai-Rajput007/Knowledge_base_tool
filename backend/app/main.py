@@ -10,6 +10,7 @@ from app.core.config import settings
 from app.core.logging import logger
 from app.api.v1.router import api_router
 from app.db.database import init_db, SessionLocal
+from app.core.seed import seed_all
 
 
 def _seed_admin():
@@ -76,6 +77,7 @@ def create_application() -> FastAPI:
         init_db()
         logger.info("Database initialized")
         _seed_admin()
+        seed_all()
         
         # Clean up old audit logs (older than 30 days)
         try:
