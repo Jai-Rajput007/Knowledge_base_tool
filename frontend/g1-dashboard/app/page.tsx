@@ -82,12 +82,6 @@ export default function Home() {
                   </svg>
                 </Link>
               </div>
-              <Link
-                href="/sign-up"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-card text-card-foreground border border-border rounded-xl font-semibold text-lg hover:bg-accent transition-all shadow-sm w-full sm:w-auto"
-              >
-                Create Account
-              </Link>
             </div>
           </div>
 
