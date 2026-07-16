@@ -15,7 +15,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     ];
     
     const unlockedMap: Record<string, boolean> = {};
-    configs.forEach(c => {
+    configs.forEach((c: any) => {
         unlockedMap[c.mcpId] = c.isUnlocked;
     });
     
