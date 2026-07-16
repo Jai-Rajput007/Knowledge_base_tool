@@ -2,42 +2,15 @@
 
 import Link from "next/link";
 import dynamic from 'next/dynamic';
-import { ShimmerButton } from "@/components/ui/shimmer-button";
+import { AnimatedArrowButton } from "@/components/ui/animated-arrow-button";
+import { FeaturesGrid } from "@/components/features-grid";
 
 const Spline = dynamic(
   () => import('@splinetool/react-spline'),
   { ssr: false }
 );
 
-const features = [
-  {
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-      </svg>
-    ),
-    title: "Document Library",
-    description: "Upload manuals, SOPs, and reference documents. Automatically indexed and ready for the robot to query.",
-  },
-  {
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-      </svg>
-    ),
-    title: "Knowledge Base Chat",
-    description: "Test the knowledge base directly. Ask questions the robot would ask and verify its responses.",
-  },
-  {
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-      </svg>
-    ),
-    title: "Robot Integration",
-    description: "The G1 robot queries this system in real time. Documents uploaded here become the robot's knowledge.",
-  },
-];
+// Features rendered by FeaturesGrid component
 
 const systemInfo = [
   { label: "Deployment", value: "On-Premise" },
@@ -73,14 +46,7 @@ export default function Home() {
 
             <div className="flex flex-col sm:flex-row items-center sm:items-start justify-start gap-4 mb-10">
               <Link href="/sign-in" className="w-full sm:w-auto">
-                <ShimmerButton background="var(--primary)" className="shadow-lg shadow-primary/25 w-full sm:w-auto px-8 py-4 rounded-xl">
-                  <span className="flex items-center gap-2 font-semibold text-lg text-primary-foreground whitespace-nowrap">
-                    Sign In to Dashboard
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                    </svg>
-                  </span>
-                </ShimmerButton>
+                <AnimatedArrowButton text="Sign In to Dashboard" />
               </Link>
             </div>
           </div>
@@ -104,18 +70,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Feature Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16 max-w-5xl mx-auto w-full px-4">
-          {features.map((f) => (
-            <div key={f.title} className="bg-card border border-border rounded-2xl p-6 text-left hover:border-primary/40 transition-all">
-              <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-4">
-                {f.icon}
-              </div>
-              <h3 className="text-base font-semibold text-card-foreground mb-2">{f.title}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">{f.description}</p>
-            </div>
-          ))}
-        </div>
+        <FeaturesGrid />
       </section>
 
       {/* System Info Strip */}
