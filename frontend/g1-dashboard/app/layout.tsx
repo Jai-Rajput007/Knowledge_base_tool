@@ -7,6 +7,7 @@ import { AuthGuard } from "./components/auth-guard";
 import { FeaturesProvider } from "./components/features-context";
 import { HeaderActions } from "./components/header-actions";
 import { Sidebar } from "./components/sidebar";
+import { ScrollProgress } from "@/components/ui/scroll-progress";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 
@@ -92,6 +93,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           ) : (
             /* Public pages: no sidebar, no tray, body bg-background shows through */
             <div className="flex flex-col min-h-screen">
+              <ScrollProgress />
               <HeaderActions isLoggedIn={isLoggedIn} tenant={tenantData} />
               <main className="flex-1">
                 <AuthGuard>

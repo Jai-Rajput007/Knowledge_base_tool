@@ -144,6 +144,13 @@
 body {
   background: var(--background);
   color: var(--foreground);
+  /* Hide native scrollbar while keeping scroll functionality */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+body::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Opera */
 }
 
 ::view-transition-old(root),
