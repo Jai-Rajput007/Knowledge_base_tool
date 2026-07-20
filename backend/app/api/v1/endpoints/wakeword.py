@@ -557,7 +557,11 @@ def cancel_local_training(job_id: int, db: Session = Depends(get_db)):
 @router.get("/presets")
 def list_presets():
     """Return available quality presets with estimated training times."""
-    return {"presets": QUALITY_PRESETS}
+    return {
+        "presets": QUALITY_PRESETS,
+        "backend": settings.WAKEWORD_BACKEND,
+        "agx_ip": settings.WAKEWORD_AGX_IP
+    }
 
 
 # ─── POST /wakeword/jobs/{id}/sync ───────────────────────────────────────

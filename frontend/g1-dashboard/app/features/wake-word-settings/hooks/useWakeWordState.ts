@@ -35,7 +35,10 @@ export function useWakeWordState() {
     try {
       const r = await fetch(`${API}/wakeword/presets`);
       if (r.ok) {
+        const d = await r.json();
         // Backend/AGX IP come from the backend config
+        if (d.backend) setBackend(d.backend);
+        if (d.agx_ip) setAgxIp(d.agx_ip);
       }
     } catch { /* no op */ }
   }, []);
@@ -67,13 +70,8 @@ export function useWakeWordState() {
   }, [fetchJobs, fetchPresets]);
 
   useEffect(() => {
-    const localJob = jobs.find(j => j.backend === "local_agx" && j.robot_ip);
-    if (localJob?.robot_ip) {
-      setAgxIp(localJob.robot_ip);
-      setBackend("local_agx");
-    } else if (jobs.some(j => j.backend === "kaggle")) {
-      setBackend("kaggle");
-    }
+    // Backend configuration is now properly set by fetchPresets.
+    // No longer guessing from historical jobs.
   }, [jobs]);
 
   useEffect(() => {
