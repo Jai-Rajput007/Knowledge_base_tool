@@ -122,23 +122,55 @@ async def robot_telemetry():
         
     # GPU Metrics
     try:
-        cmd = ["nvidia-smi", "--query-gpu=utilization.gpu,temperature.gpu,power.draw,fan.speed,clocks.current.graphics,memory.free,memory.total", "--format=csv,noheader,nounits"]
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=2)
-        if r.returncode == 0:
-            vals = [v.strip() for v in r.stdout.strip().split("\n")[0].split(",")]
-            def parse_float(val):
-                try: return float(val.replace('[Not Supported]', '0').replace('N/A', '0'))
-                except: return 0.0
-            
-            agx_data["gpu_usage_pct"] = parse_float(vals[0])
-            agx_data["temp_c"] = parse_float(vals[1])
-            agx_data["power_draw_w"] = parse_float(vals[2])
-            agx_data["fan_speed_pct"] = parse_float(vals[3])
-            agx_data["gpu_core_clock_mhz"] = parse_float(vals[4])
-            agx_data["gpu_mem_free_gb"] = round(parse_float(vals[5]) / 1024, 1)
-            agx_data["gpu_mem_total_gb"] = round(parse_float(vals[6]) / 1024, 1)
+        # Try jtop first for Jetson AGX
+        from jtop import jtop
+        with jtop() as jetson:
+            if jetson.ok():
+                stats = jetson.stats
+                agx_data["gpu_usage_pct"] = float(stats.get('GPU', 0.0))
+                
+                temps = jetson.temperature
+                if temps:
+                    agx_data["temp_c"] = float(temps.get('GPU', {}).get('temp', temps.get('CPU', {}).get('temp', 0)))
+                
+                power = jetson.power
+                if power and 'tot' in power:
+                    agx_data["power_draw_w"] = round(float(power['tot'].get('power', 0)) / 1000.0, 1) # mW to W
+                
+                fan = jetson.fan
+                if fan:
+                    agx_data["fan_speed_pct"] = float(fan.get('speed', 0.0))
+                    
+                ram = jetson.memory
+                if ram and 'RAM' in ram:
+                    agx_data["gpu_mem_free_gb"] = round(float(ram['RAM'].get('free', 0)) / (1024**2), 1)
+                    agx_data["gpu_mem_total_gb"] = round(float(ram['RAM'].get('tot', 0)) / (1024**2), 1)
+                    
+                # For Jetson, we often don't have separate VRAM, it's shared. 
+                # We can use the core clock if available
+                if hasattr(jetson, 'gpu') and jetson.gpu:
+                    agx_data["gpu_core_clock_mhz"] = float(jetson.gpu.get('val', 0.0))
+                    
     except Exception:
-        pass
+        # Fallback to nvidia-smi for desktop hosts
+        try:
+            cmd = ["nvidia-smi", "--query-gpu=utilization.gpu,temperature.gpu,power.draw,fan.speed,clocks.current.graphics,memory.free,memory.total", "--format=csv,noheader,nounits"]
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=2)
+            if r.returncode == 0:
+                vals = [v.strip() for v in r.stdout.strip().split("\n")[0].split(",")]
+                def parse_float(val):
+                    try: return float(val.replace('[Not Supported]', '0').replace('N/A', '0'))
+                    except: return 0.0
+                
+                agx_data["gpu_usage_pct"] = parse_float(vals[0])
+                agx_data["temp_c"] = parse_float(vals[1])
+                agx_data["power_draw_w"] = parse_float(vals[2])
+                agx_data["fan_speed_pct"] = parse_float(vals[3])
+                agx_data["gpu_core_clock_mhz"] = parse_float(vals[4])
+                agx_data["gpu_mem_free_gb"] = round(parse_float(vals[5]) / 1024, 1)
+                agx_data["gpu_mem_total_gb"] = round(parse_float(vals[6]) / 1024, 1)
+        except Exception:
+            pass
             
     # If temp_c is still 0, try to get CPU temp
     if agx_data["temp_c"] == 0.0:
