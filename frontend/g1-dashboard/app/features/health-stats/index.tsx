@@ -2,7 +2,7 @@
 
 import React, { useRef, useState, useEffect } from "react";
 import { FeatureGate } from "@/app/components/feature-gate";
-import { FiBatteryCharging, FiCpu, FiWifi, FiThermometer, FiActivity } from "react-icons/fi";
+import { FiBatteryCharging, FiCpu, FiWifi, FiThermometer, FiActivity, FiHardDrive, FiClock, FiZap, FiWind, FiDatabase } from "react-icons/fi";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { api, API_BASE_URL } from "@/lib/api";
@@ -33,7 +33,7 @@ export function HealthStatsModule() {
     };
 
     fetchTelemetry();
-    const interval = setInterval(fetchTelemetry, 2000);
+    const interval = setInterval(fetchTelemetry, 60000); // Refresh every 1 minute (60000ms)
     return () => clearInterval(interval);
   }, []);
 
@@ -103,7 +103,7 @@ export function HealthStatsModule() {
         <div className="p-8 border border-border bg-card/20 rounded-xl relative overflow-hidden">
           <div className="flex items-center gap-3 mb-6 relative z-10">
             <FiActivity className={isOffline ? "text-muted-foreground" : "text-primary"} size={20} />
-            <h3 className="font-bold text-lg uppercase tracking-wide">System Diagnostics</h3>
+            <h3 className="font-bold text-lg uppercase tracking-wide">System Diagnostics (Thor)</h3>
             {isOffline && (
               <span className="ml-auto text-xs bg-red-500/10 text-red-500 px-3 py-1 rounded-full font-bold uppercase tracking-wider">
                 Connection Lost
@@ -111,21 +111,83 @@ export function HealthStatsModule() {
             )}
           </div>
           
-          <div className={`h-48 flex items-center justify-center border border-dashed rounded-lg transition-colors ${isOffline ? 'border-red-500/30 bg-red-500/5' : 'border-border/50 bg-background/50'}`}>
-            <div className="flex flex-col items-center gap-3">
-              <div className={`flex items-end gap-1 h-12 ${isOffline ? 'opacity-20' : 'opacity-50'}`}>
-                {[40, 70, 45, 90, 65, 30, 80, 50, 60, 40, 75, 55, 85].map((h, i) => (
-                  <div
-                    key={i}
-                    style={{ height: isOffline ? '10%' : `${h}%` }}
-                    className={`telemetry-bar w-2 rounded-t-sm ${isOffline ? 'bg-muted-foreground' : 'bg-primary/40'}`}
-                  />
-                ))}
+          <div className={`p-6 border border-dashed rounded-lg transition-colors ${isOffline ? 'border-red-500/30 bg-red-500/5' : 'border-border/50 bg-background/50'}`}>
+            {telemetry && !isOffline ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 relative z-10">
+                {/* Uptime */}
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                    <FiClock size={14} className="text-blue-500" />
+                    <span className="text-[10px] uppercase tracking-widest font-bold">Uptime</span>
+                  </div>
+                  <span className="text-xl font-mono">{telemetry.agx_orin.uptime_hrs} <span className="text-xs text-muted-foreground">HRS</span></span>
+                </div>
+
+                {/* Power Draw */}
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                    <FiZap size={14} className="text-amber-500" />
+                    <span className="text-[10px] uppercase tracking-widest font-bold">GPU Power</span>
+                  </div>
+                  <span className="text-xl font-mono">{telemetry.agx_orin.power_draw_w} <span className="text-xs text-muted-foreground">W</span></span>
+                </div>
+
+                {/* Fan Speed */}
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                    <FiWind size={14} className="text-cyan-500" />
+                    <span className="text-[10px] uppercase tracking-widest font-bold">Fan Speed</span>
+                  </div>
+                  <span className="text-xl font-mono">{telemetry.agx_orin.fan_speed_pct} <span className="text-xs text-muted-foreground">%</span></span>
+                </div>
+
+                {/* GPU Clock */}
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                    <FiActivity size={14} className="text-purple-500" />
+                    <span className="text-[10px] uppercase tracking-widest font-bold">GPU Core Clock</span>
+                  </div>
+                  <span className="text-xl font-mono">{telemetry.agx_orin.gpu_core_clock_mhz} <span className="text-xs text-muted-foreground">MHz</span></span>
+                </div>
+
+                {/* Storage */}
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                    <FiHardDrive size={14} className="text-emerald-500" />
+                    <span className="text-[10px] uppercase tracking-widest font-bold">Disk Free</span>
+                  </div>
+                  <span className="text-xl font-mono">{telemetry.agx_orin.disk_free_gb} <span className="text-xs text-muted-foreground">GB</span></span>
+                </div>
+
+                {/* GPU Memory */}
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                    <FiDatabase size={14} className="text-indigo-500" />
+                    <span className="text-[10px] uppercase tracking-widest font-bold">GPU VRAM</span>
+                  </div>
+                  <span className="text-xl font-mono">{telemetry.agx_orin.gpu_mem_free_gb} <span className="text-xs text-muted-foreground">GB Free</span></span>
+                </div>
+
+                {/* Network */}
+                <div className="flex flex-col gap-1 col-span-2">
+                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                    <FiWifi size={14} className="text-green-500" />
+                    <span className="text-[10px] uppercase tracking-widest font-bold">Network I/O (Total)</span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className="text-xl font-mono text-green-400">↑ {telemetry.agx_orin.net_sent_mb} <span className="text-xs text-muted-foreground">MB</span></span>
+                    <span className="text-xl font-mono text-blue-400">↓ {telemetry.agx_orin.net_recv_mb} <span className="text-xs text-muted-foreground">MB</span></span>
+                  </div>
+                </div>
+
               </div>
-              <span className="font-mono text-xs text-muted-foreground uppercase tracking-widest">
-                {isOffline ? "Awaiting Telemetry Data..." : "Live Telemetry Active"}
-              </span>
-            </div>
+            ) : (
+              <div className="h-32 flex items-center justify-center">
+                <span className="font-mono text-xs text-muted-foreground uppercase tracking-widest">
+                  {isOffline ? "Awaiting Telemetry Data..." : "Loading..."}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>
