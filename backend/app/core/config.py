@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     PORT: int = 8000
 
     # CORS — stored as plain string, split into list via property
-    CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000,http://192.168.201.146:3000,http://192.168.1.61:3000"
+    CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000,http://192.168.201.146:3000,http://192.168.1.61:3000, http://192.168.1.107:3000"
 
     @property
     def cors_origins_list(self) -> List[str]:
@@ -114,7 +114,7 @@ class Settings(BaseSettings):
     # Wake word training
     # "local_agx" = train on robot GPU | "kaggle" = train on Kaggle cloud GPU
     WAKEWORD_BACKEND:       str = "local_agx"
-    WAKEWORD_AGX_IP:        str = "192.168.1.61"
+    WAKEWORD_AGX_IP:        str = "192.168.1.107"
     WAKEWORD_MODELS_DIR:    str = "./wakeword_models"
     WAKEWORD_SAMPLES_DIR:   str = "./wakeword_samples"
 

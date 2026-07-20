@@ -153,6 +153,11 @@ body::-webkit-scrollbar {
   display: none; /* Chrome/Safari/Opera */
 }
 
+@keyframes marquee-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(calc(-100% / 3)); }
+}
+
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation: none;

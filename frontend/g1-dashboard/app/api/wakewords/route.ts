@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 
 export async function GET() {
-  const ROBOT_SYNC_URL = process.env.ROBOT_SYNC_URL || 'http://192.168.1.61:9000';
+  const ROBOT_SYNC_URL = process.env.ROBOT_SYNC_URL || 'http://192.168.1.107:9000';
   let models: { filename: string; name: string }[] = [];
 
   try {

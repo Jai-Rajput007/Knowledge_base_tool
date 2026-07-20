@@ -27,7 +27,7 @@ The system supports two training backends. Set once in `.env`, then always use t
 ```bash
 # backend/  .env
 WAKEWORD_BACKEND=local_agx          # "local_agx" or "kaggle"
-WAKEWORD_AGX_IP=192.168.1.61        # AGX WiFi IP (for local_agx only)
+WAKEWORD_AGX_IP=192.168.1.107       # AGX WiFi IP (for local_agx only)
 
 # Only needed if WAKEWORD_BACKEND=kaggle
 KAGGLE_USERNAME=satishsurya

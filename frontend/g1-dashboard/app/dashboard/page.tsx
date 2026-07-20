@@ -1,54 +1,28 @@
-import { StatCard } from "@/app/components/stat-card";
-import { ActivityFeed } from "@/app/components/activity-feed";
-import { getIcon } from "@/app/components/icons";
+"use client";
 
-const quickAccessCards = [
-  {
-    title: 'Manage Personas',
-    description: 'Configure AI personalities and behaviors for your robots',
-    icon: 'personas',
-    href: '/persona',
-    gradient: 'from-accent-blue/20 to-accent-purple/20',
-  },
-  {
-    title: 'Robot Inventory',
-    description: 'View, manage, and monitor all your deployed robots',
-    icon: 'robots',
-    href: '/inventory',
-    gradient: 'from-accent-purple/20 to-accent-cyan/20',
-  },
-  {
-    title: 'Preview Simulator',
-    description: 'Test conversations and interactions before deployment',
-    icon: 'simulator',
-    href: '/chat',
-    gradient: 'from-accent-cyan/20 to-accent-blue/20',
-  },
-  {
-    title: 'Templates',
-    description: 'Browse and apply pre-built persona and workflow templates',
-    icon: 'templates',
-    href: '/persona#templates',
-    gradient: 'from-accent-blue/20 to-success/20',
-  },
-  {
-    title: 'Facial Recognition',
-    description: 'Add users to the facial recognition system (FRS)',
-    icon: 'robots',
-    href: '/employees',
-    gradient: 'from-accent-purple/20 to-accent-blue/20',
-  },
-];
-
-const activityItems = [
-  { id: '1', message: 'Robot G1-047 came online in Lobby A', time: '5 minutes ago', type: 'success' as const },
-  { id: '2', message: 'Persona "Greeter" updated successfully', time: '30 minutes ago', type: 'info' as const },
-  { id: '3', message: 'Conversation spike detected — 200+ in 1 hour', time: '2 hours ago', type: 'warning' as const },
-  { id: '4', message: 'Team member sarah@g1universe.com accepted invite', time: '4 hours ago', type: 'success' as const },
-  { id: '5', message: 'Template "Customer Service v3" applied to 5 robots', time: '6 hours ago', type: 'info' as const },
-];
+import React, { useEffect, useRef, useState } from 'react';
+import { gsap } from 'gsap';
+import { FeatureStatusCard } from "./components/feature-status-card";
+import { Database, Bot, Users, MapPin, Mic, Blocks, ShieldCheck, MessageSquare, Hand } from "lucide-react";
+import { api, API_BASE_URL } from "@/lib/api";
 
 export default function ClientDashboardPage() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  // State for all real data
+  const [agxStatus, setAgxStatus] = useState<"online" | "offline">("offline");
+  const [robotStatus, setRobotStatus] = useState<"online" | "offline">("offline");
+  
+  const [ragStats, setRagStats] = useState<{ docs: number }>({ docs: 0 });
+  const [personaStats, setPersonaStats] = useState<{ active: string, total: number }>({ active: "None", total: 0 });
+  const [employeeCount, setEmployeeCount] = useState(0);
+  const [mapCount, setMapCount] = useState(0);
+  const [mcpCount, setMcpCount] = useState(0);
+  const [auditCount, setAuditCount] = useState(0);
+  const [chatCount, setChatCount] = useState(0);
+  const [gestureCount, setGestureCount] = useState(0);
+  const [gesturesOffline, setGesturesOffline] = useState(false);
+
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
@@ -56,85 +30,222 @@ export default function ClientDashboardPage() {
     day: 'numeric',
   });
 
+  useEffect(() => {
+    // Animations
+    const ctx = gsap.context(() => {
+      gsap.from('.dash-header', { opacity: 0, y: -15, duration: 0.6, ease: 'power3.out' });
+      gsap.from('.dash-widget', { opacity: 0, y: 20, duration: 0.5, stagger: 0.08, ease: 'power2.out', delay: 0.2 });
+    }, containerRef);
+
+    // Helper for direct API calls
+    const fetchApi = async (path: string) => {
+      const token = api.getToken();
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      
+      const res = await fetch(`${API_BASE_URL}${path}`, { headers });
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      return res.json();
+    };
+
+    // Fetch real data in parallel
+    const fetchData = async () => {
+      // 1. AGX/Robot Health
+      fetchApi("/gestures/health").then(() => {
+        setAgxStatus("online");
+        setRobotStatus("online");
+      }).catch(() => {
+        setAgxStatus("offline");
+        setRobotStatus("offline");
+      });
+
+      // 2. RAG Stats
+      api.getDashboardStats().then(res => {
+        if (res.data) setRagStats({ docs: (res.data as any).totalDocuments || 0 });
+      });
+
+      // 3. Personas
+      Promise.allSettled([
+        api.getActivePersona(),
+        api.getPersonas()
+      ]).then(([activeRes, allRes]) => {
+        const activeName = activeRes.status === 'fulfilled' && activeRes.value.data ? (activeRes.value.data as any).identity?.name : "None";
+        const total = allRes.status === 'fulfilled' && allRes.value.data && Array.isArray(allRes.value.data) ? allRes.value.data.length : 0;
+        setPersonaStats({ active: activeName || "None", total });
+      });
+
+      // 4. Employees
+      fetchApi("/employees/").then(data => {
+        if (Array.isArray(data)) setEmployeeCount(data.length);
+      }).catch(() => {});
+
+      // 5. Navigation Maps
+      fetchApi("/navigation/locations").then(data => {
+        if (Array.isArray(data)) setMapCount(data.length);
+      }).catch(() => {});
+
+      // 6. MCP
+      api.getMcpIntegrations().then(res => {
+        if (res.data && Array.isArray(res.data)) {
+          const active = res.data.filter((m: any) => m.isEnabled).length;
+          setMcpCount(active);
+        }
+      });
+
+      // 7. Audit
+      api.getAuditLogs().then(res => {
+        if (res.data) setAuditCount((res.data as any).total || 0);
+      });
+
+      // 8. Chat
+      fetchApi("/sessions/").then(data => {
+        if (Array.isArray(data)) setChatCount(data.length);
+      }).catch(() => {});
+
+      // 9. Gestures
+      fetchApi("/gestures/custom").then(data => {
+        if (Array.isArray(data)) {
+          setGestureCount(data.length);
+        } else {
+          setGesturesOffline(true);
+        }
+      }).catch(() => setGesturesOffline(true));
+    };
+
+    fetchData();
+    return () => ctx.revert();
+  }, []);
+
   return (
-    <div className="max-w-6xl mx-auto px-4 pt-32 pb-32 space-y-8">
-      {/* Welcome */}
-      <div>
-        <h1 className="text-2xl font-bold text-text-primary">
-          Welcome to{' '}
-          <span className="gradient-text">G1 Universe</span>{' '}
-          Dashboard
-        </h1>
-        <p className="text-sm text-text-muted mt-1">{today}</p>
-      </div>
-
-      {/* Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
-        <StatCard
-          title="Active Robots"
-          value="47"
-          change="+3 this week"
-          changeType="positive"
-          icon={getIcon('robots')}
-        />
-        <StatCard
-          title="Configured Personas"
-          value="23"
-          change="+2 new"
-          changeType="positive"
-          icon={getIcon('personas')}
-        />
-        <StatCard
-          title="Conversations Today"
-          value="1,842"
-          change="+12% vs yesterday"
-          changeType="positive"
-          icon={getIcon('activity')}
-        />
-        <StatCard
-          title="System Status"
-          value="Operational"
-          change="All systems go"
-          changeType="neutral"
-          icon={getIcon('health')}
-        />
-      </div>
-
-      {/* Quick Access + Activity */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Quick Access Cards */}
-        <div className="xl:col-span-2">
-          <h3 className="text-sm font-semibold text-text-primary mb-4">
-            Quick Access
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {quickAccessCards.map((card) => (
-              <a
-                key={card.title}
-                href={card.href}
-                className="group bg-bg-secondary rounded-xl border border-border p-6 hover:border-accent-blue/50 hover:-translate-y-0.5 transition-all duration-300 block"
-              >
-                <div
-                  className={`w-11 h-11 rounded-lg bg-gradient-to-br ${card.gradient} flex items-center justify-center text-accent-blue mb-4 group-hover:scale-110 transition-transform duration-300`}
-                >
-                  {getIcon(card.icon, "w-5 h-5")}
-                </div>
-                <h4 className="text-sm font-semibold text-text-primary mb-1">
-                  {card.title}
-                </h4>
-                <p className="text-xs text-text-muted leading-relaxed">
-                  {card.description}
-                </p>
-              </a>
-            ))}
+    <div ref={containerRef} className="max-w-7xl mx-auto px-4 md:px-8 pt-32 pb-32 flex flex-col gap-8">
+      {/* Page Header */}
+      <div className="dash-header flex flex-col md:flex-row md:items-start justify-between gap-6">
+        <div>
+          <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
+            VEDA Control Center
+          </h1>
+          <p className="text-muted-foreground mt-2">{today} — Central Administration</p>
+        </div>
+        
+        {/* Health Status Rows */}
+        <div className="flex flex-col gap-3 min-w-[240px]">
+          <div className="flex items-center justify-between p-3.5 rounded-xl bg-card border border-border shadow-sm">
+            <span className="text-sm font-semibold text-foreground">AGX Health Status</span>
+            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold ${agxStatus === 'online' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${agxStatus === 'online' ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></span>
+              {agxStatus === 'online' ? 'ONLINE' : 'OFFLINE'}
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between p-3.5 rounded-xl bg-card border border-border shadow-sm">
+            <span className="text-sm font-semibold text-foreground">Robot Health Status</span>
+            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold ${robotStatus === 'online' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${robotStatus === 'online' ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></span>
+              {robotStatus === 'online' ? 'ONLINE' : 'OFFLINE'}
+            </div>
           </div>
         </div>
-
-        {/* Activity Feed */}
-        <div className="xl:col-span-1">
-          <ActivityFeed title="Recent Activity" items={activityItems} />
-        </div>
       </div>
+
+      {/* Modules Hub */}
+      <section className="dash-widget mt-4">
+        <h2 className="text-xl font-bold tracking-tight text-foreground mb-6">Preview panel</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          
+          <FeatureStatusCard
+            title="Knowledge Base (RAG)"
+            description="Upload internal documents to provide the robot with contextual business knowledge."
+            icon={Database}
+            statusText={`${ragStats.docs} Documents Indexed`}
+            statusIndicator="success"
+            manageLink="/rag"
+            docsLink="/documentation#rag"
+          />
+
+          <FeatureStatusCard
+            title="Persona Engine"
+            description="Configure the robot's personality, tone of voice, and behavioral constraints."
+            icon={Bot}
+            statusText={`Active: ${personaStats.active}`}
+            secondaryText={`${personaStats.total} Configured`}
+            statusIndicator="neutral"
+            manageLink="/persona"
+            docsLink="/documentation#persona"
+          />
+
+          <FeatureStatusCard
+            title="Facial Recognition (FRS)"
+            description="Manage employee profiles and automated physical access tracking via facial data."
+            icon={Users}
+            statusText={`${employeeCount} Profiles Registered`}
+            statusIndicator="success"
+            manageLink="/employees"
+            docsLink="/documentation#frs"
+          />
+
+          <FeatureStatusCard
+            title="Navigation & Mapping"
+            description="Manage saved location maps and send the robot to specific destinations."
+            icon={MapPin}
+            statusText={`${mapCount} Maps Saved`}
+            statusIndicator="success"
+            manageLink="/navigation"
+            docsLink="/documentation#navigation"
+          />
+
+          <FeatureStatusCard
+            title="Custom Wakewords"
+            description="Train and assign custom voice triggers like 'Hey Veda' or 'Hey G1'."
+            icon={Mic}
+            statusText="Trigger: 'Hey Veda'"
+            statusIndicator="neutral"
+            manageLink="/wake-word"
+            docsLink="/documentation#wakewords"
+          />
+
+          <FeatureStatusCard
+            title="Integrations (MCP)"
+            description="Connect to third-party APIs (Google Workspace, Jira) to give the robot external tools."
+            icon={Blocks}
+            statusText={`${mcpCount} Active Integrations`}
+            statusIndicator={mcpCount > 0 ? "success" : "neutral"}
+            manageLink="/mcp"
+            docsLink="/documentation#integrations"
+          />
+
+          <FeatureStatusCard
+            title="Audit Log"
+            description="Track all admin actions, API calls, and configuration changes for compliance."
+            icon={ShieldCheck}
+            statusText={`${auditCount} Actions Logged`}
+            statusIndicator="neutral"
+            manageLink="/audit-logs"
+            docsLink="/documentation#audit"
+          />
+
+          <FeatureStatusCard
+            title="Chat Simulator"
+            description="Preview and test how the robot responds using your current persona and knowledge base."
+            icon={MessageSquare}
+            statusText={`${chatCount} Conversations`}
+            statusIndicator="neutral"
+            manageLink="/chat"
+            docsLink="/documentation#chat"
+          />
+
+          <FeatureStatusCard
+            title="Gesture Library"
+            description="Record and manage custom physical gestures for the robot to perform on demand."
+            icon={Hand}
+            statusText={gesturesOffline ? "AGX Required" : `${gestureCount} Custom Gestures`}
+            statusIndicator={gesturesOffline ? "offline" : "success"}
+            manageLink="/gestures"
+            docsLink="/documentation#gestures"
+          />
+
+        </div>
+      </section>
+
     </div>
   );
 }

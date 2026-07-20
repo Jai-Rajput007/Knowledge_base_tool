@@ -91,81 +91,95 @@ const featuresData = [
 
 export function FeaturesGrid() {
   return (
-    <div className='grid grid-cols-2 lg:grid-cols-4 gap-5 w-full max-w-6xl mx-auto px-4 pt-40 pb-12 relative z-20'>
-      {featuresData.map((feature, index) => (
-        <MorphingDialog
-          key={index}
-          transition={{
-            type: 'spring',
-            bounce: 0.05,
-            duration: 0.25,
-          }}
-        >
-          <MorphingDialogTrigger
-            style={{ borderRadius: '12px' }}
-            className='flex max-w-full flex-col overflow-hidden border border-border bg-card dark:bg-card hover:shadow-lg hover:shadow-primary/20 hover:border-primary/40'
-          >
-            <MorphingDialogImage
-              src={feature.image}
-              alt={feature.title}
-              className='h-48 w-full object-cover'
-            />
-            <div className='flex grow flex-row items-end justify-between px-3 py-2'>
-              <div>
-                <MorphingDialogTitle className='text-foreground'>
-                  {feature.title}
-                </MorphingDialogTitle>
-                <MorphingDialogSubtitle className='text-muted-foreground'>
-                  {feature.subtitle}
-                </MorphingDialogSubtitle>
-              </div>
-              <button
-                type='button'
-                className='relative ml-1 flex h-6 w-6 shrink-0 scale-100 select-none appearance-none items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 active:scale-[0.98]'
-                aria-label='Open dialog'
-              >
-                <PlusIcon size={12} />
-              </button>
-            </div>
-          </MorphingDialogTrigger>
+    <div className='w-full max-w-6xl mx-auto px-4 pt-40 pb-12 relative z-20'>
+      
+      {/* Heading Section */}
+      <div className='flex flex-col items-center text-center mb-16'>
+        <h2 className='text-4xl md:text-5xl font-bold text-foreground tracking-tight mb-4'>
+          What features you get ?
+        </h2>
+        <p className='text-gray-500 dark:text-gray-400 text-lg max-w-2xl font-medium leading-relaxed'>
+          VEDA is packed with powerful capabilities to help you manage your robotic fleet, customize personas, and connect with your tools — without any overwhelming clutter.
+        </p>
+      </div>
 
-          <MorphingDialogContainer>
-            <MorphingDialogContent
-              style={{ borderRadius: '24px' }}
-              className='pointer-events-auto relative flex h-auto w-full flex-col overflow-hidden border border-border bg-card dark:bg-card sm:w-[500px]'
+      {/* Grid */}
+      <div className='grid grid-cols-2 lg:grid-cols-4 gap-5 w-full'>
+        {featuresData.map((feature, index) => (
+          <MorphingDialog
+            key={index}
+            transition={{
+              type: 'spring',
+              bounce: 0.05,
+              duration: 0.25,
+            }}
+          >
+            <MorphingDialogTrigger
+              style={{ borderRadius: '12px' }}
+              className='morph-card flex max-w-full flex-col overflow-hidden border border-border bg-card dark:bg-card hover:shadow-lg hover:shadow-primary/20 hover:border-primary/40'
             >
               <MorphingDialogImage
                 src={feature.image}
                 alt={feature.title}
-                className='h-full w-full object-cover'
+                className='h-48 w-full object-cover'
               />
-              <div className='p-6'>
-                <MorphingDialogTitle className='text-2xl text-foreground'>
-                  {feature.title}
-                </MorphingDialogTitle>
-                <MorphingDialogSubtitle className='text-muted-foreground'>
-                  {feature.subtitle}
-                </MorphingDialogSubtitle>
-                <MorphingDialogDescription
-                  disableLayoutAnimation
-                  variants={{
-                    initial: { opacity: 0, scale: 0.8, y: 100 },
-                    animate: { opacity: 1, scale: 1, y: 0 },
-                    exit: { opacity: 0, scale: 0.8, y: 100 },
-                  }}
+              <div className='flex grow flex-row items-end justify-between px-3 py-2'>
+                <div className="text-left">
+                  <MorphingDialogTitle className='text-foreground font-semibold'>
+                    {feature.title}
+                  </MorphingDialogTitle>
+                  <MorphingDialogSubtitle className='text-muted-foreground text-sm'>
+                    {feature.subtitle}
+                  </MorphingDialogSubtitle>
+                </div>
+                <button
+                  type='button'
+                  className='relative ml-1 flex h-6 w-6 shrink-0 scale-100 select-none appearance-none items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 active:scale-[0.98]'
+                  aria-label='Open dialog'
                 >
-                  {feature.paragraphs.map((p, i) => (
-                    <p key={i} className={`${i === 0 ? 'mt-2' : 'mt-2'} text-muted-foreground text-sm leading-relaxed`}>
-                      {p}
-                    </p>
-                  ))}
-                </MorphingDialogDescription>
+                  <PlusIcon size={12} />
+                </button>
               </div>
-              <MorphingDialogClose className='text-foreground' />
-            </MorphingDialogContent>
-          </MorphingDialogContainer>
-        </MorphingDialog>
-      ))}
+            </MorphingDialogTrigger>
+
+            <MorphingDialogContainer>
+              <MorphingDialogContent
+                style={{ borderRadius: '24px' }}
+                className='pointer-events-auto relative flex h-auto w-full flex-col overflow-hidden border border-border bg-card dark:bg-card sm:w-[500px]'
+              >
+                <MorphingDialogImage
+                  src={feature.image}
+                  alt={feature.title}
+                  className='h-full w-full object-cover'
+                />
+                <div className='p-6'>
+                  <MorphingDialogTitle className='text-2xl text-foreground font-bold'>
+                    {feature.title}
+                  </MorphingDialogTitle>
+                  <MorphingDialogSubtitle className='text-muted-foreground mt-1'>
+                    {feature.subtitle}
+                  </MorphingDialogSubtitle>
+                  <MorphingDialogDescription
+                    disableLayoutAnimation
+                    variants={{
+                      initial: { opacity: 0, scale: 0.8, y: 100 },
+                      animate: { opacity: 1, scale: 1, y: 0 },
+                      exit: { opacity: 0, scale: 0.8, y: 100 },
+                    }}
+                  >
+                    {feature.paragraphs.map((p, i) => (
+                      <p key={i} className={`${i === 0 ? 'mt-4' : 'mt-2'} text-muted-foreground text-sm leading-relaxed`}>
+                        {p}
+                      </p>
+                    ))}
+                  </MorphingDialogDescription>
+                </div>
+                <MorphingDialogClose className='text-foreground' />
+              </MorphingDialogContent>
+            </MorphingDialogContainer>
+          </MorphingDialog>
+        ))}
+      </div>
     </div>
   );
 }
