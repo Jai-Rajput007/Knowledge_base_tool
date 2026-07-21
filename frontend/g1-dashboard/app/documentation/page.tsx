@@ -11,7 +11,7 @@ export const metadata = {
 
 export default function DocumentationPage() {
   return (
-    <div className="max-w-[1400px] mx-auto px-4 md:px-8 pt-32 pb-32">
+    <div className="max-w-[1400px] mx-auto px-4 md:px-8 pt-4 pb-12">
       
       {/* Top Header Row */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-12">

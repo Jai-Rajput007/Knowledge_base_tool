@@ -81,7 +81,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
               <div className="flex flex-col flex-1 min-h-0 rounded-tl-2xl bg-background overflow-hidden">
                 <LimelightNav role={role} />
                 <HeaderActions isLoggedIn={isLoggedIn} tenant={tenantData} />
-                <main className="flex-1 overflow-y-auto p-6 pt-32">
+                <main className="flex-1 overflow-y-auto p-6">
                   <AuthGuard>
                     <FeaturesProvider>
                       {children}

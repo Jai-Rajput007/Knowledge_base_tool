@@ -117,7 +117,7 @@ export default function ClientDashboardPage() {
   }, []);
 
   return (
-    <div ref={containerRef} className="max-w-7xl mx-auto px-4 md:px-8 pt-32 pb-32 flex flex-col gap-8">
+    <div ref={containerRef} className="max-w-7xl mx-auto px-4 md:px-8 pt-4 pb-12 flex flex-col gap-8">
       {/* Page Header */}
       <div className="dash-header flex flex-col md:flex-row md:items-start justify-between gap-6">
         <div>
