@@ -8,7 +8,7 @@ class RobotMap(Base):
     __tablename__ = "robot_maps"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    tenant_id = Column(String, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    tenant_id = Column(String, ForeignKey("Tenant.id", ondelete="CASCADE"), nullable=False)
     name = Column(String, index=True, nullable=False)
     file_path = Column(String, nullable=False)
     size_bytes = Column(Integer, nullable=True)
