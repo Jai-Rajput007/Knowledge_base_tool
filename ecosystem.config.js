@@ -52,6 +52,7 @@ module.exports = {
         CONDA_DEFAULT_ENV: "nlp-env",
         CONDA_PREFIX: path.join(homeDir, "miniconda3/envs/nlp-env"),
         PATH: `${path.join(homeDir, "miniconda3/envs/nlp-env/bin")}:${path.join(homeDir, "miniconda3/bin")}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin`,
+        PYTHONPATH: "."
       },
     },
     {
@@ -74,6 +75,7 @@ module.exports = {
         CONDA_DEFAULT_ENV: "nlp-env",
         CONDA_PREFIX: path.join(homeDir, "miniconda3/envs/nlp-env"),
         PATH: `${path.join(homeDir, "miniconda3/envs/nlp-env/bin")}:${path.join(homeDir, "miniconda3/bin")}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin`,
+        PYTHONPATH: "."
       },
     },
     {
