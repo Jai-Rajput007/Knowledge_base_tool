@@ -12,6 +12,7 @@ from app.models.entity import SessionEntity
 from app.models.persona import Persona, PersonaVersion, PersonaTemplate
 from app.models.tenant import Tenant, McpIntegration, TenantMcpConfig
 from app.models.support_ticket import SupportTicket
+from app.models.robot_map import RobotMap
 
 __all__ = [
     "Document",
