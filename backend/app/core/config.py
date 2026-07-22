@@ -95,7 +95,7 @@ class Settings(BaseSettings):
     AGX_IP: str = os.getenv("AGX_IP", "192.168.123.166")
 
     # Robot agent (C++ binary — runs on AGX, connect via TCP)
-    ROBOT_AGENT_HOST:       str = "192.168.123.164"   # default for PC mode
+    ROBOT_AGENT_HOST:       str = "192.168.123.166"   # default for PC mode
     ROBOT_AGENT_PORT:       int = 7788
 
     # Robot sync (Python FastAPI — runs locally alongside main.py, HTTP interface for gesture recording etc.)
