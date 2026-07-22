@@ -31,7 +31,7 @@ class Settings(BaseSettings):
 
     # LLM Configuration
     LLM_PROVIDER: str = "ollama"
-    LLM_MODEL: str = "qwen3.5:9b"
+    LLM_MODEL: str = "qwen2.5:7b"
     LLM_TEMPERATURE: float = 0.7
     LLM_MAX_TOKENS: int = 8192
     LLM_TOP_P: float = 0.9

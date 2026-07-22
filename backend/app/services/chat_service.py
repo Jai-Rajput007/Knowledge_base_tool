@@ -234,10 +234,16 @@ Respond with ONLY the state name, nothing else (e.g., 'RAG', 'PUBLIC_TOOLS').'''
         """Build system prompt for RAG, simulating the Robot Persona."""
         import json
         import os
+        from pathlib import Path
         
-        persona_path = '/home/jai/g1-universe/g1-nlp/config/persona.json'
+        # Dynamically resolve path to g1-nlp/config/persona.json
+        # chat_service.py -> services -> app -> backend -> knowledge_base_tool -> g1-universe
+        base_dir = Path(__file__).resolve().parent.parent.parent.parent.parent
+        persona_path = str(base_dir / "g1-nlp" / "config" / "persona.json")
+        
         identity_str = "You are a helpful document assistant."
         rules_str = ""
+        name = "Jarvis"
         
         if os.path.exists(persona_path):
             try:
