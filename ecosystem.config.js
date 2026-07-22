@@ -82,7 +82,7 @@ module.exports = {
       name: "g1-robot-agent",
       cwd: "../g1-nlp/cpp/build",
       script: "./robot_agent",
-      args: "enp4s0",
+      args: "enP2p1s0",
       interpreter: "none",
       restart_delay: 3000,
       max_restarts: 20,
