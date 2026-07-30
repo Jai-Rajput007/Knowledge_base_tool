@@ -7,6 +7,7 @@ from app.db.database import get_db
 from app.models.tenant import Tenant, TenantMcpConfig
 from app.models.user import User
 from app.models.support_ticket import SupportTicket
+from app.models.notification import Notification
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -62,6 +63,15 @@ async def update_tenant_profile(payload: Dict[Any, Any] = Body(...), db: Session
         "companyLogo": tenant.companyLogo,
     })
     
+    # Generate local notification
+    notification = Notification(
+        tenant_id=tenant.id,
+        type="success",
+        message="Profile details updated successfully."
+    )
+    db.add(notification)
+    db.commit()
+    
     return tenant
 
 @router.post("/tickets", dependencies=[Depends(RequireRole(["admin"]))])
@@ -112,6 +122,15 @@ async def create_tenant_ticket(payload: Dict[Any, Any] = Body(...), db: Session 
         logger.info(f"[MQTT] Published new ticket {ticket.id} to {topic}")
     except Exception as e:
         logger.error(f"MQTT Connection Error while publishing ticket: {e}")
+        
+    # Generate local notification
+    notification = Notification(
+        tenant_id=tenant.id,
+        type="info",
+        message=f"Support ticket '{subject}' has been submitted."
+    )
+    db.add(notification)
+    db.commit()
         
     return ticket
 
@@ -188,6 +207,15 @@ async def sync_tenant_features(payload: Dict[str, Any] = Body(...), db: Session 
         raise HTTPException(status_code=404, detail=f"Tenant {tenant_id} not found locally. Sync tenant info first.")
 
     tenant.features = json.dumps(features)
+    
+    # Generate local notification
+    notification = Notification(
+        tenant_id=tenant_id,
+        type="info",
+        message="Super Admin has updated your platform features."
+    )
+    db.add(notification)
+    
     db.commit()
     logger.info(f"[MQTT Sync] Updated features for tenant {tenant_id}")
     return {"ok": True, "tenant_id": tenant_id}
@@ -276,6 +304,15 @@ async def sync_ticket_status(payload: Dict[str, Any] = Body(...), db: Session = 
         return {"ok": False, "error": "not found"}
         
     ticket.status = status_val
+    
+    # Generate local notification
+    notification = Notification(
+        tenant_id=ticket.tenantId,
+        type="info",
+        message=f"Super Admin updated your ticket '{ticket.subject}' status to {status_val}."
+    )
+    db.add(notification)
+    
     db.commit()
     logger.info(f"[MQTT Sync] Updated ticket {ticket_id} status to {status_val}")
     return {"ok": True, "id": ticket_id, "status": status_val}

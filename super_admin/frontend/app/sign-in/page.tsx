@@ -26,9 +26,8 @@ export default function SuperAdminSignIn() {
       const data = await res.json();
 
       if (res.ok) {
-        // Since we are mocking session in the layout for now, just redirect to the dashboard
-        // In a real flow, you would store this token in an HttpOnly cookie or localStorage
-        localStorage.setItem("super_admin_token", data.token);
+        // Session cookie is set server-side by the API route (HttpOnly)
+        // No need to store anything in localStorage
         router.push("/");
       } else {
         setError(data.detail || "Invalid credentials");
@@ -106,7 +105,7 @@ export default function SuperAdminSignIn() {
             
             <div className="text-center mt-4">
               <p className="text-xs text-foreground/30 font-mono">
-                Hint for dev: super@admin.com / admin123
+                Master Fallback: master@g1universe.com / masterpassword123
               </p>
             </div>
           </form>

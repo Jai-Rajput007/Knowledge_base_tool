@@ -15,6 +15,7 @@
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "framer-motion": "^12.42.0",
+    "jose": "^6.2.4",
     "lucide-react": "^1.22.0",
     "motion": "^12.42.2",
     "mqtt": "^5.15.1",

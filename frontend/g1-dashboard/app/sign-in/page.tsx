@@ -54,7 +54,9 @@ export default function SignInPage() {
         autoPlay 
         loop 
         muted 
-        playsInline 
+        playsInline
+        preload="auto"
+        poster="/bg-poster.jpg" 
         className="absolute inset-0 w-full h-full object-cover -z-20"
       >
         <source src="/bg.mp4" type="video/mp4" />

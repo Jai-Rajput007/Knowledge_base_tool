@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
-import { RbacModule } from "@/app/features/rbac";
-import { RollbackModule } from "@/app/features/rollback";
-import { OtaUpdatesModule } from "@/app/features/ota-updates";
-import { VoiceSettingsModule } from "@/app/features/voice-settings";
+import dynamic from "next/dynamic";
+
+const RbacModule = dynamic(() => import("@/app/features/rbac").then(m => m.RbacModule), { ssr: false });
+const RollbackModule = dynamic(() => import("@/app/features/rollback").then(m => m.RollbackModule), { ssr: false });
+const OtaUpdatesModule = dynamic(() => import("@/app/features/ota-updates").then(m => m.OtaUpdatesModule), { ssr: false });
+const VoiceSettingsModule = dynamic(() => import("@/app/features/voice-settings").then(m => m.VoiceSettingsModule), { ssr: false });
 
 /**
  * Settings Page

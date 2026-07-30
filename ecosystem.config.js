@@ -58,7 +58,7 @@ module.exports = {
     {
       name: "g1-frs-server",
       cwd: "../g1-nlp/frs",
-      script: path.join(homeDir, "miniconda3/envs/nlp-env/bin/python3"),
+      script: path.join(homeDir, "miniconda3/envs/frs-env/bin/python3"),
       args: "frs_server.py --no-display --port 8001",
       restart_delay: 5000,
       max_restarts: 20,

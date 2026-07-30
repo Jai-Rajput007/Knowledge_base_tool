@@ -15,18 +15,38 @@ import { FiBell, FiCheckCircle, FiInfo, FiAlertCircle } from "react-icons/fi";
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log("[NotificationsPage] Component mounted. Fetching notifications...");
-    // Placeholder notifications
-    const mockData = [
-      { id: 1, type: "info", message: "System update v2.4.0 is now available.", date: "2 mins ago" },
-      { id: 2, type: "success", message: "Vector DB indexing completed successfully.", date: "1 hour ago" },
-      { id: 3, type: "warning", message: "API rate limit approaching for current billing cycle.", date: "2 hours ago" },
-    ];
-    setNotifications(mockData);
-    console.log("[NotificationsPage] Successfully loaded mock notifications:", mockData);
+    fetchNotifications();
   }, []);
+
+  const fetchNotifications = async () => {
+    try {
+      const { api } = await import("@/lib/api");
+      const response = await (api as any).request("/notifications");
+      setNotifications(response.data || []);
+    } catch (err) {
+      console.error("[NotificationsPage] Failed to fetch:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const markAsRead = async (id: string) => {
+    try {
+      const { api } = await import("@/lib/api");
+      await (api as any).request(`/notifications/${id}/read`, { method: 'PUT' });
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+    } catch (err) {
+      console.error("Failed to mark read:", err);
+    }
+  };
+
+  const formatDate = (isoString: string) => {
+    const date = new Date(isoString);
+    return date.toLocaleString();
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-32 pt-8">
@@ -40,22 +60,32 @@ export default function NotificationsPage() {
       </div>
 
       <div className="space-y-4">
-        {notifications.length === 0 ? (
+        {loading ? (
+          <div className="text-center text-muted-foreground py-12 animate-pulse">Loading notifications...</div>
+        ) : notifications.length === 0 ? (
           <div className="text-center text-muted-foreground py-12">No new notifications.</div>
         ) : (
-          notifications.map((notif, index) => (
+          notifications.map((notif) => (
             <div
               key={notif.id}
-              className="p-4 rounded-xl bg-card border border-border flex items-start gap-4 hover:shadow-md transition-shadow"
+              onClick={() => !notif.is_read && markAsRead(notif.id)}
+              className={`p-4 rounded-xl border flex items-start gap-4 transition-shadow cursor-pointer ${
+                notif.is_read ? "bg-card/50 border-border opacity-70" : "bg-card border-primary/50 shadow-md shadow-primary/5"
+              }`}
             >
               <div className="p-2 bg-background rounded-lg shadow-sm border border-border">
                 {notif.type === "info" && <FiInfo className="text-blue-500" />}
                 {notif.type === "success" && <FiCheckCircle className="text-green-500" />}
-                {notif.type === "warning" && <FiAlertCircle className="text-amber-500" />}
+                {(notif.type === "warning" || notif.type === "error") && <FiAlertCircle className="text-amber-500" />}
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-foreground">{notif.message}</p>
-                <p className="text-xs text-muted-foreground mt-1">{notif.date}</p>
+                <div className="flex items-center gap-2">
+                  <p className={`text-sm ${notif.is_read ? "text-foreground/80" : "font-bold text-foreground"}`}>
+                    {notif.message}
+                  </p>
+                  {!notif.is_read && <span className="w-2 h-2 bg-primary rounded-full"></span>}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">{formatDate(notif.date)}</p>
               </div>
             </div>
           ))

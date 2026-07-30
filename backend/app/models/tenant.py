@@ -1,6 +1,7 @@
 from datetime import datetime
 import uuid
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean, Text
+from sqlalchemy.orm import relationship
 
 from app.db.database import Base
 
@@ -18,6 +19,8 @@ class Tenant(Base):
     
     createdAt = Column(DateTime, default=datetime.utcnow)
     updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    notifications = relationship("Notification", back_populates="tenant", cascade="all, delete-orphan")
 
 class McpIntegration(Base):
     __tablename__ = "McpIntegration"

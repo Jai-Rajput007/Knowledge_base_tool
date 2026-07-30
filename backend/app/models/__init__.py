@@ -13,6 +13,7 @@ from app.models.persona import Persona, PersonaVersion, PersonaTemplate
 from app.models.tenant import Tenant, McpIntegration, TenantMcpConfig
 from app.models.support_ticket import SupportTicket
 from app.models.robot_map import RobotMap
+from app.models.notification import Notification
 
 __all__ = [
     "Document",
@@ -33,4 +34,5 @@ __all__ = [
     "McpIntegration",
     "TenantMcpConfig",
     "SupportTicket",
+    "Notification",
 ]

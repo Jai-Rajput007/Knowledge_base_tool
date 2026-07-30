@@ -1,13 +1,16 @@
 "use client";
 
 import React from "react";
+import dynamic from "next/dynamic";
 import { PersonaProvider } from "@/app/features/persona/context";
 import { PersonaHeader } from "@/app/features/persona/header";
-import { PersonaChangeModule } from "@/app/features/persona-change";
-import { GenerativePersonaModule } from "@/app/features/generative-persona";
-import { PrebuiltPersonasModule } from "@/app/features/prebuilt-personas";
-import { PersonaLibraryModule } from "@/app/features/persona-library";
-import { EmotionsModule } from "@/app/features/emotions";
+import { LazySection } from "@/components/ui/lazy-section";
+
+const PersonaChangeModule = dynamic(() => import("@/app/features/persona-change").then(m => m.PersonaChangeModule), { ssr: false });
+const GenerativePersonaModule = dynamic(() => import("@/app/features/generative-persona").then(m => m.GenerativePersonaModule), { ssr: false });
+const PrebuiltPersonasModule = dynamic(() => import("@/app/features/prebuilt-personas").then(m => m.PrebuiltPersonasModule), { ssr: false });
+const PersonaLibraryModule = dynamic(() => import("@/app/features/persona-library").then(m => m.PersonaLibraryModule), { ssr: false });
+const EmotionsModule = dynamic(() => import("@/app/features/emotions").then(m => m.EmotionsModule), { ssr: false });
 
 export default function PersonaManagerPage() {
   return (
@@ -16,13 +19,13 @@ export default function PersonaManagerPage() {
         <PersonaHeader />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full">
-          <PersonaChangeModule />
-          <GenerativePersonaModule />
-          <PrebuiltPersonasModule />
+          <LazySection><PersonaChangeModule /></LazySection>
+          <LazySection><GenerativePersonaModule /></LazySection>
+          <LazySection><PrebuiltPersonasModule /></LazySection>
         </div>
 
-        <PersonaLibraryModule />
-        <EmotionsModule />
+        <LazySection><PersonaLibraryModule /></LazySection>
+        <LazySection><EmotionsModule /></LazySection>
       </div>
     </PersonaProvider>
   );

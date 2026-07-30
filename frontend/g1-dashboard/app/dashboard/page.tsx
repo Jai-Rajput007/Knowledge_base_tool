@@ -1,27 +1,28 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
+import useSWR from 'swr';
 import { gsap } from 'gsap';
 import { FeatureStatusCard } from "./components/feature-status-card";
+import { LazySection } from "@/components/ui/lazy-section";
 import { Database, Bot, Users, MapPin, Mic, Blocks, ShieldCheck, MessageSquare, Hand } from "lucide-react";
 import { api, API_BASE_URL } from "@/lib/api";
 
+// Fetcher defined OUTSIDE the component so its reference never changes between renders.
+// If defined inside, SWR would see a new function each render and re-fetch unnecessarily.
+const createFetcher = () => async (url: string) => {
+  const token = api.getToken();
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const res = await fetch(`${API_BASE_URL}${url}`, { headers });
+  if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+  return res.json();
+};
+
+const fetcher = createFetcher();
+
 export default function ClientDashboardPage() {
   const containerRef = useRef<HTMLDivElement>(null);
-  
-  // State for all real data
-  const [agxStatus, setAgxStatus] = useState<"online" | "offline">("offline");
-  const [robotStatus, setRobotStatus] = useState<"online" | "offline">("offline");
-  
-  const [ragStats, setRagStats] = useState<{ docs: number }>({ docs: 0 });
-  const [personaStats, setPersonaStats] = useState<{ active: string, total: number }>({ active: "None", total: 0 });
-  const [employeeCount, setEmployeeCount] = useState(0);
-  const [mapCount, setMapCount] = useState(0);
-  const [mcpCount, setMcpCount] = useState(0);
-  const [auditCount, setAuditCount] = useState(0);
-  const [chatCount, setChatCount] = useState(0);
-  const [gestureCount, setGestureCount] = useState(0);
-  const [gesturesOffline, setGesturesOffline] = useState(false);
 
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -30,89 +31,45 @@ export default function ClientDashboardPage() {
     day: 'numeric',
   });
 
+  // SWR hooks for parallel, non-blocking fetching
+  const { data: healthData, error: healthError } = useSWR('/gestures/health', fetcher);
+  const { data: dashStats } = useSWR('/dashboard/stats', fetcher);
+  const { data: activePersona } = useSWR('/personas/persona', fetcher); // Or /active, check api.ts if this fails. Usually /personas is enough
+  const { data: personasData } = useSWR('/personas/', fetcher);
+  const { data: employeesData } = useSWR('/employees/', fetcher);
+  const { data: mapsData } = useSWR('/navigation/locations', fetcher);
+  const { data: mcpData } = useSWR('/mcp/integrations', fetcher);
+  const { data: auditData } = useSWR('/audit/logs', fetcher);
+  const { data: chatData } = useSWR('/sessions/', fetcher);
+  const { data: gesturesData, error: gesturesError } = useSWR('/gestures/custom', fetcher);
+
+  // Derived state from SWR data
+  const agxStatus = healthError ? "offline" : healthData ? "online" : "offline";
+  const robotStatus = agxStatus;
+  
+  const ragStats = { docs: dashStats?.totalDocuments || 0 };
+  const personaStats = { 
+    active: activePersona?.identity?.name || "None", 
+    total: Array.isArray(personasData) ? personasData.length : 0 
+  };
+  
+  const employeeCount = Array.isArray(employeesData) ? employeesData.length : 0;
+  const mapCount = Array.isArray(mapsData) ? mapsData.length : 0;
+  const mcpCount = Array.isArray(mcpData) ? mcpData.filter((m: any) => m.isEnabled).length : 0;
+  const auditCount = auditData?.total || 0;
+  const chatCount = Array.isArray(chatData) ? chatData.length : 0;
+  
+  const gesturesOffline = !!gesturesError;
+  const gestureCount = Array.isArray(gesturesData) ? gesturesData.length : 0;
+
   useEffect(() => {
     // Animations
     const ctx = gsap.context(() => {
-      gsap.from('.dash-header', { opacity: 0, y: -15, duration: 0.6, ease: 'power3.out' });
-      gsap.from('.dash-widget', { opacity: 0, y: 20, duration: 0.5, stagger: 0.08, ease: 'power2.out', delay: 0.2 });
+      gsap.from('.dash-header', { opacity: 0, y: -15, duration: 0.6, ease: 'power3.out', onComplete: () => gsap.set('.dash-header', { clearProps: 'all' }) });
+      gsap.from('.dash-widget', { opacity: 0, y: 20, duration: 0.5, stagger: 0.08, ease: 'power2.out', delay: 0.2, onComplete: () => gsap.set('.dash-widget', { clearProps: 'all' }) });
+      gsap.from('.feature-card', { opacity: 0, y: 15, duration: 0.4, stagger: 0.05, ease: 'power2.out', delay: 0.4, onComplete: () => gsap.set('.feature-card', { clearProps: 'all' }) });
     }, containerRef);
 
-    // Helper for direct API calls
-    const fetchApi = async (path: string) => {
-      const token = api.getToken();
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-      
-      const res = await fetch(`${API_BASE_URL}${path}`, { headers });
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-      return res.json();
-    };
-
-    // Fetch real data in parallel
-    const fetchData = async () => {
-      // 1. AGX/Robot Health
-      fetchApi("/gestures/health").then(() => {
-        setAgxStatus("online");
-        setRobotStatus("online");
-      }).catch(() => {
-        setAgxStatus("offline");
-        setRobotStatus("offline");
-      });
-
-      // 2. RAG Stats
-      api.getDashboardStats().then(res => {
-        if (res.data) setRagStats({ docs: (res.data as any).totalDocuments || 0 });
-      });
-
-      // 3. Personas
-      Promise.allSettled([
-        api.getActivePersona(),
-        api.getPersonas()
-      ]).then(([activeRes, allRes]) => {
-        const activeName = activeRes.status === 'fulfilled' && activeRes.value.data ? (activeRes.value.data as any).identity?.name : "None";
-        const total = allRes.status === 'fulfilled' && allRes.value.data && Array.isArray(allRes.value.data) ? allRes.value.data.length : 0;
-        setPersonaStats({ active: activeName || "None", total });
-      });
-
-      // 4. Employees
-      fetchApi("/employees/").then(data => {
-        if (Array.isArray(data)) setEmployeeCount(data.length);
-      }).catch(() => {});
-
-      // 5. Navigation Maps
-      fetchApi("/navigation/locations").then(data => {
-        if (Array.isArray(data)) setMapCount(data.length);
-      }).catch(() => {});
-
-      // 6. MCP
-      api.getMcpIntegrations().then(res => {
-        if (res.data && Array.isArray(res.data)) {
-          const active = res.data.filter((m: any) => m.isEnabled).length;
-          setMcpCount(active);
-        }
-      });
-
-      // 7. Audit
-      api.getAuditLogs().then(res => {
-        if (res.data) setAuditCount((res.data as any).total || 0);
-      });
-
-      // 8. Chat
-      fetchApi("/sessions/").then(data => {
-        if (Array.isArray(data)) setChatCount(data.length);
-      }).catch(() => {});
-
-      // 9. Gestures
-      fetchApi("/gestures/custom").then(data => {
-        if (Array.isArray(data)) {
-          setGestureCount(data.length);
-        } else {
-          setGesturesOffline(true);
-        }
-      }).catch(() => setGesturesOffline(true));
-    };
-
-    fetchData();
     return () => ctx.revert();
   }, []);
 
@@ -150,6 +107,7 @@ export default function ClientDashboardPage() {
       {/* Modules Hub */}
       <section className="dash-widget mt-4">
         <h2 className="text-xl font-bold tracking-tight text-foreground mb-6">Preview panel</h2>
+        <LazySection rootMargin="100px" minHeight="600px">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           
           <FeatureStatusCard
@@ -244,6 +202,7 @@ export default function ClientDashboardPage() {
           />
 
         </div>
+        </LazySection>
       </section>
 
     </div>

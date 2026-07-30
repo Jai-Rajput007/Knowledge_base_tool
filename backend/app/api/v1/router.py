@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends
 from app.core.security import RequireRole
 
-from app.api.v1.endpoints import documents, chat, settings, dashboard, health, retrieve, auth, sessions, memory, employees, wakeword, navigation, personas, tenant, mcp, gestures, audit
+from app.api.v1.endpoints import documents, chat, settings, dashboard, health, retrieve, auth, sessions, memory, employees, wakeword, navigation, personas, tenant, mcp, gestures, audit, notifications
 
 api_router = APIRouter()
 
@@ -28,6 +28,7 @@ api_router.include_router(chat.router,      prefix="/chat",      tags=["chat"], 
 api_router.include_router(retrieve.router,  prefix="/retrieve",  tags=["retrieve"])
 api_router.include_router(sessions.router,  prefix="/sessions",  tags=["sessions"],   dependencies=[Depends(RequireRole(["admin", "editor", "user"]))])
 api_router.include_router(memory.router,    prefix="/memory",    tags=["memory"],     dependencies=[Depends(RequireRole(["admin", "editor", "user"]))])
+api_router.include_router(notifications.router, prefix="/notifications", tags=["notifications"], dependencies=[Depends(RequireRole(["admin", "editor", "user"]))])
 
 # --- MIXED / PUBLIC (Auth applied per-endpoint) ---
 api_router.include_router(auth.router,      prefix="/auth",      tags=["auth"])

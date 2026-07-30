@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { ThemeToggle } from "./theme-toggle";
@@ -25,20 +26,46 @@ export function HeaderActions({ isLoggedIn = false, tenant }: { isLoggedIn?: boo
   const initial = tenant?.name ? tenant.name.charAt(0).toUpperCase() : "U";
   const tenantName = tenant?.name || "User Profile";
 
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!isLoggedIn || isAuthPage) return;
+
+    const checkNotifications = async () => {
+      try {
+        const { api } = await import("@/lib/api");
+        // Using request method since get is private/not exposed
+        const response = await (api as any).request("/notifications");
+        const notifs = response.data || [];
+        const count = notifs.filter((n: any) => !n.is_read).length;
+        setUnreadCount(count);
+      } catch (e) {
+        console.error("Failed to fetch notification count", e);
+      }
+    };
+
+    checkNotifications();
+    const interval = setInterval(checkNotifications, 30000); // Poll every 30s
+    return () => clearInterval(interval);
+  }, [isLoggedIn, isAuthPage]);
+
   return (
     <div className="fixed top-6 right-6 z-50 flex items-center gap-3">
       {/* Notification bell */}
       {!isAuthPage && isLoggedIn && (
         <button
           onClick={() => {
-            console.log("[HeaderActions] Navigating to Notifications page");
             router.push("/notifications");
+            // Optimistically clear the dot when they click
+            setUnreadCount(0); 
           }}
           className="p-2.5 rounded-xl bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors relative shadow-sm"
           title="Notifications"
         >
           <FiBell size={18} />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full animate-pulse" />
+          {unreadCount > 0 && (
+            <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-primary rounded-full animate-pulse border-2 border-card" />
+          )}
         </button>
       )}
 

@@ -60,6 +60,6 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
-
+node_modules/
 # Vercel
 .vercel

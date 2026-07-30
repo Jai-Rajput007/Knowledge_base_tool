@@ -1,7 +1,10 @@
 "use client";
 
-import { ConfigurationGesturesModule } from "@/app/features/configuration-gestures";
-import { CommunicationGesturesModule } from "@/app/features/communication-gestures";
+import dynamic from "next/dynamic";
+import { LazySection } from "@/components/ui/lazy-section";
+
+const ConfigurationGesturesModule = dynamic(() => import("@/app/features/configuration-gestures").then(m => m.ConfigurationGesturesModule), { ssr: false });
+const CommunicationGesturesModule = dynamic(() => import("@/app/features/communication-gestures").then(m => m.CommunicationGesturesModule), { ssr: false });
 
 export default function GestureSettingsPage() {
   return (
@@ -15,8 +18,8 @@ export default function GestureSettingsPage() {
         </p>
       </div>
 
-      <ConfigurationGesturesModule />
-      <CommunicationGesturesModule />
+      <LazySection><ConfigurationGesturesModule /></LazySection>
+      <LazySection><CommunicationGesturesModule /></LazySection>
     </div>
   );
 }

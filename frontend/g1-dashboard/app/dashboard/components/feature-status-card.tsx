@@ -15,7 +15,7 @@ interface FeatureStatusCardProps {
   secondaryText?: string;
 }
 
-export function FeatureStatusCard({
+export const FeatureStatusCard = React.memo(function FeatureStatusCard({
   title,
   description,
   icon: Icon,
@@ -41,7 +41,7 @@ export function FeatureStatusCard({
   };
 
   return (
-    <div className="group relative flex flex-col h-full rounded-2xl bg-card border border-border overflow-hidden transition-all duration-300 ease-in-out hover:-translate-y-1 shadow-[rgba(50,50,93,0.25)_0px_6px_12px_-2px,rgba(0,0,0,0.3)_0px_3px_7px_-3px] dark:shadow-[rgba(0,0,0,0.5)_0px_6px_12px_-2px,rgba(0,0,0,0.8)_0px_3px_7px_-3px] hover:shadow-[rgba(0,0,0,0.09)_0px_2px_1px,rgba(0,0,0,0.09)_0px_4px_2px,rgba(0,0,0,0.09)_0px_8px_4px,rgba(0,0,0,0.09)_0px_16px_8px,rgba(0,0,0,0.09)_0px_32px_16px] dark:hover:shadow-[rgba(255,255,255,0.05)_0px_2px_1px,rgba(255,255,255,0.05)_0px_4px_2px,rgba(255,255,255,0.05)_0px_8px_4px,rgba(255,255,255,0.05)_0px_16px_8px,rgba(255,255,255,0.05)_0px_32px_16px] hover:ring-1 hover:ring-primary hover:border-primary">
+    <div className="feature-card group relative flex flex-col h-full rounded-2xl bg-card border border-border overflow-hidden transition-all duration-300 ease-in-out hover:-translate-y-1 shadow-[rgba(50,50,93,0.25)_0px_6px_12px_-2px,rgba(0,0,0,0.3)_0px_3px_7px_-3px] dark:shadow-[rgba(0,0,0,0.5)_0px_6px_12px_-2px,rgba(0,0,0,0.8)_0px_3px_7px_-3px] hover:shadow-[rgba(0,0,0,0.09)_0px_2px_1px,rgba(0,0,0,0.09)_0px_4px_2px,rgba(0,0,0,0.09)_0px_8px_4px,rgba(0,0,0,0.09)_0px_16px_8px,rgba(0,0,0,0.09)_0px_32px_16px] dark:hover:shadow-[rgba(255,255,255,0.05)_0px_2px_1px,rgba(255,255,255,0.05)_0px_4px_2px,rgba(255,255,255,0.05)_0px_8px_4px,rgba(255,255,255,0.05)_0px_16px_8px,rgba(255,255,255,0.05)_0px_32px_16px] hover:ring-1 hover:ring-primary hover:border-primary">
       
       {/* Header */}
       <div className="p-5 md:p-6 border-b border-border bg-background/30 flex items-start justify-between relative z-0">
@@ -94,4 +94,4 @@ export function FeatureStatusCard({
 
     </div>
   );
-}
+});

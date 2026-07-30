@@ -5,10 +5,14 @@ from sqlalchemy import Column, Integer, String, DateTime, Text
 from sqlalchemy.orm import relationship
 import hashlib
 import secrets
+import bcrypt
 
 from app.db.database import Base
 
-_BCRYPT_SENTINEL = "__bcrypt__"  # stored in `salt` to flag bcrypt-hashed passwords
+# Sentinel stored in `salt` column to indicate the password is bcrypt-hashed.
+# Legacy SHA-256 rows have a 32-char hex salt; this sentinel is longer and distinctive.
+_BCRYPT_SENTINEL = "__bcrypt__"
+_SHA256_SENTINEL = "__sha256__"  # explicitly marks legacy rows (optional, for clarity)
 
 
 
@@ -39,26 +43,43 @@ class User(Base):
     sessions = relationship("Session", back_populates="user", cascade="all, delete-orphan")
 
     def set_password(self, password: str):
-        """Hash a plaintext password with sha256+salt (local users)."""
-        self.salt = secrets.token_hex(16)
-        self.hashed_password = hashlib.sha256((password + self.salt).encode()).hexdigest()
+        """
+        Hash a plaintext password with bcrypt (work factor 12).
+        Replaces the old SHA-256+salt scheme.
+        bcrypt is intentionally slow, making brute-force attacks computationally expensive.
+        """
+        salt = bcrypt.gensalt(rounds=12)
+        self.hashed_password = bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
+        self.salt = _BCRYPT_SENTINEL  # mark this row as bcrypt-hashed
 
     def set_bcrypt_password(self, bcrypt_hash: str):
-        """Store a bcrypt hash received from the Super Admin as-is."""
+        """
+        Store a pre-computed bcrypt hash (e.g., synced from Super Admin).
+        Used when the Super Admin pushes password updates via MQTT.
+        """
         self.salt = _BCRYPT_SENTINEL
         self.hashed_password = bcrypt_hash
 
     def check_password(self, password: str) -> bool:
+        """
+        Verify a plaintext password against the stored hash.
+        Supports both bcrypt (new) and SHA-256+salt (legacy) rows transparently.
+        Legacy users are automatically upgraded to bcrypt on next successful login
+        via the auth_service.authenticate_user() method.
+        """
         if self.salt == _BCRYPT_SENTINEL:
-            # Password was synced from Super Admin — use bcrypt to verify
+            # bcrypt-hashed password (new default, and synced-from-SA passwords)
             try:
-                import bcrypt
-                return bcrypt.checkpw(password.encode(), self.hashed_password.encode())
+                return bcrypt.checkpw(
+                    password.encode("utf-8"),
+                    self.hashed_password.encode("utf-8")
+                )
             except Exception:
                 return False
-        # Local sha256+salt verification
-        hashed = hashlib.sha256((password + self.salt).encode()).hexdigest()
-        return hashed == self.hashed_password
+
+        # Legacy SHA-256+salt verification (backward compatibility)
+        legacy_hash = hashlib.sha256((password + self.salt).encode()).hexdigest()
+        return legacy_hash == self.hashed_password
 
     def to_dict(self):
         return {
