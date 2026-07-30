@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * Super Admin Middleware — Auth DISABLED.
- * All routes are publicly accessible. No session checks are performed.
- * MQTT publishing still works independently through API routes.
+ * Super Admin Proxy (formerly middleware.ts — renamed per Next.js 16+ convention)
+ * Auth DISABLED. All routes pass through freely.
+ * MQTT publishing still works through API routes independently.
  */
 export async function middleware(request: NextRequest) {
-  // Pass every request through without any auth checks.
   return NextResponse.next();
 }
 
