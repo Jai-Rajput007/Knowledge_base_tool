@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * Super Admin Proxy (formerly middleware.ts — renamed per Next.js 16+ convention)
+ * Super Admin Proxy (Next.js 16+ convention — replaces middleware.ts)
  * Auth DISABLED. All routes pass through freely.
  * MQTT publishing still works through API routes independently.
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   return NextResponse.next();
 }
 
