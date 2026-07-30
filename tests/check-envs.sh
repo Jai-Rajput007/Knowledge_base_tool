@@ -58,6 +58,11 @@ check_env_file() {
   done
 }
 
+# Determine the absolute path to the project root
+# The script is in tests/, so the root is one level up
+PROJECT_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+cd "$PROJECT_ROOT" || { echo "Failed to cd to $PROJECT_ROOT"; exit 1; }
+
 echo ""
 echo -e "${BOLD}🔍 G1 Universe — .env Health Check${RESET}"
 echo -e "   Running from: $(pwd)"
