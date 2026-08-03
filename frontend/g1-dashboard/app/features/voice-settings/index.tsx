@@ -2,10 +2,16 @@
 
 import React, { useState } from "react";
 import { FeatureGate } from "@/app/components/feature-gate";
-import { FiVolume2, FiActivity, FiFastForward, FiSliders, FiPlay, FiSave, FiRefreshCw } from "react-icons/fi";
+import { FiVolume2, FiActivity, FiFastForward, FiSliders, FiPlay, FiSave, FiRefreshCw, FiMic } from "react-icons/fi";
+import { useAvailableVoices, useUpdateVoiceSelection } from "./hooks";
+import { toast } from "sonner";
 
 export function VoiceSettingsModule() {
-  const [saving, setSaving] = useState(false);
+  const { data: voicesData, isLoading: voicesLoading } = useAvailableVoices();
+  const updateVoice = useUpdateVoiceSelection();
+  
+  const [selectedVoice, setSelectedVoice] = useState<string>("");
+  
   const [settings, setSettings] = useState({
     pitch: 50,
     volume: 80,
@@ -13,9 +19,18 @@ export function VoiceSettingsModule() {
     sampleRate: 24000,
   });
 
-  const handleSave = () => {
-    setSaving(true);
-    setTimeout(() => setSaving(false), 800);
+  const handleSave = async () => {
+    if (!selectedVoice) {
+      toast.error("Please select a voice model first.");
+      return;
+    }
+    
+    try {
+      await updateVoice.mutateAsync(selectedVoice);
+      toast.success("Voice settings applied! Robot is reloading.");
+    } catch (error) {
+      toast.error("Failed to update voice settings.");
+    }
   };
 
   const Slider = ({ label, icon: Icon, value, min, max, onChange, unit = "%" }: any) => (
@@ -45,6 +60,38 @@ export function VoiceSettingsModule() {
   return (
     <FeatureGate featureKey="voiceSettings">
       <div className="space-y-8">
+      
+        {/* Dynamic Voice Model Selector */}
+        <div className="p-6 border border-border bg-card/30 rounded-xl space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg text-primary">
+              <FiMic size={18} />
+            </div>
+            <span className="font-mono text-sm uppercase tracking-wider">Voice Model (Local)</span>
+          </div>
+          
+          {voicesLoading ? (
+            <div className="text-sm text-muted-foreground font-mono animate-pulse">Scanning models/voices/ directory...</div>
+          ) : voicesData?.models && voicesData.models.length > 0 ? (
+            <select 
+              value={selectedVoice}
+              onChange={(e) => setSelectedVoice(e.target.value)}
+              className="w-full bg-background border border-border p-3 rounded-lg font-mono text-sm focus:outline-none focus:border-primary transition-colors appearance-none"
+            >
+              <option value="" disabled>-- Select a local voice model --</option>
+              {voicesData.models.map((model) => (
+                <option key={model.filename} value={model.filename}>
+                  {model.name} ({model.size_kb} KB)
+                </option>
+              ))}
+            </select>
+          ) : (
+            <div className="p-4 border border-yellow-500/30 bg-yellow-500/10 rounded-lg text-yellow-500 font-mono text-sm">
+              No models found in g1-nlp/models/voices/. Please upload .onnx and .json files there.
+            </div>
+          )}
+        </div>
+      
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Slider 
             label="Pitch" 
@@ -99,11 +146,11 @@ export function VoiceSettingsModule() {
           
           <button 
             onClick={handleSave}
-            disabled={saving}
+            disabled={updateVoice.isPending}
             className="flex items-center gap-2 px-8 py-3 bg-primary text-primary-foreground font-semibold uppercase tracking-wider text-sm hover:opacity-90 transition-opacity disabled:opacity-50 shadow-lg hover:-translate-y-0.5 rounded-lg"
           >
-            {saving ? <FiRefreshCw className="animate-spin" /> : <FiSave />}
-            {saving ? "Saving..." : "Apply Settings"}
+            {updateVoice.isPending ? <FiRefreshCw className="animate-spin" /> : <FiSave />}
+            {updateVoice.isPending ? "Applying..." : "Apply Settings"}
           </button>
         </div>
       </div>

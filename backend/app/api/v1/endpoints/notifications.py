@@ -8,13 +8,15 @@ from app.core.security import get_current_user
 
 router = APIRouter()
 
+from app.models.user import User
+
 @router.get("/")
 def get_notifications(
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """Get all notifications for the current user's tenant, ordered by newest."""
-    tenant_id = current_user.get("tenant_id")
+    tenant_id = current_user.tenant_id
     if not tenant_id:
         raise HTTPException(status_code=400, detail="No tenant_id in token")
         
@@ -38,10 +40,10 @@ def get_notifications(
 def mark_read(
     notification_id: str,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """Mark a notification as read."""
-    tenant_id = current_user.get("tenant_id")
+    tenant_id = current_user.tenant_id
     notif = db.query(Notification).filter(
         Notification.id == notification_id,
         Notification.tenant_id == tenant_id

@@ -136,3 +136,38 @@ async def update_settings(
     logger.info("Settings updated")
     
     return db_settings.to_dict()
+
+import httpx
+
+@router.get("/voices")
+async def get_available_voices():
+    """Fetch available TTS voice models from robot_sync."""
+    robot_sync_url = f"http://{app_settings.ROBOT_SYNC_HOST}:{app_settings.ROBOT_SYNC_PORT}"
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(f"{robot_sync_url}/tts/models", timeout=5.0)
+            resp.raise_for_status()
+            return resp.json()
+    except Exception as e:
+        logger.error(f"Failed to fetch voices from robot_sync: {e}")
+        return {"models": []}
+
+class VoiceSelection(BaseModel):
+    voice_model: str
+
+@router.put("/voices")
+async def update_voice_selection(selection: VoiceSelection):
+    """Send updated TTS voice model to robot_sync."""
+    robot_sync_url = f"http://{app_settings.ROBOT_SYNC_HOST}:{app_settings.ROBOT_SYNC_PORT}"
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                f"{robot_sync_url}/tts/config",
+                json={"voice_model": selection.voice_model},
+                timeout=5.0
+            )
+            resp.raise_for_status()
+            return resp.json()
+    except Exception as e:
+        logger.error(f"Failed to set voice in robot_sync: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

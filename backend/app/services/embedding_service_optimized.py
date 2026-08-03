@@ -39,8 +39,8 @@ class OllamaEmbeddingProvider(EmbeddingProvider):
         self.optimal_batch_size = 8 if settings.EMBEDDING_CPU_OPTIMIZED else 16
     
     def embed(self, texts: List[str]) -> List[List[float]]:
-        """Generate embeddings using Ollama with retry logic."""
-        import ollama
+        """Generate embeddings using Ollama with retry logic and timeout."""
+        import httpx
         
         # Safe character limit — nomic-embed-text allows 8192 tokens (~4 chars/token)
         MAX_CHARS = 4000
@@ -50,11 +50,16 @@ class OllamaEmbeddingProvider(EmbeddingProvider):
             safe_text = text[:MAX_CHARS]
             for attempt in range(self.max_retries):
                 try:
-                    response = ollama.embeddings(
-                        model=self.model,
-                        prompt=safe_text
-                    )
-                    embeddings.append(response["embedding"])
+                    with httpx.Client(timeout=30.0) as client:
+                        response = client.post(
+                            f"{self.base_url}/api/embeddings",
+                            json={
+                                "model": self.model,
+                                "prompt": safe_text
+                            }
+                        )
+                        response.raise_for_status()
+                        embeddings.append(response.json()["embedding"])
                     break
                 except Exception as e:
                     if attempt == self.max_retries - 1:
