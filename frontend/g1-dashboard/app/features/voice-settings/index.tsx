@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { FeatureGate } from "@/app/components/feature-gate";
 import { FiVolume2, FiActivity, FiFastForward, FiSliders, FiPlay, FiSave, FiRefreshCw, FiMic } from "react-icons/fi";
 import { useAvailableVoices, useUpdateVoiceSelection } from "./hooks";
-import { toast } from "sonner";
 
 export function VoiceSettingsModule() {
   const { data: voicesData, isLoading: voicesLoading } = useAvailableVoices();
@@ -21,15 +20,15 @@ export function VoiceSettingsModule() {
 
   const handleSave = async () => {
     if (!selectedVoice) {
-      toast.error("Please select a voice model first.");
+      alert("Please select a voice model first.");
       return;
     }
     
     try {
       await updateVoice.mutateAsync(selectedVoice);
-      toast.success("Voice settings applied! Robot is reloading.");
+      alert("Voice settings applied! Robot is reloading.");
     } catch (error) {
-      toast.error("Failed to update voice settings.");
+      alert("Failed to update voice settings.");
     }
   };
 

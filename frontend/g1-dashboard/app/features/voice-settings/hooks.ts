@@ -1,19 +1,22 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import useSWR from "swr";
 import { voiceApi } from "./api";
+import { useState } from "react";
 
 export const useAvailableVoices = () => {
-  return useQuery({
-    queryKey: ["voices", "available"],
-    queryFn: () => voiceApi.getAvailableVoices(),
-  });
+  return useSWR("voices_available", () => voiceApi.getAvailableVoices());
 };
 
 export const useUpdateVoiceSelection = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (voice_model: string) => voiceApi.saveVoiceSelection(voice_model),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["voices"] });
-    },
-  });
+  const [isPending, setIsPending] = useState(false);
+  
+  const mutateAsync = async (voice_model: string) => {
+    setIsPending(true);
+    try {
+      await voiceApi.saveVoiceSelection(voice_model);
+    } finally {
+      setIsPending(false);
+    }
+  };
+  
+  return { mutateAsync, isPending };
 };
