@@ -295,6 +295,17 @@ class ApiClient {
     });
   }
 
+  async getAvailableVoices() {
+    return this.request<{ models: any[] }>("/settings/voices");
+  }
+
+  async saveVoiceSelection(voice_model: string) {
+    return this.request("/settings/voices", {
+      method: "PUT",
+      body: JSON.stringify({ voice_model }),
+    });
+  }
+
   // Auth
   async loginUser(userData: { username: string; password: string }) {
     return this.request("/auth/login", {

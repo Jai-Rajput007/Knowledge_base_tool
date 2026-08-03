@@ -10,12 +10,12 @@ export interface VoiceModel {
 
 export const voiceApi = {
   getAvailableVoices: async () => {
-    const res = await api.get<{ models: VoiceModel[] }>("/settings/voices");
+    const res = await api.getAvailableVoices();
     return res.data;
   },
   
   saveVoiceSelection: async (voice_model: string) => {
-    const res = await api.put("/settings/voices", { voice_model });
+    const res = await api.saveVoiceSelection(voice_model);
     return res.data;
   }
 };
