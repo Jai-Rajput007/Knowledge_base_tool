@@ -307,7 +307,7 @@ class ApiClient {
   }
 
   async getLanguage() {
-    return this.request("/settings/language", {
+    return this.request<{ language: string }>("/settings/language", {
       method: "GET",
     });
   }
