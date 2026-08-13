@@ -8,6 +8,7 @@ const RbacModule = dynamic(() => import("@/app/features/rbac").then(m => m.RbacM
 const RollbackModule = dynamic(() => import("@/app/features/rollback").then(m => m.RollbackModule), { ssr: false });
 const OtaUpdatesModule = dynamic(() => import("@/app/features/ota-updates").then(m => m.OtaUpdatesModule), { ssr: false });
 const VoiceSettingsModule = dynamic(() => import("@/app/features/voice-settings").then(m => m.VoiceSettingsModule), { ssr: false });
+const LanguageSettingsModule = dynamic(() => import("@/app/features/language-settings").then(m => m.LanguageSettingsModule), { ssr: false });
 
 /**
  * Settings Page
@@ -259,6 +260,7 @@ export default function Settings() {
     { id: "database", label: "Vector DB", adminOnly: false, hidden: true, icon: "M4 7v10c0 2 1.5 3 3 3h10c1.5 0 3-1 3-3V7c0-2-1.5-3-3-3H7c-1.5 0-3 1-3 3z" },
     { id: "api", label: "API Keys", adminOnly: false, hidden: false, icon: "M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" },
     { id: "voice", label: "Voice", adminOnly: false, hidden: false, icon: "M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" },
+    { id: "language", label: "Language", adminOnly: false, hidden: false, icon: "M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 15h5.498" },
     
     { id: "rbac", label: "RBAC", adminOnly: true, hidden: false, icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" },
     { id: "rollback", label: "Rollback", adminOnly: false, hidden: false, icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
@@ -267,7 +269,7 @@ export default function Settings() {
   ];
 
   const tabs = allTabs.filter(t => !t.hidden && (!t.adminOnly || currentUserRole === "admin"));
-  const showSaveButton = !["users", "rbac", "rollback", "ota", "voice"].includes(activeTab);
+  const showSaveButton = !["users", "rbac", "rollback", "ota", "voice", "language"].includes(activeTab);
 
   return (
     <div className="flex-1 p-6 bg-background">
@@ -560,6 +562,16 @@ export default function Settings() {
                   <p className="text-muted-foreground">Configure acoustic parameters and speech synthesis</p>
                 </div>
                 <VoiceSettingsModule />
+              </div>
+            )}
+
+            {activeTab === "language" && (
+              <div className="bg-card border border-border rounded-2xl p-6 space-y-8">
+                <div>
+                  <h2 className="text-xl font-semibold text-card-foreground mb-1">Language Settings</h2>
+                  <p className="text-muted-foreground">Configure the primary language for speech recognition and interaction</p>
+                </div>
+                <LanguageSettingsModule />
               </div>
             )}
           </div>

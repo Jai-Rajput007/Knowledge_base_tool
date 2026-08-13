@@ -171,3 +171,39 @@ async def update_voice_selection(selection: VoiceSelection):
     except Exception as e:
         logger.error(f"Failed to set voice in robot_sync: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/language")
+async def get_current_language():
+    """Fetch current robot language from robot_sync."""
+    robot_sync_url = f"http://{app_settings.ROBOT_SYNC_HOST}:{app_settings.ROBOT_SYNC_PORT}"
+    try:
+        async with httpx.AsyncClient() as client:
+            # Fetch the entire config to extract the language
+            resp = await client.get(f"{robot_sync_url}/config", timeout=5.0)
+            resp.raise_for_status()
+            config_data = resp.json().get("config", {})
+            return {"language": config_data.get("robot_language", "en")}
+    except Exception as e:
+        logger.error(f"Failed to fetch language from robot_sync: {e}")
+        return {"language": "en"}
+
+class LanguageSelection(BaseModel):
+    language_code: str
+
+@router.put("/language")
+async def update_language_selection(selection: LanguageSelection):
+    """Send updated robot primary language to robot_sync."""
+    robot_sync_url = f"http://{app_settings.ROBOT_SYNC_HOST}:{app_settings.ROBOT_SYNC_PORT}"
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                f"{robot_sync_url}/language/config",
+                json={"language_code": selection.language_code},
+                timeout=5.0
+            )
+            resp.raise_for_status()
+            return resp.json()
+    except Exception as e:
+        logger.error(f"Failed to set language in robot_sync: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+

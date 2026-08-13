@@ -306,6 +306,19 @@ class ApiClient {
     });
   }
 
+  async getLanguage() {
+    return this.request("/settings/language", {
+      method: "GET",
+    });
+  }
+
+  async saveLanguage(language_code: string) {
+    return this.request("/settings/language", {
+      method: "PUT",
+      body: JSON.stringify({ language_code }),
+    });
+  }
+
   // Auth
   async loginUser(userData: { username: string; password: string }) {
     return this.request("/auth/login", {
