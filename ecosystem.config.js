@@ -94,6 +94,14 @@ module.exports = {
       args: "run mqtt:listen",
       restart_delay: 5000,
       max_restarts: 50,
+    },
+    {
+      name: "kokoro-tts",
+      cwd: "../g1-nlp",
+      script: "./start_kokoro.sh",
+      interpreter: "bash",
+      restart_delay: 3000,
+      max_restarts: 20,
     }
   ]
 };
