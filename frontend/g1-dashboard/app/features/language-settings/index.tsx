@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import { Check, Loader2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 import { api } from "@/lib/api";
 
 const SUPPORTED_LANGUAGES = [
@@ -50,17 +49,10 @@ export function LanguageSettingsModule() {
       if (res.error) throw new Error(res.error);
       
       setActiveLang(langId);
-      
-      if (typeof toast !== 'undefined') {
-        toast.success("Language updated successfully", {
-          description: `Robot primary language set to ${SUPPORTED_LANGUAGES.find(l => l.id === langId)?.name}.`
-        });
-      }
+      // Optional: you could add local state toast here if desired, 
+      // but activeLang change acts as visual confirmation.
     } catch (error) {
       console.error("Failed to update language:", error);
-      if (typeof toast !== 'undefined') {
-        toast.error("Failed to update language");
-      }
     } finally {
       setIsSaving(null);
     }
