@@ -63,3 +63,6 @@ Thumbs.db
 node_modules/
 # Vercel
 .vercel
+
+# Claude Code architecture reference (local only)
+CLAUDE.md

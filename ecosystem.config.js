@@ -102,6 +102,14 @@ module.exports = {
       interpreter: "bash",
       restart_delay: 3000,
       max_restarts: 20,
+    },
+    {
+      name: "sglang",
+      cwd: "../g1-nlp",
+      script: "./start_sglang.sh",
+      interpreter: "bash",
+      restart_delay: 5000,
+      max_restarts: 20,
     }
   ]
 };
