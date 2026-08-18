@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg15
+    container_name: g1-universe-db
+    restart: always
+    environment:
+      POSTGRES_USER: g1_admin
+      POSTGRES_PASSWORD: g1_password123
+      POSTGRES_DB: g1_universe
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

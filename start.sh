@@ -24,6 +24,9 @@ command -v pm2 >/dev/null 2>&1 || { echo "[*] Installing PM2..."; npm install -g
 
 case "$1" in
   start)
+    echo "[*] Killing any stale robot_agent processes before start..."
+    pkill -f robot_agent || true
+    sleep 1
     echo "[*] Starting all G1 services via PM2..."
     pm2 start ecosystem.config.js
     echo ""
@@ -33,8 +36,14 @@ case "$1" in
   stop)
     echo "[*] Stopping all G1 services..."
     pm2 stop ecosystem.config.js
+    echo "[*] Killing any remaining robot_agent processes..."
+    pkill -f robot_agent || true
+    echo "✅ All services stopped."
     ;;
   restart)
+    echo "[*] Killing any stale robot_agent processes before restart..."
+    pkill -f robot_agent || true
+    sleep 1
     echo "[*] Restarting all G1 services..."
     pm2 restart ecosystem.config.js
     ;;

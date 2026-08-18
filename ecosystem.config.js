@@ -5,7 +5,15 @@ module.exports = {
   apps: [
     {
       name: "g1-docker-db",
-      cwd: "../",
+      cwd: "./",
+      script: "docker",
+      args: "compose up -d",
+      autorestart: false,
+      watch: false
+    },
+    {
+      name: "g1-docker-sa",
+      cwd: "./super_admin",
       script: "docker",
       args: "compose up -d",
       autorestart: false,
@@ -81,10 +89,12 @@ module.exports = {
     {
       name: "g1-robot-agent",
       cwd: "../g1-nlp/cpp/build",
-      script: "./robot_agent",
-      args: "enP2p1s0",
-      interpreter: "none",
-      restart_delay: 3000,
+      script: "./robot_agent_start.sh",
+      interpreter: "bash",
+      // wrapper waits for enP2p1s0 to be UP before exec-ing the binary
+      kill_timeout: 8000,              // give DDS time to shut down cleanly
+      restart_delay: 5000,             // base delay before first retry
+      exp_backoff_restart_delay: 100,  // exponential backoff — slows retries so max_restarts isn't exhausted in seconds
       max_restarts: 20,
     },
     {
