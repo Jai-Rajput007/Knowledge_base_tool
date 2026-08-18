@@ -53,6 +53,11 @@ def init_db():
     from app.models import wakeword_job
     from app.models import audit_log
 
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+        conn.commit()
+
     Base.metadata.create_all(bind=engine)
     _migrate_add_role_column()
     _migrate_add_employee_columns()
