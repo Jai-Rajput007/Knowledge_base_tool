@@ -31,7 +31,20 @@ def _get_reranker():
 
 
 def _rerank(query: str, results: List[Dict[str, Any]], top_k: int) -> List[Dict[str, Any]]:
-    """Run cross-encoder reranker; fall back to score-sorted list if unavailable."""
+    """
+    Run cross-encoder reranker; fall back to score-sorted list if unavailable.
+
+    The cross-encoder score is written back onto each result as `rerank_score`.
+    This matters: the hybrid `score` field is an RRF fusion value
+    (1/(k+dense_rank+1) + 1/(k+bm25_rank+1)), which is *always strictly positive*
+    and therefore says nothing about whether a chunk is actually relevant — it only
+    encodes where the chunk ranked. The cross-encoder score is a calibrated relevance
+    logit (positive = relevant, negative = irrelevant for ms-marco models), so it is
+    the only value downstream consumers can threshold on to drop irrelevant chunks.
+
+    `score` is deliberately left untouched so the chat pipeline's relevance display
+    and sorting behaviour are unchanged; `rerank_score` is purely additive.
+    """
     reranker = _get_reranker()
     if not reranker or not results:
         return results[:top_k]
@@ -39,7 +52,13 @@ def _rerank(query: str, results: List[Dict[str, Any]], top_k: int) -> List[Dict[
         pairs = [(query, r["text"]) for r in results]
         scores = reranker.predict(pairs)
         ranked = sorted(zip(scores, results), key=lambda x: x[0], reverse=True)
-        logger.info(f"Reranker: {len(results)} → {top_k} results")
+        # Preserve the relevance logit so callers can filter, not just sort.
+        for rerank_score, result in ranked:
+            result["rerank_score"] = float(rerank_score)
+        logger.info(
+            f"Reranker: {len(results)} → {top_k} results "
+            f"(relevance range {float(ranked[-1][0]):.2f}..{float(ranked[0][0]):.2f})"
+        )
         return [r for _, r in ranked[:top_k]]
     except Exception as e:
         logger.warning(f"Reranker predict failed ({e}) — using hybrid scores")

@@ -65,10 +65,15 @@ async def retrieve(request: RetrieveRequest):
         results = []
         for r in reranked:
             meta = r.get("metadata", {})
+            # Report the cross-encoder relevance logit when the reranker ran.
+            # The robot filters on this to drop irrelevant chunks — the raw hybrid
+            # `score` is an RRF value that is always positive and cannot be
+            # thresholded. Falls back to the hybrid score if the reranker is off,
+            # which reproduces the previous (unfiltered) behaviour.
             results.append(RetrieveResult(
                 id=r["id"],
                 text=r["text"],
-                score=r["score"],
+                score=r.get("rerank_score", r["score"]),
                 document=meta.get("filename", "Unknown"),
                 section=meta.get("section_path"),
             ))
