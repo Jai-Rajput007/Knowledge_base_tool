@@ -28,16 +28,16 @@ const KOKORO_VOICES: KokoroVoice[] = [
 
 // ── Sarvam bulbul:v3 — documented best voice per language (M + F) ──────────
 const SARVAM_LANGUAGES: SarvamLanguage[] = [
-  { code: "hi", label: "Hindi",     nativeLabel: "हिंदी",    voices: [{ id: "shubh",    label: "Shubh",    gender: "male" }, { id: "maya",    label: "Maya",    gender: "female" }] },
-  { code: "ta", label: "Tamil",     nativeLabel: "தமிழ்",    voices: [{ id: "ratan",    label: "Ratan",    gender: "male" }, { id: "nila",    label: "Nila",    gender: "female" }] },
-  { code: "te", label: "Telugu",    nativeLabel: "తెలుగు",   voices: [{ id: "rohan",    label: "Rohan",    gender: "male" }, { id: "pavithra",label: "Pavithra",gender: "female" }] },
-  { code: "gu", label: "Gujarati",  nativeLabel: "ગુજરાતી",  voices: [{ id: "aarav",    label: "Aarav",    gender: "male" }, { id: "priya",   label: "Priya",   gender: "female" }] },
-  { code: "bn", label: "Bengali",   nativeLabel: "বাংলা",    voices: [{ id: "kabir",    label: "Kabir",    gender: "male" }, { id: "ritu",    label: "Ritu",    gender: "female" }] },
-  { code: "kn", label: "Kannada",   nativeLabel: "ಕನ್ನಡ",   voices: [{ id: "chetan",   label: "Chetan",   gender: "male" }, { id: "ishita",  label: "Ishita",  gender: "female" }] },
-  { code: "ml", label: "Malayalam", nativeLabel: "മലയാളം",   voices: [{ id: "anand",    label: "Anand",    gender: "male" }, { id: "suhani",  label: "Suhani",  gender: "female" }] },
-  { code: "mr", label: "Marathi",   nativeLabel: "मराठी",    voices: [{ id: "ashutosh", label: "Ashutosh", gender: "male" }, { id: "mrinal",  label: "Mrinal",  gender: "female" }] },
-  { code: "pa", label: "Punjabi",   nativeLabel: "ਪੰਜਾਬੀ",  voices: [{ id: "mani",     label: "Mani",     gender: "male" }, { id: "jasleen", label: "Jasleen", gender: "female" }] },
-  { code: "or", label: "Odia",      nativeLabel: "ଓଡ଼ିଆ",   voices: [{ id: "amartya",  label: "Amartya",  gender: "male" }, { id: "neha",    label: "Neha",    gender: "female" }] },
+  { code: "hi", label: "Hindi",     nativeLabel: "हिंदी",    voices: [{ id: "shubh",    label: "Shubh",    gender: "male" }, { id: "anushka", label: "Anushka", gender: "female" }] },
+  { code: "ta", label: "Tamil",     nativeLabel: "தமிழ்",    voices: [{ id: "ratan",    label: "Ratan",    gender: "male" }, { id: "kavitha",  label: "Kavitha",  gender: "female" }] },
+  { code: "te", label: "Telugu",    nativeLabel: "తెలుగు",   voices: [{ id: "rohan",    label: "Rohan",    gender: "male" }, { id: "kavya",    label: "Kavya",    gender: "female" }] },
+  { code: "gu", label: "Gujarati",  nativeLabel: "ગુજરાતી",  voices: [{ id: "aayan",    label: "Aayan",    gender: "male" }, { id: "priya",    label: "Priya",    gender: "female" }] },
+  { code: "bn", label: "Bengali",   nativeLabel: "বাংলা",    voices: [{ id: "kabir",    label: "Kabir",    gender: "male" }, { id: "ritu",     label: "Ritu",     gender: "female" }] },
+  { code: "kn", label: "Kannada",   nativeLabel: "ಕನ್ನಡ",   voices: [{ id: "gokul",    label: "Gokul",    gender: "male" }, { id: "ishita",   label: "Ishita",   gender: "female" }] },
+  { code: "ml", label: "Malayalam", nativeLabel: "മലയാളം",   voices: [{ id: "anand",    label: "Anand",    gender: "male" }, { id: "suhani",   label: "Suhani",   gender: "female" }] },
+  { code: "mr", label: "Marathi",   nativeLabel: "मराठी",    voices: [{ id: "ashutosh", label: "Ashutosh", gender: "male" }, { id: "manisha",  label: "Manisha",  gender: "female" }] },
+  { code: "pa", label: "Punjabi",   nativeLabel: "ਪੰਜਾਬੀ",  voices: [{ id: "mani",     label: "Mani",     gender: "male" }, { id: "simran",   label: "Simran",   gender: "female" }] },
+  { code: "or", label: "Odia",      nativeLabel: "ଓଡ଼ିଆ",   voices: [{ id: "soham",    label: "Soham",    gender: "male" }, { id: "neha",     label: "Neha",     gender: "female" }] },
 ];
 
 const DEFAULT_SETTINGS: VoiceSettings = {
