@@ -1,2 +1,31 @@
-// Types for voice-settings
-export {};
+export interface EnglishVoiceSettings {
+  voice: string;
+  speed: number;
+  gain: number;
+}
+
+export interface IndicVoiceSettings {
+  pace: number;
+  temperature: number;
+  gain: number;
+  language_voices: Record<string, string>;
+}
+
+export interface VoiceSettings {
+  english: EnglishVoiceSettings;
+  indic: IndicVoiceSettings;
+}
+
+export interface KokoroVoice {
+  id: string;
+  label: string;
+  gender: "female" | "male";
+  accent: "american" | "british";
+}
+
+export interface SarvamLanguage {
+  code: string;
+  label: string;
+  nativeLabel: string;
+  voices: { id: string; label: string; gender: "male" | "female" }[];
+}

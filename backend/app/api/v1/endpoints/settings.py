@@ -207,3 +207,50 @@ async def update_language_selection(selection: LanguageSelection):
         logger.error(f"Failed to set language in robot_sync: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@router.get("/voice-params")
+async def get_voice_params():
+    """Fetch current TTS voice parameters from robot_sync."""
+    robot_sync_url = f"http://{app_settings.ROBOT_SYNC_HOST}:{app_settings.ROBOT_SYNC_PORT}"
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(f"{robot_sync_url}/tts/voice-settings", timeout=5.0)
+            resp.raise_for_status()
+            return resp.json()
+    except Exception as e:
+        logger.error(f"Failed to fetch voice params from robot_sync: {e}")
+        # Return safe defaults so UI still loads
+        return {
+            "english": {"voice": "af_heart", "speed": 1.0, "gain": 2.0},
+            "indic": {
+                "pace": 1.0, "temperature": 0.6, "gain": 5.0,
+                "language_voices": {
+                    "hi": "shubh", "ta": "ratan", "te": "rohan", "gu": "priya",
+                    "bn": "ritu", "kn": "ishita", "ml": "suhani", "mr": "ashutosh",
+                    "pa": "mani", "or": "neha",
+                },
+            },
+        }
+
+
+class VoiceParamsUpdate(BaseModel):
+    english: Optional[dict] = None
+    indic: Optional[dict] = None
+
+@router.put("/voice-params")
+async def update_voice_params(payload: VoiceParamsUpdate):
+    """Save TTS voice parameters to robot_sync (triggers pipeline hot-reload)."""
+    robot_sync_url = f"http://{app_settings.ROBOT_SYNC_HOST}:{app_settings.ROBOT_SYNC_PORT}"
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                f"{robot_sync_url}/tts/voice-settings",
+                json=payload.dict(exclude_none=True),
+                timeout=8.0,
+            )
+            resp.raise_for_status()
+            return resp.json()
+    except Exception as e:
+        logger.error(f"Failed to update voice params in robot_sync: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+

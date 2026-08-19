@@ -319,6 +319,17 @@ class ApiClient {
     });
   }
 
+  async getVoiceParams() {
+    return this.request<any>("/settings/voice-params");
+  }
+
+  async saveVoiceParams(params: any) {
+    return this.request("/settings/voice-params", {
+      method: "PUT",
+      body: JSON.stringify(params),
+    });
+  }
+
   // Auth
   async loginUser(userData: { username: string; password: string }) {
     return this.request("/auth/login", {

@@ -1,21 +1,14 @@
 import { api } from "@/lib/api";
-
-export interface VoiceModel {
-  filename: string;
-  name: string;
-  path: string;
-  size_kb: number;
-  modified: string;
-}
+import type { VoiceSettings } from "./types";
 
 export const voiceApi = {
-  getAvailableVoices: async () => {
-    const res = await api.getAvailableVoices();
+  getVoiceParams: async (): Promise<VoiceSettings> => {
+    const res = await api.getVoiceParams();
+    return res.data as VoiceSettings;
+  },
+
+  saveVoiceParams: async (params: Partial<VoiceSettings>) => {
+    const res = await api.saveVoiceParams(params);
     return res.data;
   },
-  
-  saveVoiceSelection: async (voice_model: string) => {
-    const res = await api.saveVoiceSelection(voice_model);
-    return res.data;
-  }
 };

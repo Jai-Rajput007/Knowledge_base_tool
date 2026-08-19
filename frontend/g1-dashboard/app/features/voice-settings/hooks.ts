@@ -1,22 +1,31 @@
 import useSWR from "swr";
-import { voiceApi } from "./api";
 import { useState } from "react";
+import { voiceApi } from "./api";
+import type { VoiceSettings } from "./types";
 
-export const useAvailableVoices = () => {
-  return useSWR("voices_available", () => voiceApi.getAvailableVoices());
+export const useVoiceParams = () => {
+  return useSWR<VoiceSettings>("voice_params", voiceApi.getVoiceParams, {
+    revalidateOnFocus: false,
+  });
 };
 
-export const useUpdateVoiceSelection = () => {
+export const useSaveVoiceParams = () => {
   const [isPending, setIsPending] = useState(false);
-  
-  const mutateAsync = async (voice_model: string) => {
+  const [error, setError] = useState<string | null>(null);
+
+  const save = async (params: Partial<VoiceSettings>) => {
     setIsPending(true);
+    setError(null);
     try {
-      await voiceApi.saveVoiceSelection(voice_model);
+      const result = await voiceApi.saveVoiceParams(params);
+      return result;
+    } catch (e: any) {
+      setError(e?.message ?? "Save failed");
+      throw e;
     } finally {
       setIsPending(false);
     }
   };
-  
-  return { mutateAsync, isPending };
+
+  return { save, isPending, error };
 };
