@@ -112,13 +112,20 @@ async def stop_record(
     Stop recording, then pull the parsed waypoints back from robot_sync and
     persist them to Postgres. `name` is the same logical name passed to
     record/start — the frontend must resend it here since robot_agent's own
-    stop command takes no name.
+    stop command takes no name. robot_sync is told the on-disk name too, so
+    it can poll for the file to actually appear (the save happens ~2s after
+    the stop command, on robot_agent's own ramp-down thread) before this
+    request returns and we go looking for it.
     """
     disk_name = _disk_name(current_user.tenant_id, name)
     base = _robot_sync_url(robot_ip)
     async with httpx.AsyncClient() as client:
         try:
-            r = await client.post(f"{base}/gestures/custom/record/stop", timeout=10.0)
+            r = await client.post(
+                f"{base}/gestures/custom/record/stop",
+                data={"name": disk_name},
+                timeout=10.0,
+            )
             r.raise_for_status()
         except httpx.ConnectError:
             raise HTTPException(status_code=502, detail=f"Cannot reach robot_sync at {base}.")

@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { FeatureGate } from "@/app/components/feature-gate";
-import { FiPlay, FiTrash2, FiActivity, FiSave } from "react-icons/fi";
+import { FiPlay, FiTrash2, FiActivity, FiSave, FiAlertTriangle, FiX } from "react-icons/fi";
 import { useGestures } from "./useGestures";
 
 export function ConfigurationGesturesModule() {
@@ -13,6 +13,8 @@ export function ConfigurationGesturesModule() {
     isRecording,
     recordingName,
     loading,
+    error,
+    clearError,
     startRecording,
     stopRecording,
     playGesture,
@@ -20,21 +22,37 @@ export function ConfigurationGesturesModule() {
   } = useGestures();
 
   const [newName, setNewName] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
+  // Two-step confirm rendered in-page instead of a native confirm() dialog:
+  // first click on "Start Recording" arms the safety warning below the
+  // button; a second, explicit click actually starts the robot moving.
+  const [armed, setArmed] = useState(false);
 
   const handleStart = () => {
     const trimmed = newName.trim();
-    if (!trimmed) return alert("Enter a gesture name first");
+    if (!trimmed) {
+      setFormError("Enter a gesture name first");
+      return;
+    }
     // Check for a name collision before the robot ever moves, not after a
     // take is lost to a 409 from the backend.
     if (gestures.some((g) => g.name === trimmed)) {
-      return alert(`A gesture named '${trimmed}' already exists. Choose a different name.`);
+      setFormError(`A gesture named '${trimmed}' already exists. Choose a different name.`);
+      return;
     }
-    if (!confirm(
-      "The robot's arms will go LIMP (zero torque) so you can move them by hand. " +
-      "Make sure someone is physically supporting both arms before continuing — " +
-      "they can drop under gravity otherwise."
-    )) return;
-    startRecording(trimmed);
+    setFormError(null);
+    setArmed(true);
+  };
+
+  const confirmStart = () => {
+    setArmed(false);
+    startRecording(newName.trim());
+  };
+
+  const displayedError = formError || error;
+  const dismissError = () => {
+    setFormError(null);
+    clearError();
   };
 
   // Recording/playback commands are only possible when BOTH robot_sync (on
@@ -77,16 +95,27 @@ export function ConfigurationGesturesModule() {
           </div>
         </div>
 
+        {/* Error banner — replaces native alert() */}
+        {displayedError && (
+          <div className="flex items-start gap-3 p-4 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400">
+            <FiAlertTriangle className="mt-0.5 flex-shrink-0" />
+            <p className="flex-1 text-sm">{displayedError}</p>
+            <button onClick={dismissError} className="text-red-400 hover:text-red-300">
+              <FiX />
+            </button>
+          </div>
+        )}
+
         {/* Recording Studio */}
         <div className={`p-8 rounded-2xl border transition-all duration-500 ${isRecording ? 'bg-red-500/5 border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.1)]' : 'bg-card/50 border-border'}`}>
           <div className="flex items-start justify-between">
             <div>
               <h3 className="text-lg font-bold text-foreground mb-2 flex items-center gap-2">
-                <FiActivity className={isRecording ? 'text-red-500 animate-pulse' : 'text-primary'} /> 
+                <FiActivity className={isRecording ? 'text-red-500 animate-pulse' : 'text-primary'} />
                 {isRecording ? 'Recording in Progress' : 'Record New Gesture'}
               </h3>
               <p className="text-sm text-muted-foreground max-w-xl">
-                {isRecording 
+                {isRecording
                   ? "The robot's motors are now in compliant mode. Physically move the robot's arms to teach the gesture. Click Stop & Save when finished."
                   : "Put the robot in compliant mode to physically guide its arms and record a new kinematic trajectory."}
               </p>
@@ -94,24 +123,28 @@ export function ConfigurationGesturesModule() {
           </div>
 
           <div className="mt-8 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <input 
-              type="text" 
+            <input
+              type="text"
               placeholder="Gesture name (e.g., wave_hello)"
               value={isRecording ? recordingName : newName}
-              onChange={(e) => !isRecording && setNewName(e.target.value)}
+              onChange={(e) => {
+                if (isRecording) return;
+                setNewName(e.target.value);
+                setArmed(false);
+              }}
               disabled={isRecording}
               className="w-full sm:flex-1 max-w-md bg-background border border-border rounded-lg px-4 py-3 focus:outline-none focus:border-primary disabled:opacity-50 font-mono text-sm"
             />
-            
+
             {isRecording ? (
-              <button 
+              <button
                 onClick={stopRecording}
                 className="w-full sm:w-auto flex justify-center items-center gap-2 px-8 py-3 bg-red-500 text-white font-bold uppercase tracking-wider rounded-lg hover:bg-red-600 transition-colors animate-pulse"
               >
                 <FiSave /> Stop & Save
               </button>
             ) : (
-              <button 
+              <button
                 onClick={handleStart}
                 disabled={!canControlRobot || !newName.trim()}
                 className="w-full sm:w-auto flex justify-center items-center gap-2 px-8 py-3 bg-primary text-primary-foreground font-bold uppercase tracking-wider rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
@@ -121,6 +154,34 @@ export function ConfigurationGesturesModule() {
               </button>
             )}
           </div>
+
+          {/* Physical-safety confirm — in-page instead of a native confirm() dialog */}
+          {armed && !isRecording && (
+            <div className="mt-4 p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="flex items-start gap-3 flex-1">
+                <FiAlertTriangle className="text-amber-400 mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-amber-200">
+                  The robot's arms will go <strong>limp (zero torque)</strong> so you can move them by
+                  hand. Make sure someone is physically supporting both arms before continuing — they
+                  can drop under gravity otherwise.
+                </p>
+              </div>
+              <div className="flex gap-3 flex-shrink-0">
+                <button
+                  onClick={() => setArmed(false)}
+                  className="px-4 py-2 border border-border rounded-lg text-sm text-muted-foreground hover:bg-card transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmStart}
+                  className="px-4 py-2 bg-amber-500 text-black font-semibold rounded-lg text-sm hover:bg-amber-400 transition-colors"
+                >
+                  Arms are supported — Start
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Gesture Library */}

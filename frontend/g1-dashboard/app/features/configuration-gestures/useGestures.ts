@@ -27,6 +27,8 @@ export function useGestures() {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingName, setRecordingName] = useState('');
   const [loading, setLoading] = useState(false);
+  // Surfaced as an inline banner in the UI, not a native browser alert().
+  const [error, setError] = useState<string | null>(null);
 
   const checkHealth = useCallback(async () => {
     try {
@@ -87,6 +89,7 @@ export function useGestures() {
   }, [checkHealth, checkRobotStatus, fetchGestures]);
 
   const startRecording = async (name: string) => {
+    setError(null);
     try {
       const formData = new URLSearchParams();
       formData.append('name', name);
@@ -103,18 +106,19 @@ export function useGestures() {
         setIsRecording(true);
         setRecordingName(name);
       } else if (res.status === 409) {
-        alert(`A gesture named '${name}' already exists. Choose a different name.`);
+        setError(`A gesture named '${name}' already exists. Choose a different name.`);
       } else {
         const detail = await res.json().catch(() => null);
-        alert(detail?.detail || 'Robot rejected the recording request. Is it in compliant mode?');
+        setError(detail?.detail || 'Robot rejected the recording request. Is it in compliant mode?');
       }
     } catch (e) {
       console.error('Failed to start recording', e);
-      alert('Failed to connect to backend API');
+      setError('Failed to connect to backend API');
     }
   };
 
   const stopRecording = async () => {
+    setError(null);
     try {
       const token = api.getToken();
       const formData = new URLSearchParams();
@@ -129,13 +133,14 @@ export function useGestures() {
       });
       if (!res.ok) {
         const detail = await res.json().catch(() => null);
-        alert(detail?.detail || 'Failed to save the recording — 0 samples captured?');
+        setError(detail?.detail || 'Failed to save the recording — 0 samples captured?');
       }
       setIsRecording(false);
       setRecordingName('');
       setTimeout(fetchGestures, 500);
     } catch (e) {
       console.error('Failed to stop recording', e);
+      setError('Failed to connect to backend API');
     }
   };
 
@@ -172,6 +177,8 @@ export function useGestures() {
     isRecording,
     recordingName,
     loading,
+    error,
+    clearError: () => setError(null),
     startRecording,
     stopRecording,
     playGesture,
