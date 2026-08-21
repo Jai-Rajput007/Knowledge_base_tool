@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends
 from app.core.security import RequireRole
 
-from app.api.v1.endpoints import documents, chat, settings, dashboard, health, retrieve, auth, sessions, memory, employees, wakeword, navigation, personas, tenant, mcp, gestures, audit, notifications
+from app.api.v1.endpoints import documents, chat, settings, dashboard, health, retrieve, auth, sessions, memory, employees, wakeword, navigation, personas, tenant, mcp, gestures, robot, audit, notifications
 
 api_router = APIRouter()
 
@@ -21,6 +21,7 @@ api_router.include_router(documents.router, prefix="/documents", tags=["document
 api_router.include_router(personas.router,  prefix="/personas",  tags=["personas"])
 api_router.include_router(wakeword.router,  prefix="/wakeword",  tags=["wakeword"])
 api_router.include_router(gestures.router,  prefix="/gestures",  tags=["gestures"])
+api_router.include_router(robot.router,     prefix="/robot",     tags=["robot"])
 api_router.include_router(navigation.router,prefix="/navigation",tags=["navigation"])
 
 # --- ADMIN, EDITOR, USER ---

@@ -2,10 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { api, API_BASE_URL } from '@/lib/api';
 
 export interface Gesture {
+  id: string;
   name: string;
-  samples: number;
-  duration_s: string;
-  modified: string;
+  sample_count: number;
+  duration_s: number;
+  created_at: string;
+  created_by?: number | null;
 }
 
 const API = API_BASE_URL;
@@ -13,6 +15,11 @@ const API = API_BASE_URL;
 export function useGestures() {
   const [robotIp, setRobotIp] = useState('192.168.123.222');
   const [isHealthy, setIsHealthy] = useState<boolean | null>(null);
+  // isHealthy only confirms robot_sync (on the AGX Thor) is reachable — it says
+  // nothing about the G1 itself being powered on. robotStatus is sourced from
+  // /robot/status, which pings the G1's own IP (192.168.123.164) from the Thor,
+  // so a powered-off robot reads "offline" here even while robot_sync is fine.
+  const [robotStatus, setRobotStatus] = useState<'online' | 'offline' | 'unknown'>('unknown');
   const [gestures, setGestures] = useState<Gesture[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingName, setRecordingName] = useState('');
@@ -47,6 +54,23 @@ export function useGestures() {
     }
   }, [robotIp]);
 
+  const checkRobotStatus = useCallback(async () => {
+    try {
+      const token = api.getToken();
+      const res = await fetch(`${API}/robot/status`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setRobotStatus(data?.robot?.status ?? 'unknown');
+      } else {
+        setRobotStatus('unknown');
+      }
+    } catch {
+      setRobotStatus('unknown');
+    }
+  }, []);
+
   const fetchGestures = useCallback(async () => {
     setLoading(true);
     try {
@@ -67,12 +91,14 @@ export function useGestures() {
 
   useEffect(() => {
     checkHealth();
+    checkRobotStatus();
     fetchGestures();
     const interval = setInterval(() => {
       checkHealth();
-    }, 10000); 
+      checkRobotStatus();
+    }, 5000);
     return () => clearInterval(interval);
-  }, [checkHealth, fetchGestures]);
+  }, [checkHealth, checkRobotStatus, fetchGestures]);
 
   const startRecording = async (name: string) => {
     try {
@@ -90,8 +116,11 @@ export function useGestures() {
       if (res.ok) {
         setIsRecording(true);
         setRecordingName(name);
+      } else if (res.status === 409) {
+        alert(`A gesture named '${name}' already exists. Choose a different name.`);
       } else {
-        alert('Robot rejected the recording request. Is it in compliant mode?');
+        const detail = await res.json().catch(() => null);
+        alert(detail?.detail || 'Robot rejected the recording request. Is it in compliant mode?');
       }
     } catch (e) {
       console.error('Failed to start recording', e);
@@ -102,10 +131,20 @@ export function useGestures() {
   const stopRecording = async () => {
     try {
       const token = api.getToken();
-      await fetch(`${API}/gestures/custom/record/stop${getQuery()}`, {
+      const formData = new URLSearchParams();
+      formData.append('name', recordingName);
+      const res = await fetch(`${API}/gestures/custom/record/stop${getQuery()}`, {
         method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: formData.toString(),
       });
+      if (!res.ok) {
+        const detail = await res.json().catch(() => null);
+        alert(detail?.detail || 'Failed to save the recording — 0 samples captured?');
+      }
       setIsRecording(false);
       setRecordingName('');
       setTimeout(fetchGestures, 500);
@@ -144,6 +183,7 @@ export function useGestures() {
     robotIp,
     updateRobotIp,
     isHealthy,
+    robotStatus,
     gestures,
     isRecording,
     recordingName,

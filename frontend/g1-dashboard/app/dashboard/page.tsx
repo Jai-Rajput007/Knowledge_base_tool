@@ -33,6 +33,13 @@ export default function ClientDashboardPage() {
 
   // SWR hooks for parallel, non-blocking fetching
   const { data: healthData, error: healthError } = useSWR('/gestures/health', fetcher);
+  // /robot/status is answered by the AGX Thor's own robot_sync process, which
+  // pings the G1's onboard PC1 directly — the backend has no network route to
+  // the robot's DDS subnet, so it cannot check this itself. Poll every 5s so a
+  // powered-off robot doesn't sit on a stale ONLINE reading.
+  const { data: robotStatusData, error: robotStatusError } = useSWR(
+    '/robot/status', fetcher, { refreshInterval: 5000 }
+  );
   const { data: dashStats } = useSWR('/dashboard/stats', fetcher);
   const { data: activePersona } = useSWR('/personas/persona', fetcher); // Or /active, check api.ts if this fails. Usually /personas is enough
   const { data: personasData } = useSWR('/personas/', fetcher);
@@ -45,8 +52,16 @@ export default function ClientDashboardPage() {
 
   // Derived state from SWR data
   const agxStatus = healthError ? "offline" : healthData ? "online" : "offline";
-  const robotStatus = agxStatus;
-  
+  // Previously this was `const robotStatus = agxStatus` — the robot indicator
+  // was a literal copy of the AGX indicator, so a powered-off G1 still showed
+  // ONLINE as long as the Thor itself was reachable. Now sourced from the
+  // backend's /robot/status, which pings the robot's own IP (192.168.123.164)
+  // from the Thor. "unknown" (not "online") when that check can't be reached
+  // at all — that ambiguity is the actual bug being fixed here.
+  const robotStatus: "online" | "offline" | "unknown" = robotStatusError
+    ? "unknown"
+    : robotStatusData?.robot?.status ?? "unknown";
+
   const ragStats = { docs: dashStats?.totalDocuments || 0 };
   const personaStats = { 
     active: activePersona?.identity?.name || "None", 
@@ -96,9 +111,17 @@ export default function ClientDashboardPage() {
           
           <div className="flex items-center justify-between p-3.5 rounded-xl bg-card border border-border shadow-sm">
             <span className="text-sm font-semibold text-foreground">Robot Health Status</span>
-            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold ${robotStatus === 'online' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${robotStatus === 'online' ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></span>
-              {robotStatus === 'online' ? 'ONLINE' : 'OFFLINE'}
+            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold ${
+              robotStatus === 'online' ? 'bg-green-500/10 text-green-500'
+              : robotStatus === 'unknown' ? 'bg-amber-500/10 text-amber-500'
+              : 'bg-red-500/10 text-red-500'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${
+                robotStatus === 'online' ? 'bg-green-500 animate-pulse'
+                : robotStatus === 'unknown' ? 'bg-amber-500'
+                : 'bg-red-500'
+              }`}></span>
+              {robotStatus === 'online' ? 'ONLINE' : robotStatus === 'unknown' ? 'UNKNOWN' : 'OFFLINE'}
             </div>
           </div>
         </div>

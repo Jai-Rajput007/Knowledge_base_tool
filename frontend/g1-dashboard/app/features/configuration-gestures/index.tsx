@@ -10,6 +10,7 @@ export function ConfigurationGesturesModule() {
     robotIp,
     updateRobotIp,
     isHealthy,
+    robotStatus,
     gestures,
     isRecording,
     recordingName,
@@ -25,9 +26,25 @@ export function ConfigurationGesturesModule() {
   const [showSettings, setShowSettings] = useState(false);
 
   const handleStart = () => {
-    if (!newName.trim()) return alert("Enter a gesture name first");
-    startRecording(newName.trim());
+    const trimmed = newName.trim();
+    if (!trimmed) return alert("Enter a gesture name first");
+    // Check for a name collision before the robot ever moves, not after a
+    // take is lost to a 409 from the backend.
+    if (gestures.some((g) => g.name === trimmed)) {
+      return alert(`A gesture named '${trimmed}' already exists. Choose a different name.`);
+    }
+    if (!confirm(
+      "The robot's arms will go LIMP (zero torque) so you can move them by hand. " +
+      "Make sure someone is physically supporting both arms before continuing — " +
+      "they can drop under gravity otherwise."
+    )) return;
+    startRecording(trimmed);
   };
+
+  // Recording/playback commands are only possible when BOTH robot_sync (on
+  // the AGX Thor) is reachable AND the G1 itself is actually online — either
+  // one being down makes the command a no-op or an error.
+  const canControlRobot = isHealthy && robotStatus === 'online';
 
   return (
     <FeatureGate featureKey="configurationGestures">
@@ -44,12 +61,22 @@ export function ConfigurationGesturesModule() {
           </div>
           
           <div className="flex items-center gap-4">
-            <div className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${isHealthy ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-red-500/10 border-red-500/20 text-red-400'}`}>
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${
+              robotStatus === 'online' ? 'bg-green-500/10 border-green-500/20 text-green-400'
+              : robotStatus === 'unknown' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+              : 'bg-red-500/10 border-red-500/20 text-red-400'
+            }`}>
               <span className="relative flex h-3 w-3">
-                {isHealthy && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>}
-                <span className={`relative inline-flex rounded-full h-3 w-3 ${isHealthy ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                {robotStatus === 'online' && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>}
+                <span className={`relative inline-flex rounded-full h-3 w-3 ${
+                  robotStatus === 'online' ? 'bg-green-500'
+                  : robotStatus === 'unknown' ? 'bg-amber-500'
+                  : 'bg-red-500'
+                }`}></span>
               </span>
-              <span className="text-xs font-bold uppercase tracking-widest">{isHealthy ? 'Robot Connected' : 'Disconnected'}</span>
+              <span className="text-xs font-bold uppercase tracking-widest">
+                {robotStatus === 'online' ? 'Robot Connected' : robotStatus === 'unknown' ? 'Unknown' : 'Disconnected'}
+              </span>
             </div>
             <button 
               onClick={() => setShowSettings(!showSettings)}
@@ -117,7 +144,7 @@ export function ConfigurationGesturesModule() {
             ) : (
               <button 
                 onClick={handleStart}
-                disabled={!isHealthy || !newName.trim()}
+                disabled={!canControlRobot || !newName.trim()}
                 className="w-full sm:w-auto flex justify-center items-center gap-2 px-8 py-3 bg-primary text-primary-foreground font-bold uppercase tracking-wider rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span className="h-2 w-2 rounded-full bg-primary-foreground animate-pulse"></span>
@@ -142,24 +169,24 @@ export function ConfigurationGesturesModule() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {gestures.map((gesture) => (
-                <div key={gesture.name} className="p-6 border border-border bg-card/30 rounded-xl hover:bg-card/60 transition-colors group">
+                <div key={gesture.id} className="p-6 border border-border bg-card/30 rounded-xl hover:bg-card/60 transition-colors group">
                   <div className="flex justify-between items-start mb-4">
                     <div>
                       <h4 className="font-bold text-lg text-foreground font-mono">{gesture.name}</h4>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {gesture.duration_s} • {gesture.samples} samples
+                        {gesture.duration_s.toFixed(1)}s • {gesture.sample_count} samples
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="text-[10px] text-muted-foreground font-mono mb-6">
-                    Last modified: {new Date(gesture.modified).toLocaleString()}
+                    Recorded: {new Date(gesture.created_at).toLocaleString()}
                   </div>
                   
                   <div className="flex items-center gap-3">
                     <button 
                       onClick={() => playGesture(gesture.name)}
-                      disabled={!isHealthy}
+                      disabled={!canControlRobot}
                       className="flex-1 flex justify-center items-center gap-2 py-2 bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground font-semibold rounded-lg transition-colors text-sm disabled:opacity-50"
                     >
                       <FiPlay /> Play
