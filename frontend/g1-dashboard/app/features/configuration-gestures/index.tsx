@@ -2,13 +2,11 @@
 
 import React, { useState } from "react";
 import { FeatureGate } from "@/app/components/feature-gate";
-import { FiPlay, FiTrash2, FiActivity, FiServer, FiSettings, FiSave } from "react-icons/fi";
+import { FiPlay, FiTrash2, FiActivity, FiSave } from "react-icons/fi";
 import { useGestures } from "./useGestures";
 
 export function ConfigurationGesturesModule() {
   const {
-    robotIp,
-    updateRobotIp,
     isHealthy,
     robotStatus,
     gestures,
@@ -19,11 +17,9 @@ export function ConfigurationGesturesModule() {
     stopRecording,
     playGesture,
     deleteGesture,
-    refresh
   } = useGestures();
 
   const [newName, setNewName] = useState("");
-  const [showSettings, setShowSettings] = useState(false);
 
   const handleStart = () => {
     const trimmed = newName.trim();
@@ -78,35 +74,8 @@ export function ConfigurationGesturesModule() {
                 {robotStatus === 'online' ? 'Robot Connected' : robotStatus === 'unknown' ? 'Unknown' : 'Disconnected'}
               </span>
             </div>
-            <button 
-              onClick={() => setShowSettings(!showSettings)}
-              className="p-2 border border-border rounded-lg hover:bg-card transition-colors text-muted-foreground hover:text-foreground"
-            >
-              <FiSettings />
-            </button>
           </div>
         </div>
-
-        {/* Settings Panel */}
-        {showSettings && (
-          <div className="p-6 bg-card border border-border rounded-xl space-y-4 animate-in slide-in-from-top-2">
-            <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-              <FiServer /> Connection Settings
-            </h3>
-            <div className="flex gap-4">
-              <input 
-                type="text" 
-                value={robotIp}
-                onChange={(e) => updateRobotIp(e.target.value)}
-                placeholder="192.168.1.50"
-                className="flex-1 bg-background border border-border rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-primary font-mono"
-              />
-              <button onClick={refresh} className="px-6 py-2 bg-primary text-primary-foreground font-medium rounded-lg hover:opacity-90 transition-opacity">
-                Reconnect
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Recording Studio */}
         <div className={`p-8 rounded-2xl border transition-all duration-500 ${isRecording ? 'bg-red-500/5 border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.1)]' : 'bg-card/50 border-border'}`}>

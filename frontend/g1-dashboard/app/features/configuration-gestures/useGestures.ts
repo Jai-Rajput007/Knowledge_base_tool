@@ -12,8 +12,11 @@ export interface Gesture {
 
 const API = API_BASE_URL;
 
+// One robot per tenant — the backend always talks to its own configured AGX
+// (settings.ROBOT_SYNC_HOST) for robot_sync, and robot_sync always talks to
+// the G1's known DDS-subnet IP (192.168.123.164) for liveness. Neither is
+// user-configurable from this page; there is nothing to reconnect to.
 export function useGestures() {
-  const [robotIp, setRobotIp] = useState('192.168.123.222');
   const [isHealthy, setIsHealthy] = useState<boolean | null>(null);
   // isHealthy only confirms robot_sync (on the AGX Thor) is reachable — it says
   // nothing about the G1 itself being powered on. robotStatus is sourced from
@@ -25,34 +28,17 @@ export function useGestures() {
   const [recordingName, setRecordingName] = useState('');
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const saved = localStorage.getItem('gestureTesterRobotIp');
-    if (saved) setRobotIp(saved);
-  }, []);
-
-  const updateRobotIp = (ip: string) => {
-    const cleanIp = ip.trim();
-    setRobotIp(cleanIp);
-    localStorage.setItem('gestureTesterRobotIp', cleanIp);
-  };
-
-  const getQuery = () => `?robot_ip=${encodeURIComponent(robotIp)}`;
-
   const checkHealth = useCallback(async () => {
     try {
       const token = api.getToken();
-      const res = await fetch(`${API}/gestures/health${getQuery()}`, {
+      const res = await fetch(`${API}/gestures/health`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      if (res.ok) {
-        setIsHealthy(true);
-      } else {
-        setIsHealthy(false);
-      }
+      setIsHealthy(res.ok);
     } catch {
       setIsHealthy(false);
     }
-  }, [robotIp]);
+  }, []);
 
   const checkRobotStatus = useCallback(async () => {
     try {
@@ -75,7 +61,7 @@ export function useGestures() {
     setLoading(true);
     try {
       const token = api.getToken();
-      const res = await fetch(`${API}/gestures/custom${getQuery()}`, {
+      const res = await fetch(`${API}/gestures/custom`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (res.ok) {
@@ -87,7 +73,7 @@ export function useGestures() {
     } finally {
       setLoading(false);
     }
-  }, [robotIp]);
+  }, []);
 
   useEffect(() => {
     checkHealth();
@@ -105,11 +91,11 @@ export function useGestures() {
       const formData = new URLSearchParams();
       formData.append('name', name);
       const token = api.getToken();
-      const res = await fetch(`${API}/gestures/custom/record/start${getQuery()}`, {
+      const res = await fetch(`${API}/gestures/custom/record/start`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: formData.toString(),
       });
@@ -133,7 +119,7 @@ export function useGestures() {
       const token = api.getToken();
       const formData = new URLSearchParams();
       formData.append('name', recordingName);
-      const res = await fetch(`${API}/gestures/custom/record/stop${getQuery()}`, {
+      const res = await fetch(`${API}/gestures/custom/record/stop`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -156,7 +142,7 @@ export function useGestures() {
   const playGesture = async (name: string) => {
     try {
       const token = api.getToken();
-      await fetch(`${API}/gestures/custom/${encodeURIComponent(name)}/play${getQuery()}`, {
+      await fetch(`${API}/gestures/custom/${encodeURIComponent(name)}/play`, {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
@@ -169,7 +155,7 @@ export function useGestures() {
     if (!confirm(`Delete gesture '${name}'? This cannot be undone.`)) return;
     try {
       const token = api.getToken();
-      await fetch(`${API}/gestures/custom/${encodeURIComponent(name)}${getQuery()}`, {
+      await fetch(`${API}/gestures/custom/${encodeURIComponent(name)}`, {
         method: 'DELETE',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
@@ -180,8 +166,6 @@ export function useGestures() {
   };
 
   return {
-    robotIp,
-    updateRobotIp,
     isHealthy,
     robotStatus,
     gestures,
@@ -192,7 +176,6 @@ export function useGestures() {
     stopRecording,
     playGesture,
     deleteGesture,
-    checkHealth,
-    refresh: fetchGestures
+    refresh: fetchGestures,
   };
 }
