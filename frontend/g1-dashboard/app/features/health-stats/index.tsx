@@ -299,7 +299,7 @@ export function HealthStatsModule() {
                   Joint Temperatures
                 </SectionLabel>
                 <div
-                  className="mx-auto w-full max-w-md p-6 sm:p-8 rounded-2xl border border-border/60 flex justify-center"
+                  className="mx-auto w-full max-w-2xl p-6 sm:p-10 rounded-2xl border border-border/60 flex justify-center"
                   style={{ background: "radial-gradient(circle at 50% 20%, #182238 0%, #0b0f1a 75%)" }}
                 >
                   <BodyMap jointTemps={jointTemps} jointErrors={jointErrors} />

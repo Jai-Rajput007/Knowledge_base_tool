@@ -119,12 +119,12 @@ export function BodyMap({ jointTemps, jointErrors }: Props) {
 
   return (
     <div className="flex flex-col items-center gap-5 w-full">
-      <div className="relative w-full max-w-[300px] mx-auto" style={{ aspectRatio: `${IMAGE_W} / ${IMAGE_H}` }}>
+      <div className="relative w-full max-w-[460px] mx-auto" style={{ aspectRatio: `${IMAGE_W} / ${IMAGE_H}` }}>
         <Image
           src="/robot/g1-glass.png"
           alt="Unitree G1 joint temperature map"
           fill
-          sizes="300px"
+          sizes="460px"
           className="object-contain drop-shadow-[0_0_24px_rgba(59,130,246,0.15)]"
           priority={false}
         />
