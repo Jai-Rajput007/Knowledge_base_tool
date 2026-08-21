@@ -29,13 +29,13 @@ function StatTile({ icon: Icon, label, value, unit, tone }: {
   tone?: string;
 }) {
   return (
-    <div className="flex flex-col gap-1">
-      <div className="flex items-center gap-2 text-muted-foreground mb-1">
-        <Icon size={14} />
+    <div className="flex flex-col gap-2 p-3 rounded-lg bg-background/60 border border-border/60">
+      <div className="flex items-center gap-1.5 text-muted-foreground">
+        <Icon size={13} />
         <span className="text-[10px] uppercase tracking-widest font-bold">{label}</span>
       </div>
-      <span className={`text-xl font-mono ${tone || ""}`}>
-        {value} {unit && <span className="text-xs text-muted-foreground">{unit}</span>}
+      <span className={`text-lg font-mono font-semibold tabular-nums ${tone || ""}`}>
+        {value} {unit && <span className="text-xs font-normal text-muted-foreground">{unit}</span>}
       </span>
     </div>
   );
@@ -48,17 +48,28 @@ function Panel({ title, icon: Icon, offline, children }: {
   children: React.ReactNode;
 }) {
   return (
-    <div className="p-8 border border-border bg-card/20 rounded-xl">
-      <div className="flex items-center gap-3 mb-6">
-        <Icon className={offline ? "text-muted-foreground" : "text-primary"} size={20} />
-        <h3 className="font-bold text-lg uppercase tracking-wide">{title}</h3>
+    <div className="stat-card rounded-2xl border border-border bg-card/30 overflow-hidden">
+      <div className="flex items-center gap-3 px-6 sm:px-8 py-5 border-b border-border bg-gradient-to-r from-primary/10 to-transparent">
+        <div className={`p-2 rounded-lg ${offline ? "bg-muted text-muted-foreground" : "bg-primary/15 text-primary"}`}>
+          <Icon size={18} />
+        </div>
+        <h3 className="font-bold text-base uppercase tracking-wide">{title}</h3>
         {offline && (
-          <span className="ml-auto text-xs bg-red-500/10 text-red-500 px-3 py-1 rounded-full font-bold uppercase tracking-wider">
+          <span className="ml-auto text-[10px] bg-red-500/10 text-red-500 px-3 py-1 rounded-full font-bold uppercase tracking-wider">
             No Data
           </span>
         )}
       </div>
-      {children}
+      <div className="p-6 sm:p-8">{children}</div>
+    </div>
+  );
+}
+
+function SectionLabel({ children, warn }: { children: React.ReactNode; warn?: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2 mb-3">
+      <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">{children}</span>
+      {warn}
     </div>
   );
 }
@@ -123,14 +134,14 @@ export function HealthStatsModule() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {headline.map((s) => (
-            <div key={s.label} className="stat-card p-6 border border-border bg-card/30 rounded-xl">
+            <div key={s.label} className="stat-card p-6 border border-border bg-card/30 rounded-2xl hover:border-primary/40 transition-colors">
               <div className="flex justify-between items-start mb-4">
-                <div className="p-3 rounded-lg bg-background text-muted-foreground">
-                  <s.icon size={24} />
+                <div className={`p-3 rounded-xl bg-background ${s.tone}`}>
+                  <s.icon size={22} />
                 </div>
               </div>
-              <h3 className={`text-3xl font-bold tracking-tighter mb-1 ${s.tone}`}>{s.value}</h3>
-              <p className="text-xs font-mono text-muted-foreground uppercase">{s.label}</p>
+              <h3 className={`text-3xl font-bold tracking-tight tabular-nums mb-1 ${s.tone}`}>{s.value}</h3>
+              <p className="text-xs font-mono text-muted-foreground uppercase tracking-wide">{s.label}</p>
             </div>
           ))}
         </div>
@@ -139,7 +150,7 @@ export function HealthStatsModule() {
         <Panel title="Jetson AGX Thor" icon={FiCpu} offline={isOffline || !thor?.reachable}>
           {thor ? (
             <div className="flex flex-col gap-8">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <StatTile icon={FiClock} label="Uptime" value={`${thor.uptime_hrs ?? "--"}`} unit="HRS" />
                 <StatTile icon={FiHardDrive} label="Disk Free" value={`${thor.disk_free_gb ?? "--"}`} unit="GB" />
                 <StatTile icon={FiActivity} label="RAM Used" value={`${thor.memory_percent?.toFixed(0) ?? "--"}`} unit="%" />
@@ -164,19 +175,17 @@ export function HealthStatsModule() {
               {/* Per-core CPU */}
               {thor.cpu_cores?.length > 0 && (
                 <div>
-                  <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground block mb-3">
-                    CPU Cores ({thor.cpu_cores.length})
-                  </span>
+                  <SectionLabel>CPU Cores ({thor.cpu_cores.length})</SectionLabel>
                   <div className="grid grid-cols-7 sm:grid-cols-[repeat(14,minmax(0,1fr))] gap-2">
                     {thor.cpu_cores.map((c, i) => (
-                      <div key={i} className="flex flex-col items-center gap-1" title={`Core ${i}: ${c.load_pct}% @ ${c.clock_mhz}MHz`}>
-                        <div className="w-full h-16 bg-background rounded relative overflow-hidden border border-border">
+                      <div key={i} className="flex flex-col items-center gap-1.5" title={`Core ${i}: ${c.load_pct}% @ ${c.clock_mhz}MHz`}>
+                        <div className="w-full h-16 bg-background rounded-md relative overflow-hidden border border-border/60">
                           <div
-                            className="absolute bottom-0 left-0 right-0 bg-primary/70"
-                            style={{ height: `${Math.max(2, c.load_pct)}%` }}
+                            className="absolute bottom-0 left-0 right-0 bg-primary/80 rounded-b-md"
+                            style={{ height: `${Math.max(2, c.load_pct)}%`, transition: "height 400ms ease" }}
                           />
                         </div>
-                        <span className="text-[9px] font-mono text-muted-foreground">{i}</span>
+                        <span className="text-[9px] font-mono text-muted-foreground tabular-nums">{i}</span>
                       </div>
                     ))}
                   </div>
@@ -186,14 +195,12 @@ export function HealthStatsModule() {
               {/* Thermal zones */}
               {thor.thermal_c && Object.keys(thor.thermal_c).length > 0 && (
                 <div>
-                  <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground block mb-3">
-                    Thermal Zones
-                  </span>
-                  <div className="flex flex-wrap gap-3">
+                  <SectionLabel>Thermal Zones</SectionLabel>
+                  <div className="flex flex-wrap gap-2.5">
                     {Object.entries(thor.thermal_c).map(([zone, temp]) => (
-                      <div key={zone} className="px-3 py-2 rounded-lg border border-border bg-background/60 flex items-center gap-2">
+                      <div key={zone} className="px-3 py-2 rounded-lg border border-border/60 bg-background/60 flex items-center gap-2">
                         <span className="text-[10px] font-mono text-muted-foreground uppercase">{zone}</span>
-                        <span className={`text-sm font-mono font-bold ${tempColor(temp)}`}>{temp.toFixed(1)}°C</span>
+                        <span className={`text-sm font-mono font-bold tabular-nums ${tempColor(temp)}`}>{temp.toFixed(1)}°C</span>
                       </div>
                     ))}
                   </div>
@@ -203,14 +210,12 @@ export function HealthStatsModule() {
               {/* Power rails */}
               {thor.power_mw && Object.keys(thor.power_mw).length > 0 && (
                 <div>
-                  <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground block mb-3">
-                    Power Rails
-                  </span>
-                  <div className="flex flex-wrap gap-3">
+                  <SectionLabel>Power Rails</SectionLabel>
+                  <div className="flex flex-wrap gap-2.5">
                     {Object.entries(thor.power_mw).map(([rail, w]) => (
-                      <div key={rail} className="px-3 py-2 rounded-lg border border-border bg-background/60 flex items-center gap-2">
+                      <div key={rail} className="px-3 py-2 rounded-lg border border-border/60 bg-background/60 flex items-center gap-2">
                         <span className="text-[10px] font-mono text-muted-foreground uppercase">{rail}</span>
-                        <span className="text-sm font-mono">{(w.inst_mw / 1000).toFixed(2)} W</span>
+                        <span className="text-sm font-mono tabular-nums">{(w.inst_mw / 1000).toFixed(2)} W</span>
                       </div>
                     ))}
                   </div>
@@ -258,17 +263,18 @@ export function HealthStatsModule() {
               </div>
 
               <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
-                    Joint Temperatures
-                  </span>
-                  {anyMotorError && (
+                <SectionLabel
+                  warn={anyMotorError && (
                     <span className="text-[10px] uppercase tracking-widest font-bold text-red-500 flex items-center gap-1">
                       <FiAlertTriangle size={11} /> Motor fault detected
                     </span>
                   )}
+                >
+                  Joint Temperatures
+                </SectionLabel>
+                <div className="p-4 sm:p-6 rounded-xl bg-background/40 border border-border/60">
+                  <BodyMap jointTemps={jointTemps} jointErrors={jointErrors} />
                 </div>
-                <BodyMap jointTemps={jointTemps} jointErrors={jointErrors} />
               </div>
             </div>
           ) : (
