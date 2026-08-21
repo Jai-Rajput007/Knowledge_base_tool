@@ -171,8 +171,8 @@ export function HealthStatsModule() {
                 <StatTile icon={FiActivity} label="RAM Used" value={`${thor.memory_percent?.toFixed(0) ?? "--"}`} unit="%" />
                 <StatTile
                   icon={FiZap}
-                  label="GPU Clock"
-                  value={`${thor.gpu_clock_pct ?? thor.gpu_util_pct ?? "--"}`}
+                  label="GPU Util"
+                  value={`${thor.gpu_util_pct ?? thor.gpu_clock_pct ?? "--"}`}
                   unit="%"
                 />
                 <StatTile icon={FiWifi} label="Net Sent" value={`${thor.net_sent_mb ?? "--"}`} unit="MB" />
@@ -262,7 +262,7 @@ export function HealthStatsModule() {
               {batteryUnconfirmed && (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 px-3 py-2 rounded-lg">
                   <FiAlertTriangle size={14} />
-                  Battery channel silent (rt/bms_state never received) — not shown to avoid a fake 0%
+                  Battery telemetry unavailable — BMS broadcast is disabled on the robot, so this is hidden instead of showing a fake 0%
                 </div>
               )}
 
@@ -298,7 +298,10 @@ export function HealthStatsModule() {
                 >
                   Joint Temperatures
                 </SectionLabel>
-                <div className="p-4 sm:p-6 rounded-xl bg-background/40 border border-border/60 flex justify-center">
+                <div
+                  className="mx-auto w-full max-w-md p-6 sm:p-8 rounded-2xl border border-border/60 flex justify-center"
+                  style={{ background: "radial-gradient(circle at 50% 20%, #182238 0%, #0b0f1a 75%)" }}
+                >
                   <BodyMap jointTemps={jointTemps} jointErrors={jointErrors} />
                 </div>
               </div>
