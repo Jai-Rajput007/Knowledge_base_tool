@@ -1,195 +1,285 @@
 "use client";
 
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef } from "react";
 import { FeatureGate } from "@/app/components/feature-gate";
-import { FiBatteryCharging, FiCpu, FiWifi, FiThermometer, FiActivity, FiHardDrive, FiClock, FiZap, FiWind, FiDatabase } from "react-icons/fi";
+import {
+  FiBatteryCharging, FiCpu, FiThermometer, FiActivity, FiHardDrive,
+  FiClock, FiZap, FiWifi, FiCompass, FiAlertTriangle,
+} from "react-icons/fi";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import { api, API_BASE_URL } from "@/lib/api";
+import { useTelemetry } from "./hooks";
+import { BodyMap } from "./BodyMap";
+import { JOINT_TEMP_WARN_C, JOINT_TEMP_CRIT_C } from "./types";
 
 gsap.registerPlugin(useGSAP);
 
+function tempColor(c: number | null | undefined): string {
+  if (c == null) return "text-muted-foreground";
+  if (c >= JOINT_TEMP_CRIT_C) return "text-red-500";
+  if (c >= JOINT_TEMP_WARN_C) return "text-amber-500";
+  return "text-emerald-500";
+}
+
+function StatTile({ icon: Icon, label, value, unit, tone }: {
+  icon: React.ComponentType<{ size?: number }>;
+  label: string;
+  value: string;
+  unit?: string;
+  tone?: string;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-2 text-muted-foreground mb-1">
+        <Icon size={14} />
+        <span className="text-[10px] uppercase tracking-widest font-bold">{label}</span>
+      </div>
+      <span className={`text-xl font-mono ${tone || ""}`}>
+        {value} {unit && <span className="text-xs text-muted-foreground">{unit}</span>}
+      </span>
+    </div>
+  );
+}
+
+function Panel({ title, icon: Icon, offline, children }: {
+  title: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  offline?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="p-8 border border-border bg-card/20 rounded-xl">
+      <div className="flex items-center gap-3 mb-6">
+        <Icon className={offline ? "text-muted-foreground" : "text-primary"} size={20} />
+        <h3 className="font-bold text-lg uppercase tracking-wide">{title}</h3>
+        {offline && (
+          <span className="ml-auto text-xs bg-red-500/10 text-red-500 px-3 py-1 rounded-full font-bold uppercase tracking-wider">
+            No Data
+          </span>
+        )}
+      </div>
+      {children}
+    </div>
+  );
+}
+
 export function HealthStatsModule() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [telemetry, setTelemetry] = useState<any>(null);
-  const [isOffline, setIsOffline] = useState(false);
-
-  useEffect(() => {
-    const fetchTelemetry = async () => {
-      try {
-        const token = api.getToken();
-        const headers: Record<string, string> = { "Content-Type": "application/json" };
-        if (token) headers["Authorization"] = `Bearer ${token}`;
-        
-        const res = await fetch(`${API_BASE_URL}/health/telemetry`, { headers });
-        if (!res.ok) throw new Error("Failed to fetch telemetry");
-        
-        const data = await res.json();
-        setTelemetry(data);
-        setIsOffline(false);
-      } catch (err) {
-        setIsOffline(true);
-      }
-    };
-
-    fetchTelemetry();
-    const interval = setInterval(fetchTelemetry, 60000); // Refresh every 1 minute (60000ms)
-    return () => clearInterval(interval);
-  }, []);
+  const { telemetry, isOffline } = useTelemetry(5000);
 
   useGSAP(() => {
-    // Animate the stat cards in
     gsap.fromTo(
       ".stat-card",
       { opacity: 0, y: 20 },
-      { opacity: 1, y: 0, duration: 0.5, stagger: 0.1, ease: "power2.out" }
+      { opacity: 1, y: 0, duration: 0.5, stagger: 0.08, ease: "power2.out" }
     );
+  }, { scope: containerRef, dependencies: [telemetry?.timestamp] });
 
-    // Animate the live telemetry bars
-    gsap.to(".telemetry-bar", {
-      height: "20%",
-      duration: 1,
-      repeat: -1,
-      yoyo: true,
-      ease: "sine.inOut",
-      stagger: {
-        each: 0.1,
-        yoyo: true,
-        repeat: -1
-      }
-    });
-  }, { scope: containerRef });
+  const thor = telemetry?.thor;
+  const robotBlock = telemetry?.robot;
+  const robotData = robotBlock?.data;
+  const robotAvailable = !!robotBlock?.available && !isOffline;
+  const robotHonest = robotAvailable && !robotBlock?.stale; // fresh, trustworthy G1 data
 
-  const stats = telemetry && !isOffline ? [
-    { label: "AGX Core Temp", value: `${telemetry.agx_orin.temp_c}°C`, status: "normal", icon: FiThermometer, color: "text-blue-500", bg: "bg-blue-500/10" },
-    { label: "G1 Battery", value: `${telemetry.g1_chassis.battery_soc}%`, status: telemetry.g1_chassis.battery_soc < 30 ? "warning" : "good", icon: FiBatteryCharging, color: telemetry.g1_chassis.battery_soc < 30 ? "text-amber-500" : "text-green-500", bg: telemetry.g1_chassis.battery_soc < 30 ? "bg-amber-500/10" : "bg-green-500/10" },
-    { label: "AGX GPU Load", value: `${telemetry.agx_orin.gpu_usage_pct}%`, status: "active", icon: FiCpu, color: "text-purple-500", bg: "bg-purple-500/10" },
-    { label: "Motor Temp Max", value: `${telemetry.g1_chassis.max_motor_temp}°C`, status: telemetry.g1_chassis.status, icon: FiActivity, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-  ] : [
-    { label: "AGX Core Temp", value: "--°C", status: "offline", icon: FiThermometer, color: "text-muted-foreground", bg: "bg-muted/10" },
-    { label: "G1 Battery", value: "--%", status: "offline", icon: FiBatteryCharging, color: "text-muted-foreground", bg: "bg-muted/10" },
-    { label: "AGX GPU Load", value: "--%", status: "offline", icon: FiCpu, color: "text-muted-foreground", bg: "bg-muted/10" },
-    { label: "Motor Temp Max", value: "--°C", status: "offline", icon: FiActivity, color: "text-muted-foreground", bg: "bg-muted/10" },
+  const battery = robotHonest ? robotData?.battery : null;
+  const motion = robotHonest ? robotData?.robot : null;
+  const imu = robotHonest ? robotData?.imu : null;
+  const jointTemps = robotHonest ? robotData?.joints.temp_c ?? null : null;
+  const jointErrors = robotHonest ? robotData?.joints.motorstate ?? null : null;
+
+  const cellSpread = battery ? battery.cell_vol_max_mv - battery.cell_vol_min_mv : null;
+  const anyMotorError = jointErrors?.some((e) => e !== 0) ?? false;
+
+  const headline = [
+    {
+      label: "Thor CPU",
+      value: thor && !isOffline ? `${thor.cpu_percent?.toFixed(0)}%` : "--",
+      icon: FiCpu,
+      tone: "text-blue-500",
+    },
+    {
+      label: "G1 Battery",
+      value: battery ? `${battery.soc}%` : "--",
+      icon: FiBatteryCharging,
+      tone: battery && battery.soc < 30 ? "text-amber-500" : "text-emerald-500",
+    },
+    {
+      label: "Max Motor Temp",
+      value: robotData ? `${robotData.max_motor_temp_c.toFixed(1)}°C` : "--",
+      icon: FiActivity,
+      tone: tempColor(robotData?.max_motor_temp_c),
+    },
+    {
+      label: "Power Mode",
+      value: thor?.power_mode || "--",
+      icon: FiZap,
+      tone: "text-purple-500",
+    },
   ];
 
   return (
     <FeatureGate featureKey="healthStats">
       <div ref={containerRef} className="space-y-8">
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((stat) => (
-            <div
-              key={stat.label}
-              className="stat-card p-6 border border-border bg-card/30 rounded-xl relative overflow-hidden group hover:bg-card/60 transition-colors"
-            >
-              <div className={`absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 rounded-full blur-3xl opacity-20 transition-opacity group-hover:opacity-40 ${stat.bg.replace('/10', '')}`} />
-              
-              <div className="flex justify-between items-start mb-4 relative z-10">
-                <div className={`p-3 rounded-lg ${stat.bg} ${stat.color}`}>
-                  <stat.icon size={24} />
+          {headline.map((s) => (
+            <div key={s.label} className="stat-card p-6 border border-border bg-card/30 rounded-xl">
+              <div className="flex justify-between items-start mb-4">
+                <div className="p-3 rounded-lg bg-background text-muted-foreground">
+                  <s.icon size={24} />
                 </div>
-                <span className={`text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded border border-border ${stat.status === 'offline' ? 'text-red-500 bg-red-500/10' : 'text-muted-foreground bg-background'}`}>
-                  {stat.status}
-                </span>
               </div>
-              
-              <div className="relative z-10">
-                <h3 className="text-3xl font-bold tracking-tighter mb-1">{stat.value}</h3>
-                <p className="text-xs font-mono text-muted-foreground uppercase">{stat.label}</p>
-              </div>
+              <h3 className={`text-3xl font-bold tracking-tighter mb-1 ${s.tone}`}>{s.value}</h3>
+              <p className="text-xs font-mono text-muted-foreground uppercase">{s.label}</p>
             </div>
           ))}
         </div>
 
-        <div className="p-8 border border-border bg-card/20 rounded-xl relative overflow-hidden">
-          <div className="flex items-center gap-3 mb-6 relative z-10">
-            <FiActivity className={isOffline ? "text-muted-foreground" : "text-primary"} size={20} />
-            <h3 className="font-bold text-lg uppercase tracking-wide">System Diagnostics (Thor)</h3>
-            {isOffline && (
-              <span className="ml-auto text-xs bg-red-500/10 text-red-500 px-3 py-1 rounded-full font-bold uppercase tracking-wider">
-                Connection Lost
+        {/* Thor */}
+        <Panel title="Jetson AGX Thor" icon={FiCpu} offline={isOffline || !thor?.reachable}>
+          {thor ? (
+            <div className="flex flex-col gap-8">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <StatTile icon={FiClock} label="Uptime" value={`${thor.uptime_hrs ?? "--"}`} unit="HRS" />
+                <StatTile icon={FiHardDrive} label="Disk Free" value={`${thor.disk_free_gb ?? "--"}`} unit="GB" />
+                <StatTile icon={FiActivity} label="RAM Used" value={`${thor.memory_percent?.toFixed(0) ?? "--"}`} unit="%" />
+                <StatTile icon={FiZap} label="GPU Util" value={`${thor.gpu_util_pct ?? "--"}`} unit="%" />
+                <StatTile icon={FiWifi} label="Net Sent" value={`${thor.net_sent_mb ?? "--"}`} unit="MB" />
+                <StatTile icon={FiWifi} label="Net Recv" value={`${thor.net_recv_mb ?? "--"}`} unit="MB" />
+                <StatTile
+                  icon={FiThermometer}
+                  label="Junction Temp"
+                  value={`${thor.thermal_c?.tj?.toFixed(1) ?? "--"}`}
+                  unit="°C"
+                  tone={tempColor(thor.thermal_c?.tj)}
+                />
+                <StatTile
+                  icon={FiZap}
+                  label="Total Power"
+                  value={`${thor.power_mw?.VIN ? (thor.power_mw.VIN.inst_mw / 1000).toFixed(1) : "--"}`}
+                  unit="W"
+                />
+              </div>
+
+              {/* Per-core CPU */}
+              {thor.cpu_cores?.length > 0 && (
+                <div>
+                  <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground block mb-3">
+                    CPU Cores ({thor.cpu_cores.length})
+                  </span>
+                  <div className="grid grid-cols-7 sm:grid-cols-[repeat(14,minmax(0,1fr))] gap-2">
+                    {thor.cpu_cores.map((c, i) => (
+                      <div key={i} className="flex flex-col items-center gap-1" title={`Core ${i}: ${c.load_pct}% @ ${c.clock_mhz}MHz`}>
+                        <div className="w-full h-16 bg-background rounded relative overflow-hidden border border-border">
+                          <div
+                            className="absolute bottom-0 left-0 right-0 bg-primary/70"
+                            style={{ height: `${Math.max(2, c.load_pct)}%` }}
+                          />
+                        </div>
+                        <span className="text-[9px] font-mono text-muted-foreground">{i}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Thermal zones */}
+              {thor.thermal_c && Object.keys(thor.thermal_c).length > 0 && (
+                <div>
+                  <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground block mb-3">
+                    Thermal Zones
+                  </span>
+                  <div className="flex flex-wrap gap-3">
+                    {Object.entries(thor.thermal_c).map(([zone, temp]) => (
+                      <div key={zone} className="px-3 py-2 rounded-lg border border-border bg-background/60 flex items-center gap-2">
+                        <span className="text-[10px] font-mono text-muted-foreground uppercase">{zone}</span>
+                        <span className={`text-sm font-mono font-bold ${tempColor(temp)}`}>{temp.toFixed(1)}°C</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Power rails */}
+              {thor.power_mw && Object.keys(thor.power_mw).length > 0 && (
+                <div>
+                  <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground block mb-3">
+                    Power Rails
+                  </span>
+                  <div className="flex flex-wrap gap-3">
+                    {Object.entries(thor.power_mw).map(([rail, w]) => (
+                      <div key={rail} className="px-3 py-2 rounded-lg border border-border bg-background/60 flex items-center gap-2">
+                        <span className="text-[10px] font-mono text-muted-foreground uppercase">{rail}</span>
+                        <span className="text-sm font-mono">{(w.inst_mw / 1000).toFixed(2)} W</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="h-32 flex items-center justify-center">
+              <span className="font-mono text-xs text-muted-foreground uppercase tracking-widest">Loading...</span>
+            </div>
+          )}
+        </Panel>
+
+        {/* G1 Robot */}
+        <Panel title="G1 Robot" icon={FiActivity} offline={!robotHonest}>
+          {robotHonest && robotData ? (
+            <div className="flex flex-col gap-8">
+              {robotBlock?.stale && (
+                <div className="flex items-center gap-2 text-xs text-amber-500 bg-amber-500/10 px-3 py-2 rounded-lg">
+                  <FiAlertTriangle size={14} />
+                  Last update {robotBlock.last_seen_s_ago}s ago — may be stale
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <StatTile icon={FiBatteryCharging} label="State of Health" value={`${battery?.soh}`} unit="%" />
+                <StatTile icon={FiActivity} label="Charge Cycles" value={`${battery?.cycle}`} />
+                <StatTile icon={FiZap} label="Battery Voltage" value={`${((battery?.voltage_mv ?? 0) / 1000).toFixed(1)}`} unit="V" />
+                <StatTile
+                  icon={FiZap}
+                  label={((battery?.current_ma ?? 0) < 0) ? "Discharging" : "Charging"}
+                  value={`${Math.abs((battery?.current_ma ?? 0) / 1000).toFixed(2)}`}
+                  unit="A"
+                />
+                <StatTile
+                  icon={FiBatteryCharging}
+                  label="Cell Spread"
+                  value={`${cellSpread ?? "--"}`}
+                  unit="mV"
+                  tone={cellSpread && cellSpread > 100 ? "text-amber-500" : undefined}
+                />
+                <StatTile icon={FiCompass} label="Roll / Pitch / Yaw" value={`${imu?.roll.toFixed(2)} / ${imu?.pitch.toFixed(2)} / ${imu?.yaw.toFixed(2)}`} />
+                <StatTile icon={FiActivity} label="FSM Mode" value={`${motion?.fsm_mode}`} />
+                <StatTile icon={FiActivity} label="Mode Machine" value={`${motion?.mode_machine}`} />
+              </div>
+
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
+                    Joint Temperatures
+                  </span>
+                  {anyMotorError && (
+                    <span className="text-[10px] uppercase tracking-widest font-bold text-red-500 flex items-center gap-1">
+                      <FiAlertTriangle size={11} /> Motor fault detected
+                    </span>
+                  )}
+                </div>
+                <BodyMap jointTemps={jointTemps} jointErrors={jointErrors} />
+              </div>
+            </div>
+          ) : (
+            <div className="h-32 flex flex-col items-center justify-center gap-2">
+              <span className="font-mono text-xs text-muted-foreground uppercase tracking-widest">
+                {isOffline ? "Backend unreachable" : "No data from robot — powered off or robot_agent not running"}
               </span>
-            )}
-          </div>
-          
-          <div className={`p-6 border border-dashed rounded-lg transition-colors ${isOffline ? 'border-red-500/30 bg-red-500/5' : 'border-border/50 bg-background/50'}`}>
-            {telemetry && !isOffline ? (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 relative z-10">
-                {/* Uptime */}
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                    <FiClock size={14} className="text-blue-500" />
-                    <span className="text-[10px] uppercase tracking-widest font-bold">Uptime</span>
-                  </div>
-                  <span className="text-xl font-mono">{telemetry.agx_orin.uptime_hrs} <span className="text-xs text-muted-foreground">HRS</span></span>
-                </div>
+            </div>
+          )}
+        </Panel>
 
-                {/* Power Draw */}
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                    <FiZap size={14} className="text-amber-500" />
-                    <span className="text-[10px] uppercase tracking-widest font-bold">GPU Power</span>
-                  </div>
-                  <span className="text-xl font-mono">{telemetry.agx_orin.power_draw_w} <span className="text-xs text-muted-foreground">W</span></span>
-                </div>
-
-                {/* Fan Speed */}
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                    <FiWind size={14} className="text-cyan-500" />
-                    <span className="text-[10px] uppercase tracking-widest font-bold">Fan Speed</span>
-                  </div>
-                  <span className="text-xl font-mono">{telemetry.agx_orin.fan_speed_pct} <span className="text-xs text-muted-foreground">%</span></span>
-                </div>
-
-                {/* GPU Clock */}
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                    <FiActivity size={14} className="text-purple-500" />
-                    <span className="text-[10px] uppercase tracking-widest font-bold">GPU Core Clock</span>
-                  </div>
-                  <span className="text-xl font-mono">{telemetry.agx_orin.gpu_core_clock_mhz} <span className="text-xs text-muted-foreground">MHz</span></span>
-                </div>
-
-                {/* Storage */}
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                    <FiHardDrive size={14} className="text-emerald-500" />
-                    <span className="text-[10px] uppercase tracking-widest font-bold">Disk Free</span>
-                  </div>
-                  <span className="text-xl font-mono">{telemetry.agx_orin.disk_free_gb} <span className="text-xs text-muted-foreground">GB</span></span>
-                </div>
-
-                {/* GPU Memory */}
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                    <FiDatabase size={14} className="text-indigo-500" />
-                    <span className="text-[10px] uppercase tracking-widest font-bold">GPU VRAM</span>
-                  </div>
-                  <span className="text-xl font-mono">{telemetry.agx_orin.gpu_mem_free_gb} <span className="text-xs text-muted-foreground">GB Free</span></span>
-                </div>
-
-                {/* Network */}
-                <div className="flex flex-col gap-1 col-span-2">
-                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                    <FiWifi size={14} className="text-green-500" />
-                    <span className="text-[10px] uppercase tracking-widest font-bold">Network I/O (Total)</span>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <span className="text-xl font-mono text-green-400">↑ {telemetry.agx_orin.net_sent_mb} <span className="text-xs text-muted-foreground">MB</span></span>
-                    <span className="text-xl font-mono text-blue-400">↓ {telemetry.agx_orin.net_recv_mb} <span className="text-xs text-muted-foreground">MB</span></span>
-                  </div>
-                </div>
-
-              </div>
-            ) : (
-              <div className="h-32 flex items-center justify-center">
-                <span className="font-mono text-xs text-muted-foreground uppercase tracking-widest">
-                  {isOffline ? "Awaiting Telemetry Data..." : "Loading..."}
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
       </div>
     </FeatureGate>
   );
