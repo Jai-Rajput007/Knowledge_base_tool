@@ -103,6 +103,7 @@ async def robot_telemetry():
                 "disk_free_gb":    data.get("disk_free_gb"),
                 "power_mode":      data.get("power_mode"),
                 "gpu_util_pct":    data.get("gpu_util_pct"),
+                "gpu_clock_pct":   data.get("gpu_clock_pct"),
                 "gpu_memory":      data.get("gpu_info", {}),
                 "thermal_c":       data.get("thermal_c", {}),
                 "power_mw":        data.get("power_mw", {}),
@@ -117,7 +118,7 @@ async def robot_telemetry():
                 "cpu_percent":    psutil.cpu_percent(interval=0.1),
                 "memory_percent": psutil.virtual_memory().percent,
                 "disk_free_gb":   round(psutil.disk_usage("/").free / 1e9, 1),
-                "power_mode": None, "gpu_util_pct": None,
+                "power_mode": None, "gpu_util_pct": None, "gpu_clock_pct": None,
                 "gpu_memory": {}, "thermal_c": {}, "power_mw": {}, "cpu_cores": [],
             }
 

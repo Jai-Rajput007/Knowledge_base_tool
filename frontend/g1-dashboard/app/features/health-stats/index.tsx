@@ -76,15 +76,22 @@ function SectionLabel({ children, warn }: { children: React.ReactNode; warn?: Re
 
 export function HealthStatsModule() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const hasAnimatedRef = useRef(false);
   const { telemetry, isOffline } = useTelemetry(5000);
 
+  // Runs once on the transition from "no data yet" -> "first data in", not on
+  // every 5s poll tick — using telemetry?.timestamp as the dependency here
+  // previously replayed the opacity 0->1 entrance on *every* poll, which read
+  // as the whole page flickering/refreshing every 5 seconds.
   useGSAP(() => {
+    if (!telemetry || hasAnimatedRef.current) return;
+    hasAnimatedRef.current = true;
     gsap.fromTo(
       ".stat-card",
       { opacity: 0, y: 20 },
       { opacity: 1, y: 0, duration: 0.5, stagger: 0.08, ease: "power2.out" }
     );
-  }, { scope: containerRef, dependencies: [telemetry?.timestamp] });
+  }, { scope: containerRef, dependencies: [!!telemetry] });
 
   const thor = telemetry?.thor;
   const robotBlock = telemetry?.robot;
@@ -92,11 +99,19 @@ export function HealthStatsModule() {
   const robotAvailable = !!robotBlock?.available && !isOffline;
   const robotHonest = robotAvailable && !robotBlock?.stale; // fresh, trustworthy G1 data
 
-  const battery = robotHonest ? robotData?.battery : null;
   const motion = robotHonest ? robotData?.robot : null;
   const imu = robotHonest ? robotData?.imu : null;
   const jointTemps = robotHonest ? robotData?.joints.temp_c ?? null : null;
   const jointErrors = robotHonest ? robotData?.joints.motorstate ?? null : null;
+
+  // battery.confirmed is only true once robot_agent's rt/bms_state channel
+  // has actually delivered a message at least once. That channel is not
+  // verified against any working Unitree SDK example (see conversation) —
+  // until confirmed, showing 0%/0V would be a fabricated reading dressed up
+  // as real telemetry, so it's treated the same as "no data."
+  const batteryRaw = robotHonest ? robotData?.battery : null;
+  const battery = batteryRaw?.confirmed ? batteryRaw : null;
+  const batteryUnconfirmed = robotHonest && !!batteryRaw && !batteryRaw.confirmed;
 
   const cellSpread = battery ? battery.cell_vol_max_mv - battery.cell_vol_min_mv : null;
   const anyMotorError = jointErrors?.some((e) => e !== 0) ?? false;
@@ -110,9 +125,9 @@ export function HealthStatsModule() {
     },
     {
       label: "G1 Battery",
-      value: battery ? `${battery.soc}%` : "--",
+      value: battery ? `${battery.soc}%` : batteryUnconfirmed ? "N/A" : "--",
       icon: FiBatteryCharging,
-      tone: battery && battery.soc < 30 ? "text-amber-500" : "text-emerald-500",
+      tone: battery ? (battery.soc < 30 ? "text-amber-500" : "text-emerald-500") : "text-muted-foreground",
     },
     {
       label: "Max Motor Temp",
@@ -154,7 +169,12 @@ export function HealthStatsModule() {
                 <StatTile icon={FiClock} label="Uptime" value={`${thor.uptime_hrs ?? "--"}`} unit="HRS" />
                 <StatTile icon={FiHardDrive} label="Disk Free" value={`${thor.disk_free_gb ?? "--"}`} unit="GB" />
                 <StatTile icon={FiActivity} label="RAM Used" value={`${thor.memory_percent?.toFixed(0) ?? "--"}`} unit="%" />
-                <StatTile icon={FiZap} label="GPU Util" value={`${thor.gpu_util_pct ?? "--"}`} unit="%" />
+                <StatTile
+                  icon={FiZap}
+                  label="GPU Clock"
+                  value={`${thor.gpu_clock_pct ?? thor.gpu_util_pct ?? "--"}`}
+                  unit="%"
+                />
                 <StatTile icon={FiWifi} label="Net Sent" value={`${thor.net_sent_mb ?? "--"}`} unit="MB" />
                 <StatTile icon={FiWifi} label="Net Recv" value={`${thor.net_recv_mb ?? "--"}`} unit="MB" />
                 <StatTile
@@ -239,15 +259,21 @@ export function HealthStatsModule() {
                   Last update {robotBlock.last_seen_s_ago}s ago — may be stale
                 </div>
               )}
+              {batteryUnconfirmed && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 px-3 py-2 rounded-lg">
+                  <FiAlertTriangle size={14} />
+                  Battery channel silent (rt/bms_state never received) — not shown to avoid a fake 0%
+                </div>
+              )}
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                <StatTile icon={FiBatteryCharging} label="State of Health" value={`${battery?.soh}`} unit="%" />
-                <StatTile icon={FiActivity} label="Charge Cycles" value={`${battery?.cycle}`} />
-                <StatTile icon={FiZap} label="Battery Voltage" value={`${((battery?.voltage_mv ?? 0) / 1000).toFixed(1)}`} unit="V" />
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <StatTile icon={FiBatteryCharging} label="State of Health" value={battery ? `${battery.soh}` : "--"} unit="%" />
+                <StatTile icon={FiActivity} label="Charge Cycles" value={battery ? `${battery.cycle}` : "--"} />
+                <StatTile icon={FiZap} label="Battery Voltage" value={battery ? (battery.voltage_mv / 1000).toFixed(1) : "--"} unit="V" />
                 <StatTile
                   icon={FiZap}
-                  label={((battery?.current_ma ?? 0) < 0) ? "Discharging" : "Charging"}
-                  value={`${Math.abs((battery?.current_ma ?? 0) / 1000).toFixed(2)}`}
+                  label={battery && battery.current_ma < 0 ? "Discharging" : "Charging"}
+                  value={battery ? Math.abs(battery.current_ma / 1000).toFixed(2) : "--"}
                   unit="A"
                 />
                 <StatTile
@@ -257,9 +283,9 @@ export function HealthStatsModule() {
                   unit="mV"
                   tone={cellSpread && cellSpread > 100 ? "text-amber-500" : undefined}
                 />
-                <StatTile icon={FiCompass} label="Roll / Pitch / Yaw" value={`${imu?.roll.toFixed(2)} / ${imu?.pitch.toFixed(2)} / ${imu?.yaw.toFixed(2)}`} />
-                <StatTile icon={FiActivity} label="FSM Mode" value={`${motion?.fsm_mode}`} />
-                <StatTile icon={FiActivity} label="Mode Machine" value={`${motion?.mode_machine}`} />
+                <StatTile icon={FiCompass} label="Roll / Pitch / Yaw" value={imu ? `${imu.roll.toFixed(2)} / ${imu.pitch.toFixed(2)} / ${imu.yaw.toFixed(2)}` : "--"} />
+                <StatTile icon={FiActivity} label="FSM Mode" value={motion ? `${motion.fsm_mode}` : "--"} />
+                <StatTile icon={FiActivity} label="Mode Machine" value={motion ? `${motion.mode_machine}` : "--"} />
               </div>
 
               <div>
@@ -272,7 +298,7 @@ export function HealthStatsModule() {
                 >
                   Joint Temperatures
                 </SectionLabel>
-                <div className="p-4 sm:p-6 rounded-xl bg-background/40 border border-border/60">
+                <div className="p-4 sm:p-6 rounded-xl bg-background/40 border border-border/60 flex justify-center">
                   <BodyMap jointTemps={jointTemps} jointErrors={jointErrors} />
                 </div>
               </div>

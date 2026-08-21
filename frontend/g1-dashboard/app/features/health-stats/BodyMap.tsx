@@ -54,7 +54,7 @@ export function BodyMap({ jointTemps, jointErrors }: Props) {
 
   const renderLabel = (r: Reading, i: number, side: "left" | "right") => {
     const y = rowY(i);
-    const lineStartX = side === "left" ? 40 : 160;
+    const lineStartX = side === "left" ? 32 : 168;
     const labelX = side === "left" ? 6 : 194;
     const anchor = side === "left" ? "start" : "end";
     const isActive = active === r.group.label;
@@ -93,25 +93,46 @@ export function BodyMap({ jointTemps, jointErrors }: Props) {
   };
 
   return (
-    <div className="flex flex-col sm:flex-row gap-6">
+    <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start justify-center w-full">
       <svg
         viewBox="0 0 200 400"
-        className="w-full max-w-[320px] mx-auto sm:mx-0 flex-shrink-0"
+        className="w-full max-w-[340px] mx-auto flex-shrink-0"
         role="img"
         aria-label="G1 joint temperature map"
       >
-        {/* Schematic silhouette — behind the joint markers, low-contrast */}
-        <g stroke="currentColor" className="text-border" strokeWidth="2" fill="none" opacity="0.55">
-          <circle cx="100" cy="55" r="22" />
-          <path d="M 78 90 Q 100 78 122 90 L 128 200 Q 100 212 72 200 Z" />
-          <line x1="66" y1="108" x2="50" y2="150" />
-          <line x1="50" y1="150" x2="40" y2="192" />
-          <line x1="134" y1="108" x2="150" y2="150" />
-          <line x1="150" y1="150" x2="160" y2="192" />
-          <line x1="78" y1="205" x2="74" y2="278" />
-          <line x1="74" y1="278" x2="70" y2="338" />
-          <line x1="122" y1="205" x2="126" y2="278" />
-          <line x1="126" y1="278" x2="130" y2="338" />
+        {/* Schematic G1 silhouette — boxy torso, rounded visor head, jointed
+            limb segments, in place of the earlier thin-line stick figure. */}
+        <g stroke="currentColor" className="text-border" strokeWidth="1.5" fill="var(--muted)" opacity="0.7">
+          {/* head + visor */}
+          <rect x="82" y="30" width="36" height="34" rx="14" />
+          <rect x="86" y="46" width="28" height="8" rx="4" fill="var(--background)" opacity="0.8" />
+          {/* neck */}
+          <rect x="94" y="62" width="12" height="8" />
+          {/* torso */}
+          <path d="M 74 70 Q 100 64 126 70 L 130 190 Q 100 200 70 190 Z" />
+          {/* shoulders */}
+          <rect x="58" y="72" width="18" height="14" rx="5" />
+          <rect x="124" y="72" width="18" height="14" rx="5" />
+          {/* upper arms */}
+          <rect x="52" y="86" width="14" height="46" rx="6" />
+          <rect x="134" y="86" width="14" height="46" rx="6" />
+          {/* forearms */}
+          <rect x="42" y="132" width="13" height="48" rx="6" />
+          <rect x="145" y="132" width="13" height="48" rx="6" />
+          {/* hands */}
+          <rect x="38" y="180" width="16" height="16" rx="5" />
+          <rect x="146" y="180" width="16" height="16" rx="5" />
+          {/* waist / hip block */}
+          <rect x="80" y="188" width="40" height="20" rx="6" />
+          {/* thighs */}
+          <rect x="78" y="206" width="18" height="56" rx="6" />
+          <rect x="104" y="206" width="18" height="56" rx="6" />
+          {/* shins */}
+          <rect x="79" y="262" width="16" height="56" rx="6" />
+          <rect x="105" y="262" width="16" height="56" rx="6" />
+          {/* feet */}
+          <rect x="74" y="318" width="24" height="12" rx="4" />
+          <rect x="102" y="318" width="24" height="12" rx="4" />
         </g>
 
         {/* Leader-line labels, always visible — left/right columns */}
