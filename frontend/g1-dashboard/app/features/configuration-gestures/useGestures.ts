@@ -29,6 +29,11 @@ export function useGestures() {
   const [loading, setLoading] = useState(false);
   // Surfaced as an inline banner in the UI, not a native browser alert().
   const [error, setError] = useState<string | null>(null);
+  // Guards against a double-click on Start/Stop firing two overlapping
+  // requests — a duplicate stop for the same name raced the unique
+  // (tenant_id, name) constraint server-side and produced an unhandled 500
+  // that the browser reported as a CORS failure.
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const checkHealth = useCallback(async () => {
     try {
@@ -89,6 +94,8 @@ export function useGestures() {
   }, [checkHealth, checkRobotStatus, fetchGestures]);
 
   const startRecording = async (name: string) => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     setError(null);
     try {
       const formData = new URLSearchParams();
@@ -114,11 +121,16 @@ export function useGestures() {
     } catch (e) {
       console.error('Failed to start recording', e);
       setError('Failed to connect to backend API');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const stopRecording = async () => {
+  const stopRecording = async (): Promise<boolean> => {
+    if (isSubmitting) return false;
+    setIsSubmitting(true);
     setError(null);
+    let ok = false;
     try {
       const token = api.getToken();
       const formData = new URLSearchParams();
@@ -131,6 +143,7 @@ export function useGestures() {
         },
         body: formData.toString(),
       });
+      ok = res.ok;
       if (!res.ok) {
         const detail = await res.json().catch(() => null);
         setError(detail?.detail || 'Failed to save the recording — 0 samples captured?');
@@ -141,7 +154,10 @@ export function useGestures() {
     } catch (e) {
       console.error('Failed to stop recording', e);
       setError('Failed to connect to backend API');
+    } finally {
+      setIsSubmitting(false);
     }
+    return ok;
   };
 
   const playGesture = async (name: string) => {
@@ -178,6 +194,7 @@ export function useGestures() {
     recordingName,
     loading,
     error,
+    isSubmitting,
     clearError: () => setError(null),
     startRecording,
     stopRecording,

@@ -14,6 +14,7 @@ export function ConfigurationGesturesModule() {
     recordingName,
     loading,
     error,
+    isSubmitting,
     clearError,
     startRecording,
     stopRecording,
@@ -47,6 +48,11 @@ export function ConfigurationGesturesModule() {
   const confirmStart = () => {
     setArmed(false);
     startRecording(newName.trim());
+  };
+
+  const handleStop = async () => {
+    const ok = await stopRecording();
+    if (ok) setNewName("");
   };
 
   const displayedError = formError || error;
@@ -138,15 +144,16 @@ export function ConfigurationGesturesModule() {
 
             {isRecording ? (
               <button
-                onClick={stopRecording}
-                className="w-full sm:w-auto flex justify-center items-center gap-2 px-8 py-3 bg-red-500 text-white font-bold uppercase tracking-wider rounded-lg hover:bg-red-600 transition-colors animate-pulse"
+                onClick={handleStop}
+                disabled={isSubmitting}
+                className="w-full sm:w-auto flex justify-center items-center gap-2 px-8 py-3 bg-red-500 text-white font-bold uppercase tracking-wider rounded-lg hover:bg-red-600 transition-colors animate-pulse disabled:opacity-50 disabled:cursor-not-allowed disabled:animate-none"
               >
-                <FiSave /> Stop & Save
+                <FiSave /> {isSubmitting ? 'Saving...' : 'Stop & Save'}
               </button>
             ) : (
               <button
                 onClick={handleStart}
-                disabled={!canControlRobot || !newName.trim()}
+                disabled={!canControlRobot || !newName.trim() || isSubmitting}
                 className="w-full sm:w-auto flex justify-center items-center gap-2 px-8 py-3 bg-primary text-primary-foreground font-bold uppercase tracking-wider rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span className="h-2 w-2 rounded-full bg-primary-foreground animate-pulse"></span>

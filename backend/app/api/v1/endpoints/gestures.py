@@ -27,6 +27,7 @@ Environment variables (set in .env):
 
 from fastapi import APIRouter, HTTPException, Form, Depends
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 import httpx
 import logging
 from typing import Optional
@@ -158,7 +159,15 @@ async def stop_record(
         created_by=current_user.id,
     )
     db.add(gesture)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # A duplicate stop request for the same name (e.g. a double-click on
+        # Stop & Save before the button disables) races this INSERT against
+        # one that already succeeded. The first request already saved the
+        # gesture — surface that as a clean 409 instead of an unhandled 500.
+        db.rollback()
+        raise HTTPException(status_code=409, detail=f"'{name}' was already saved by an earlier request")
     db.refresh(gesture)
     logger.info(f"[Gestures] Saved '{name}' (tenant={current_user.tenant_id}), {sample_count} samples")
     return {"status": "stopped", "gesture": gesture.to_dict()}
