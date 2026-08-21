@@ -125,6 +125,7 @@ export function BodyMap({ jointTemps, jointErrors }: Props) {
           alt="Unitree G1 joint temperature map"
           fill
           sizes="460px"
+          unoptimized
           className="object-contain drop-shadow-[0_0_24px_rgba(59,130,246,0.15)]"
           priority={false}
         />
