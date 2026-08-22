@@ -299,8 +299,18 @@ export function HealthStatsModule() {
                   Joint Temperatures
                 </SectionLabel>
                 <div
-                  className="mx-auto w-full max-w-2xl p-6 sm:p-10 rounded-2xl border border-border/60 flex justify-center"
-                  style={{ background: "radial-gradient(circle at 50% 20%, #182238 0%, #0b0f1a 75%)" }}
+                  className="mx-auto w-full max-w-xl p-6 sm:p-8 rounded-2xl flex justify-center backdrop-blur-xl"
+                  style={{
+                    // A deliberately self-contained instrument panel: it paints
+                    // its own translucent dark ground so the render's glow and
+                    // the severity colours hold up identically in either page
+                    // theme, instead of inverting with it.
+                    background:
+                      "radial-gradient(120% 90% at 50% 0%, rgba(56,86,140,0.42) 0%, rgba(10,15,28,0.94) 62%)",
+                    border: "1px solid rgba(148,178,232,0.16)",
+                    boxShadow:
+                      "0 1px 0 0 rgba(255,255,255,0.06) inset, 0 24px 60px -28px rgba(12,22,45,0.75)",
+                  }}
                 >
                   <BodyMap jointTemps={jointTemps} jointErrors={jointErrors} />
                 </div>
