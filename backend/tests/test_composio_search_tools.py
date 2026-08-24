@@ -39,7 +39,7 @@ CASES = [
     ),
     (
         "search_local_events",
-        {"query": "live music concerts", "location": "Indore", "date": "2026-08-22"},
+        {"query": "live music concerts", "location": "Indore", "date": "weekend"},
         "which music event is happening in Indore on 22 Aug",
     ),
     (

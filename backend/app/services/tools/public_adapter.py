@@ -190,7 +190,7 @@ PUBLIC_TOOLS = [
                 "properties": {
                     "query": {"type": "string", "description": "Type of events, e.g., 'live music concerts'."},
                     "location": {"type": "string", "description": "The city/location. If the user did not provide one, ASK THEM for their location first before calling this."},
-                    "date": {"type": "string", "description": "The date or date range for the event, e.g. '2026-08-22', 'today', 'this weekend'. Omit if the user didn't mention a specific date."}
+                    "date": {"type": "string", "enum": ["today", "tomorrow", "week", "weekend", "next_week", "month", "next_month"], "description": "When the event happens. This search engine only supports these relative buckets, not exact calendar dates — pick whichever is closest to what the user asked for. Omit if the user didn't mention timing."}
                 },
                 "required": ["query", "location"]
             }
@@ -307,18 +307,65 @@ class PublicToolsAdapter(BaseToolAdapter):
             elif name == "get_current_time":
                 return f"Current UTC Time: {datetime.utcnow().isoformat()}Z"
             elif name == "search_local_places":
-                # This action's underlying API expects "q", not "query" — confirmed
-                # by a live 400 error ("Following fields are missing: {'q'}").
+                # COMPOSIO_SEARCH_GOOGLE_MAPS has no separate "location" field at
+                # all — confirmed via its real input_parameters schema. Location
+                # must be folded into "q" itself, or results drift to a random
+                # region (confirmed live: got a Virginia, USA result for
+                # "south indian restaurant" + location="Vijaynagar, Indore").
+                q_parts = [p for p in (arguments.get("query"), arguments.get("location")) if p]
                 return await self._composio_search("COMPOSIO_SEARCH_GOOGLE_MAPS", {
-                    "q": arguments.get("query"),
-                    "location": arguments.get("location"),
+                    "q": " ".join(q_parts),
                 })
             elif name == "search_local_events":
-                return await self._composio_search("COMPOSIO_SEARCH_EVENT", {
+                # COMPOSIO_SEARCH_EVENT has no "date" field — date filtering is a
+                # separate "htichips" param that only accepts a fixed vocabulary
+                # (date:today/tomorrow/week/weekend/next_week/month/next_month),
+                # confirmed via its real input_parameters schema. Arbitrary dates
+                # silently return zero results rather than erroring.
+                composio_args = {
                     "query": arguments.get("query"),
                     "location": arguments.get("location"),
-                    "date": arguments.get("date"),
-                })
+                }
+                date_bucket = arguments.get("date")
+                if date_bucket:
+                    composio_args["htichips"] = f"date:{date_bucket}"
+
+                try:
+                    event_data = await self._composio_search_raw("COMPOSIO_SEARCH_EVENT", composio_args)
+                except Exception as e:
+                    logger.warning(f"[PublicTools] COMPOSIO_SEARCH_EVENT raised, falling back to web search: {e}")
+                    event_data = None
+
+                # The Composio SDK wraps the tool's own output under a "data" key
+                # (response.data == {"data": {"results": {...}}, "error": ..., "successful": ...}),
+                # confirmed by inspecting the raw response — not documented in the tool schema.
+                inner = event_data.get("data", {}) if isinstance(event_data, dict) else {}
+                results = inner.get("results", {}) if isinstance(inner, dict) else {}
+                if isinstance(results, dict) and results.get("events_results"):
+                    return json.dumps(event_data)
+
+                # Live-tested: Google's events vertical (ibp=htl;events) returns
+                # its bot-block page for this request signature, which SerpApi
+                # reports as events_results_state="Fully empty" rather than an
+                # error. Composio's own tool description says to treat that as
+                # limited coverage and retry via COMPOSIO_SEARCH_WEB instead of
+                # retrying COMPOSIO_SEARCH_EVENT. COMPOSIO_SEARCH_WEB (Exa) has
+                # no location/date params of its own, so fold them into the
+                # query text as natural language.
+                events_state = results.get("search_information", {}).get("events_results_state") if isinstance(results, dict) else None
+                logger.info(f"[PublicTools] search_local_events: EVENT search empty (state={events_state}), falling back to SEARCH_WEB")
+
+                date_phrases = {
+                    "today": "today", "tomorrow": "tomorrow", "week": "this week",
+                    "weekend": "this weekend", "next_week": "next week",
+                    "month": "this month", "next_month": "next month",
+                }
+                query_parts = [arguments.get("query"), "in", arguments.get("location")]
+                if date_bucket:
+                    query_parts.append(date_phrases.get(date_bucket, date_bucket))
+                query_parts.append(str(datetime.utcnow().year))
+                web_query = " ".join(p for p in query_parts if p)
+                return await self._composio_search("COMPOSIO_SEARCH_WEB", {"query": web_query})
             elif name == "search_web":
                 return await self._composio_search("COMPOSIO_SEARCH_WEB", {
                     "query": arguments.get("query"),
@@ -534,32 +581,39 @@ class PublicToolsAdapter(BaseToolAdapter):
                 
         return "Search failed."
 
-    async def _composio_search(self, slug: str, arguments: dict) -> str:
+    async def _composio_search_raw(self, slug: str, arguments: dict) -> Any:
         """
         Runs one of Composio's "Composio Search" toolkit actions
         (COMPOSIO_SEARCH_WEB / _NEWS / _GOOGLE_MAPS / _EVENT), using the shared
         platform-wide Composio key — same pattern ComposioAdapter already uses
         for every tenant, not a per-tenant credential.
 
+        Returns the parsed response payload (not stringified) so callers can
+        inspect it — e.g. search_local_events checks events_results before
+        deciding whether to fall back to a different search action.
+
         arguments may contain None values (e.g. no location given) — those are
         dropped rather than sent, since Composio's own schema validation should
         decide whether a field is actually required.
         """
         clean_args = {k: v for k, v in arguments.items() if v is not None}
+        client = _get_composio_client()
+        # client.tools.execute is a blocking SDK call — run off the event
+        # loop so one search doesn't stall every other concurrent request.
+        response = await asyncio.to_thread(
+            client.tools.execute,
+            slug=slug,
+            arguments=clean_args,
+            user_id=_COMPOSIO_SEARCH_USER_ID,
+            dangerously_skip_version_check=True,
+        )
+        return response.data if hasattr(response, "data") else response
+
+    async def _composio_search(self, slug: str, arguments: dict) -> str:
+        """Stringified wrapper around _composio_search_raw for tools that just return the raw payload as-is."""
         try:
-            client = _get_composio_client()
-            # client.tools.execute is a blocking SDK call — run off the event
-            # loop so one search doesn't stall every other concurrent request.
-            response = await asyncio.to_thread(
-                client.tools.execute,
-                slug=slug,
-                arguments=clean_args,
-                user_id=_COMPOSIO_SEARCH_USER_ID,
-                dangerously_skip_version_check=True,
-            )
-            if hasattr(response, "data"):
-                return json.dumps(response.data)
-            return str(response)
+            data = await self._composio_search_raw(slug, arguments)
+            return json.dumps(data)
         except Exception as e:
             logger.error(f"[PublicTools] Composio search '{slug}' failed: {e}")
             return f"Error executing {slug}: {str(e)}"
