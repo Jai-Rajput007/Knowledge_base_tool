@@ -307,8 +307,10 @@ class PublicToolsAdapter(BaseToolAdapter):
             elif name == "get_current_time":
                 return f"Current UTC Time: {datetime.utcnow().isoformat()}Z"
             elif name == "search_local_places":
+                # This action's underlying API expects "q", not "query" — confirmed
+                # by a live 400 error ("Following fields are missing: {'q'}").
                 return await self._composio_search("COMPOSIO_SEARCH_GOOGLE_MAPS", {
-                    "query": arguments.get("query"),
+                    "q": arguments.get("query"),
                     "location": arguments.get("location"),
                 })
             elif name == "search_local_events":
