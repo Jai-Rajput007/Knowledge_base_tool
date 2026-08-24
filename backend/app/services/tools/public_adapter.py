@@ -1,3 +1,6 @@
+import asyncio
+import json
+import os
 import httpx
 from datetime import datetime
 import urllib.parse
@@ -5,8 +8,20 @@ from typing import List, Dict, Any
 from app.services.tools.base import BaseToolAdapter
 from app.core.logging import logger
 
-# We now use local SearXNG via Docker
-HAS_SEARXNG = True
+# Shared Composio client for search_web/search_news/search_local_places/search_local_events.
+# Same platform-wide key pattern already used for the "composio" provider in mcp.py —
+# one key covers every tenant, same as this codebase already does for Composio elsewhere.
+_COMPOSIO_CLIENT = None
+_COMPOSIO_SEARCH_USER_ID = os.environ.get("COMPOSIO_SEARCH_USER_ID", "g1-universe-public")
+
+
+def _get_composio_client():
+    global _COMPOSIO_CLIENT
+    if _COMPOSIO_CLIENT is None:
+        from composio import Composio
+        api_key = os.environ.get("COMPOSIO_API_KEY", "ak_HlT2qEnTnTXF1OGcHMEG")
+        _COMPOSIO_CLIENT = Composio(api_key=api_key)
+    return _COMPOSIO_CLIENT
 
 PUBLIC_TOOLS = [
     {
@@ -169,12 +184,13 @@ PUBLIC_TOOLS = [
         "type": "function",
         "function": {
             "name": "search_local_events",
-            "description": "Searches the web for upcoming events or concerts. MUST include the location.",
+            "description": "Searches for upcoming events, concerts, festivals, or conferences. MUST include the location.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "query": {"type": "string", "description": "Type of events, e.g., 'live music concerts this weekend'."},
-                    "location": {"type": "string", "description": "The city/location. If the user did not provide one, ASK THEM for their location first before calling this."}
+                    "query": {"type": "string", "description": "Type of events, e.g., 'live music concerts'."},
+                    "location": {"type": "string", "description": "The city/location. If the user did not provide one, ASK THEM for their location first before calling this."},
+                    "date": {"type": "string", "description": "The date or date range for the event, e.g. '2026-08-22', 'today', 'this weekend'. Omit if the user didn't mention a specific date."}
                 },
                 "required": ["query", "location"]
             }
@@ -290,12 +306,25 @@ class PublicToolsAdapter(BaseToolAdapter):
                 return await self._search_wikipedia(arguments.get("query"))
             elif name == "get_current_time":
                 return f"Current UTC Time: {datetime.utcnow().isoformat()}Z"
-            elif name in ("search_local_places", "search_local_events"):
-                return await self._search_web(f"{arguments.get('query')} in {arguments.get('location')}")
+            elif name == "search_local_places":
+                return await self._composio_search("COMPOSIO_SEARCH_GOOGLE_MAPS", {
+                    "query": arguments.get("query"),
+                    "location": arguments.get("location"),
+                })
+            elif name == "search_local_events":
+                return await self._composio_search("COMPOSIO_SEARCH_EVENT", {
+                    "query": arguments.get("query"),
+                    "location": arguments.get("location"),
+                    "date": arguments.get("date"),
+                })
             elif name == "search_web":
-                return await self._search_web(arguments.get("query"))
+                return await self._composio_search("COMPOSIO_SEARCH_WEB", {
+                    "query": arguments.get("query"),
+                })
             elif name == "search_news":
-                return await self._search_news(arguments.get("query"))
+                return await self._composio_search("COMPOSIO_SEARCH_NEWS", {
+                    "query": arguments.get("query"),
+                })
             else:
                 return f"Unknown public tool: {name}"
         except Exception as e:
@@ -503,73 +532,32 @@ class PublicToolsAdapter(BaseToolAdapter):
                 
         return "Search failed."
 
-    async def _search_web(self, query: str) -> str:
-        if not query:
-            return "Error: query is required."
-            
+    async def _composio_search(self, slug: str, arguments: dict) -> str:
+        """
+        Runs one of Composio's "Composio Search" toolkit actions
+        (COMPOSIO_SEARCH_WEB / _NEWS / _GOOGLE_MAPS / _EVENT), using the shared
+        platform-wide Composio key — same pattern ComposioAdapter already uses
+        for every tenant, not a per-tenant credential.
+
+        arguments may contain None values (e.g. no location given) — those are
+        dropped rather than sent, since Composio's own schema validation should
+        decide whether a field is actually required.
+        """
+        clean_args = {k: v for k, v in arguments.items() if v is not None}
         try:
-            import httpx
-            
-            async with httpx.AsyncClient(timeout=15.0) as client:
-                params = {
-                    "q": query,
-                    "format": "json"
-                }
-                response = await client.get("http://localhost:8080/search", params=params)
-                
-                if response.status_code != 200:
-                    return f"Search failed with status code: {response.status_code}"
-                    
-                data = response.json()
-                results = data.get("results", [])
-                
-                if not results:
-                    return f"No results found for '{query}'"
-                
-                output = []
-                for r in results[:5]:
-                    title = r.get("title", "")
-                    link = r.get("url", "")
-                    snippet = r.get("content", "")
-                    output.append(f"Title: {title}\nLink: {link}\nSnippet: {snippet}\n")
-                
-                return f"Web Search Results for '{query}':\n\n" + "\n".join(output)
-                
+            client = _get_composio_client()
+            # client.tools.execute is a blocking SDK call — run off the event
+            # loop so one search doesn't stall every other concurrent request.
+            response = await asyncio.to_thread(
+                client.tools.execute,
+                slug=slug,
+                arguments=clean_args,
+                user_id=_COMPOSIO_SEARCH_USER_ID,
+                dangerously_skip_version_check=True,
+            )
+            if hasattr(response, "data"):
+                return json.dumps(response.data)
+            return str(response)
         except Exception as e:
-            return f"Web search failed: {str(e)}"
-            
-    async def _search_news(self, query: str) -> str:
-        if not query:
-            return "Error: query is required."
-            
-        try:
-            import httpx
-            
-            async with httpx.AsyncClient(timeout=15.0) as client:
-                params = {
-                    "q": query,
-                    "format": "json",
-                    "categories": "news"
-                }
-                response = await client.get("http://localhost:8080/search", params=params)
-                
-                if response.status_code != 200:
-                    return f"News search failed with status code: {response.status_code}"
-                    
-                data = response.json()
-                results = data.get("results", [])
-                
-                if not results:
-                    return f"No news results found for '{query}'"
-                
-                output = []
-                for r in results[:5]:
-                    title = r.get("title", "")
-                    link = r.get("url", "")
-                    snippet = r.get("content", "")
-                    output.append(f"Title: {title}\nLink: {link}\nSnippet: {snippet}\n")
-                
-                return f"News Search Results for '{query}':\n\n" + "\n".join(output)
-                
-        except Exception as e:
-            return f"News search failed: {str(e)}"
+            logger.error(f"[PublicTools] Composio search '{slug}' failed: {e}")
+            return f"Error executing {slug}: {str(e)}"
