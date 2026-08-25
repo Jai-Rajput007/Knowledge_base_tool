@@ -67,6 +67,12 @@ class Settings(BaseSettings):
     # Security
     SECRET_KEY: str = os.getenv("SECRET_KEY", "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7")
 
+    # Robot service key — shared secret for machine-to-machine calls from the
+    # G1 robot's g1-nlp pipeline (WorkspaceMCPClient) to the MCP endpoints.
+    # Deliberately NOT tied to the human RBAC/role system (RequireRole) — a
+    # scoped, constant-time-compared static key, same pattern as COMPOSIO_API_KEY.
+    ROBOT_SERVICE_KEY: str = os.getenv("ROBOT_SERVICE_KEY", "8TJcdB4zjEMQzmWx2OCHQ-yeT0Y7PW_ms-AZjpdpxbA")
+
     # Admin seed account
     ADMIN_USERNAME: str = "admin"
     ADMIN_EMAIL: str = "admin@g1system.local"

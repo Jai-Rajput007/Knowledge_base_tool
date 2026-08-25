@@ -317,44 +317,23 @@ class PublicToolsAdapter(BaseToolAdapter):
                     "q": " ".join(q_parts),
                 })
             elif name == "search_local_events":
-                # COMPOSIO_SEARCH_EVENT has no "date" field — date filtering is a
-                # separate "htichips" param that only accepts a fixed vocabulary
-                # (date:today/tomorrow/week/weekend/next_week/month/next_month),
-                # confirmed via its real input_parameters schema. Arbitrary dates
-                # silently return zero results rather than erroring.
-                composio_args = {
-                    "query": arguments.get("query"),
-                    "location": arguments.get("location"),
-                }
-                date_bucket = arguments.get("date")
-                if date_bucket:
-                    composio_args["htichips"] = f"date:{date_bucket}"
-
-                try:
-                    event_data = await self._composio_search_raw("COMPOSIO_SEARCH_EVENT", composio_args)
-                except Exception as e:
-                    logger.warning(f"[PublicTools] COMPOSIO_SEARCH_EVENT raised, falling back to web search: {e}")
-                    event_data = None
-
-                # The Composio SDK wraps the tool's own output under a "data" key
-                # (response.data == {"data": {"results": {...}}, "error": ..., "successful": ...}),
-                # confirmed by inspecting the raw response — not documented in the tool schema.
-                inner = event_data.get("data", {}) if isinstance(event_data, dict) else {}
-                results = inner.get("results", {}) if isinstance(inner, dict) else {}
-                if isinstance(results, dict) and results.get("events_results"):
-                    return json.dumps(event_data)
-
-                # Live-tested: Google's events vertical (ibp=htl;events) returns
-                # its bot-block page for this request signature, which SerpApi
+                # COMPOSIO_SEARCH_EVENT (Google's events vertical via SerpApi) is
+                # bypassed entirely for now. Live-tested across 20+ queries (every
+                # major city/category/date-bucket combo, incl. NYC/London/SF where
+                # Google Events has its best coverage): 0/20 ever returned a result.
+                # The raw response shows Google returning its bot-detection block
+                # page for this request signature (ibp=htl;events), which SerpApi
                 # reports as events_results_state="Fully empty" rather than an
-                # error. Composio's own tool description says to treat that as
-                # limited coverage and retry via COMPOSIO_SEARCH_WEB instead of
-                # retrying COMPOSIO_SEARCH_EVENT. COMPOSIO_SEARCH_WEB (Exa) has
-                # no location/date params of its own, so fold them into the
-                # query text as natural language.
-                events_state = results.get("search_information", {}).get("events_results_state") if isinstance(results, dict) else None
-                logger.info(f"[PublicTools] search_local_events: EVENT search empty (state={events_state}), falling back to SEARCH_WEB")
-
+                # error — so EVENT can't succeed right now, only burn latency
+                # (confirmed on the Thor: ~44-47s per call before failing).
+                # Composio's own tool description says to treat that state as
+                # limited coverage and use COMPOSIO_SEARCH_WEB instead — going
+                # straight there skips the wasted EVENT round-trip. Revisit if
+                # Google's block on this vertical ever lifts (no way to detect
+                # that automatically; would need periodic manual retesting).
+                # COMPOSIO_SEARCH_WEB (Exa) has no location/date params of its
+                # own, so location/date are folded into the query as natural language.
+                date_bucket = arguments.get("date")
                 date_phrases = {
                     "today": "today", "tomorrow": "tomorrow", "week": "this week",
                     "weekend": "this weekend", "next_week": "next week",

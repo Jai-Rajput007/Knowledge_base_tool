@@ -1,9 +1,10 @@
 """Security utilities for authentication."""
 
+import secrets as secrets_module
 from datetime import datetime, timedelta
 from typing import Any, Union, Optional
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
@@ -60,7 +61,27 @@ class RequireRole:
     def __call__(self, current_user: User = Depends(get_current_user)) -> User:
         if current_user.role not in self.allowed_roles:
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, 
+                status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Access denied. Requires one of: {', '.join(self.allowed_roles)}"
             )
         return current_user
+
+
+def RequireServiceKey(x_robot_key: Optional[str] = Header(default=None)) -> None:
+    """
+    Auth dependency for machine-to-machine calls from the robot (g1-nlp's
+    WorkspaceMCPClient), deliberately separate from the human RBAC/role system
+    above. No DB lookup, no session, no expiry — just a constant-time compare
+    against a static shared secret, so there's nothing to refresh or silently
+    go stale on a robot that may run for weeks unattended.
+
+    Kept intentionally orthogonal to RequireRole/get_current_user: when a
+    fuller RBAC system is built out later, this doesn't need to be revisited —
+    service credentials for machine callers are conventionally a separate
+    concern from human roles (e.g. AWS IAM users vs. service roles).
+    """
+    if not x_robot_key or not secrets_module.compare_digest(x_robot_key, settings.ROBOT_SERVICE_KEY):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing or invalid X-Robot-Key",
+        )

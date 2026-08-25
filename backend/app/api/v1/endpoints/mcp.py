@@ -10,7 +10,7 @@ from app.core.config import settings
 
 router = APIRouter()
 
-from app.core.security import RequireRole
+from app.core.security import RequireRole, RequireServiceKey
 from app.services.tools.registry import ToolRegistryService
 from app.models.tenant import TenantMcpConfig, McpIntegration
 from app.models.user import User
@@ -20,24 +20,23 @@ class ToolCallRequest(BaseModel):
     name: str
     arguments: dict
 
-def _get_robot_creds_map(db: Session, user_id: int):
+def _get_robot_creds_map(db: Session, tenant_id: str):
     creds_map = {}
     try:
-        user = db.query(User).filter(User.id == user_id).first()
-        if not user:
+        if not tenant_id:
             return creds_map
-            
+
         configs = db.query(TenantMcpConfig).join(McpIntegration).filter(
             TenantMcpConfig.isEnabled == True,
-            TenantMcpConfig.tenantId == user.tenant_id
+            TenantMcpConfig.tenantId == tenant_id
         ).all()
-        
+
         for config in configs:
             provider = config.mcp_integration.provider if hasattr(config, 'mcp_integration') else None
             if not provider:
                 integration = db.query(McpIntegration).filter(McpIntegration.id == config.mcpId).first()
                 provider = integration.provider if integration else None
-                
+
             if provider == "taylorwilsdon/google_workspace_mcp":
                 creds_map[provider] = config.credentials
             elif provider == "composio":
@@ -48,31 +47,28 @@ def _get_robot_creds_map(db: Session, user_id: int):
                     "user_id": config.composioUserId,
                     "apps": []
                 })
-        
-        # Public tools handling
-        if hasattr(User, 'TenantUser'):
-            pass # Ignore complex multi-tenant logic for public for now, fallback to generic
-            
+
         enabled_public = (
             db.query(McpIntegration)
             .join(TenantMcpConfig, TenantMcpConfig.mcpId == McpIntegration.id)
-            .filter(McpIntegration.provider == "public", TenantMcpConfig.isEnabled == True, TenantMcpConfig.tenantId == user.tenant_id)
+            .filter(McpIntegration.provider == "public", TenantMcpConfig.isEnabled == True, TenantMcpConfig.tenantId == tenant_id)
             .all()
         )
         if enabled_public:
             import json
             enabled_names = [i.name for i in enabled_public]
             creds_map["public"] = json.dumps({"enabled": enabled_names})
-            
+
     except Exception as e:
         print(f"Error fetching robot creds: {e}")
-        
+
     return creds_map
 
 @router.get("/tools")
-async def get_tools(query: str = None, db: Session = Depends(get_db), current_user = Depends(RequireRole(["admin"]))):
+async def get_tools(query: str = None, db: Session = Depends(get_db), _service = Depends(RequireServiceKey)):
     try:
-        creds_map = _get_robot_creds_map(db, current_user.id)
+        tenant = db.query(Tenant).first()
+        creds_map = _get_robot_creds_map(db, tenant.id if tenant else None)
         registry = ToolRegistryService()
         registry.load_adapters(creds_map)
         tools = await registry.get_all_tools(query=query)
@@ -81,14 +77,15 @@ async def get_tools(query: str = None, db: Session = Depends(get_db), current_us
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/call")
-async def call_tool(req: ToolCallRequest, db: Session = Depends(get_db), current_user = Depends(RequireRole(["admin"]))):
+async def call_tool(req: ToolCallRequest, db: Session = Depends(get_db), _service = Depends(RequireServiceKey)):
     try:
-        creds_map = _get_robot_creds_map(db, current_user.id)
+        tenant = db.query(Tenant).first()
+        creds_map = _get_robot_creds_map(db, tenant.id if tenant else None)
         registry = ToolRegistryService()
         registry.load_adapters(creds_map)
         # Must call get_all_tools to populate _tool_map so execute_tool knows the adapter
-        await registry.get_all_tools(query=req.name) 
-        
+        await registry.get_all_tools(query=req.name)
+
         result = await registry.execute_tool(req.name, req.arguments)
         return {"content": [{"type": "text", "text": str(result)}]}
     except Exception as e:
