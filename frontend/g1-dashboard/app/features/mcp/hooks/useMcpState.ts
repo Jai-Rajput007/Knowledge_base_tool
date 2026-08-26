@@ -51,20 +51,24 @@ export function useMcpState() {
     const integration = integrations.find(i => i.id === id);
     if (!integration) return;
 
-    if (integration.provider === "composio" && (!integration.config_schema || Object.keys(integration.config_schema).length === 0 || integration.config_schema.auth_config_id)) {
-      // It's an OAuth integration (like GitHub) that doesn't require manual fields
+    // Composio apps: always trigger OAuth flow directly.
+    // config_schema for composio apps only contains { app: "slack" } (our providerConfig),
+    // not real form fields — so we never show the manual fields modal for composio.
+    if (integration.provider === "composio") {
       try {
         setLoading(true);
         const url = await api.generateComposioLink(id);
-        window.location.href = url;
+        // Open in new tab so user can complete OAuth without losing the dashboard
+        window.open(url, "_blank", "noopener,noreferrer");
       } catch (e) {
-        console.error("Failed to generate connect link", e);
+        console.error("[MCP] Failed to generate composio connect link:", e);
       } finally {
         setLoading(false);
       }
       return;
     }
 
+    // Non-composio apps (public tools, taylorwilsdon legacy): show config modal
     setConfiguringId(id);
     if (integration.config_schema) {
       const initialValues: ConfigFormValues = {};
