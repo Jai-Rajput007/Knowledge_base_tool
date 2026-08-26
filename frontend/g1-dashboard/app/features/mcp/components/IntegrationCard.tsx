@@ -24,9 +24,45 @@ interface IntegrationCardProps {
   onConfigure: (id: string) => void;
 }
 
-// ─── App Logo using Composio Toolkit API URL ──────────────────────────────────
-// The logo URL is fetched from GET /api/v3.1/toolkits/{slug} via our backend
-// /mcp/logos endpoint — this is Composio's official API, not a guessed CDN path.
+// ─── Composio CDN logo map ────────────────────────────────────────────────────
+// Key: Composio app slug stored in providerConfig.app (our DB value)
+// Value: Correct CDN slug for https://logos.composio.dev/api/{cdnSlug}
+// ⚠ Some slugs differ from our DB slug: underscore format is what Composio CDN expects.
+// All URLs below verified to return real logos (non-wireframe) via curl.
+const CDN = "https://logos.composio.dev/api";
+const COMPOSIO_LOGO_URLS: Record<string, string> = {
+  // Google Workspace
+  gmail:              `${CDN}/gmail`,
+  googlecalendar:     `${CDN}/googlecalendar`,
+  googledrive:        `${CDN}/googledrive`,
+  googlesheets:       `${CDN}/googlesheets`,
+  googledocs:         `${CDN}/googledocs`,
+  googleslides:       `${CDN}/googleslides`,
+  googletasks:        `${CDN}/googletasks`,
+  googlechat:         `${CDN}/googlechat`,
+  googleforms:        `${CDN}/googleforms`,
+  googleclassroom:    `${CDN}/google_classroom`,   // ← underscore slug
+  googlemaps:         `${CDN}/google_maps`,         // ← underscore slug
+  // Communication & Collaboration
+  slack:              `${CDN}/slack`,
+  microsoftteams:     `${CDN}/microsoft_teams`,     // ← underscore slug
+  zoom:               `${CDN}/zoom`,
+  whatsapp:           `${CDN}/whatsapp`,
+  outlook:            `${CDN}/outlook`,
+  // Project Management
+  jira:               `${CDN}/jira`,
+  // Social & Content
+  twitter:            `${CDN}/twitter`,
+  linkedin:           `${CDN}/linkedin`,
+  instagram:          `${CDN}/instagram`,
+  pinterest:          `${CDN}/pinterest`,
+  spotify:            `${CDN}/spotify`,
+  // Travel (tripadvisorcontent not on Composio CDN — use tripadvisor logo)
+  tripadvisorcontent: `${CDN}/tripadvisor`,
+  // Context7 (not on Composio CDN — use their favicon)
+  context7:           "https://context7.com/favicon.ico",
+};
+
 const AppLogo = ({
   url,
   appSlug,
@@ -73,21 +109,19 @@ export function IntegrationCard({ integration, logosMap = {}, onToggle, onConfig
   }`;
   const n = integration.name.toLowerCase();
 
-  // ── Composio apps: use the official logo URL from Composio's toolkit API ──
-  // config_schema holds parsed providerConfig JSON: e.g. { app: "slack" }
+  // For Composio provider apps: use verified CDN URL from COMPOSIO_LOGO_URLS map
   const composioAppSlug = integration.provider === "composio"
     ? (integration.config_schema as any)?.app as string | undefined
     : undefined;
 
   const brandIcon = (() => {
-    // Composio apps: use API-provided URL from logosMap (fetched via GET /mcp/logos)
     if (composioAppSlug) {
-      const logoUrl = logosMap[composioAppSlug];
+      const logoUrl = COMPOSIO_LOGO_URLS[composioAppSlug];
       if (logoUrl) {
         return <AppLogo url={logoUrl} appSlug={composioAppSlug} isEnabled={integration.is_active} />;
       }
-      // Logo not yet loaded (still fetching) — show subtle placeholder
-      return <Puzzle className={`w-12 h-12 opacity-30 animate-pulse`} />;
+      // Slug not in map — fallback puzzle
+      return <Puzzle className="w-12 h-12 opacity-50" />;
     }
 
     // ── Public / built-in tools: use local icons ────────────────────────────
