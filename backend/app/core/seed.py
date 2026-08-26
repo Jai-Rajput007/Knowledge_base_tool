@@ -225,21 +225,41 @@ def _seed_mcps(db):
         {"name": "Currency Converter", "category": "utility", "description": "Currency conversion.", "tier": "BASIC", "provider": "public", "providerConfig": "{}"},
         {"name": "Web search", "category": "search", "description": "General web search.", "tier": "BASIC", "provider": "public", "providerConfig": "{}"},
 
-        # GCP Tools
-        {"name": "Google Chat", "category": "communication", "description": "Google Chat integration.", "tier": "BASIC", "provider": "taylorwilsdon/google_workspace_mcp", "providerConfig": "{}"},
-        {"name": "Google Calendar", "category": "productivity", "description": "Google Calendar integration.", "tier": "BASIC", "provider": "taylorwilsdon/google_workspace_mcp", "providerConfig": "{}"},
-        {"name": "Google Contacts", "category": "productivity", "description": "Google Contacts integration.", "tier": "BASIC", "provider": "taylorwilsdon/google_workspace_mcp", "providerConfig": "{}"},
-        {"name": "Gmail", "category": "communication", "description": "Gmail integration.", "tier": "BASIC", "provider": "taylorwilsdon/google_workspace_mcp", "providerConfig": "{}"},
-        {"name": "Google Drive", "category": "productivity", "description": "Google Drive integration.", "tier": "BASIC", "provider": "taylorwilsdon/google_workspace_mcp", "providerConfig": "{}"},
-        {"name": "Google Docs", "category": "productivity", "description": "Google Docs integration.", "tier": "BASIC", "provider": "taylorwilsdon/google_workspace_mcp", "providerConfig": "{}"},
-        {"name": "Google Sheets", "category": "productivity", "description": "Google Sheets integration.", "tier": "BASIC", "provider": "taylorwilsdon/google_workspace_mcp", "providerConfig": "{}"},
-        {"name": "Google Slides", "category": "productivity", "description": "Google Slides integration.", "tier": "BASIC", "provider": "taylorwilsdon/google_workspace_mcp", "providerConfig": "{}"},
-        {"name": "Google Forms", "category": "productivity", "description": "Google Forms integration.", "tier": "BASIC", "provider": "taylorwilsdon/google_workspace_mcp", "providerConfig": "{}"},
-        {"name": "Google Tasks", "category": "productivity", "description": "Google Tasks integration.", "tier": "BASIC", "provider": "taylorwilsdon/google_workspace_mcp", "providerConfig": "{}"},
-        {"name": "Google Custom Search", "category": "search", "description": "Google Custom Search Engine integration.", "tier": "BASIC", "provider": "taylorwilsdon/google_workspace_mcp", "providerConfig": "{}"},
-        
-        # Composio
-        {"name": "Composio Hub", "category": "integrations", "description": "Connect to hundreds of apps via Composio.", "tier": "BASIC", "provider": "composio", "providerConfig": '{"auth_config_id": "composio"}'}
+        # ── Google Workspace (via Composio) ──────────────────────────────────
+        {"name": "Gmail", "category": "communication", "description": "Read, send, draft and manage your Gmail emails and labels.", "tier": "BASIC", "provider": "composio", "providerConfig": '{"app": "gmail"}'},
+        {"name": "Google Calendar", "category": "productivity", "description": "Create, view, and manage Google Calendar events and schedules.", "tier": "BASIC", "provider": "composio", "providerConfig": '{"app": "googlecalendar"}'},
+        {"name": "Google Drive", "category": "productivity", "description": "Upload, download, search and organize files in Google Drive.", "tier": "BASIC", "provider": "composio", "providerConfig": '{"app": "googledrive"}'},
+        {"name": "Google Sheets", "category": "productivity", "description": "Read, write and format data in Google Sheets spreadsheets.", "tier": "BASIC", "provider": "composio", "providerConfig": '{"app": "googlesheets"}'},
+        {"name": "Google Docs", "category": "productivity", "description": "Create, edit and manage Google Docs documents.", "tier": "BASIC", "provider": "composio", "providerConfig": '{"app": "googledocs"}'},
+        {"name": "Google Slides", "category": "productivity", "description": "Create and manage Google Slides presentations.", "tier": "BASIC", "provider": "composio", "providerConfig": '{"app": "googleslides"}'},
+        {"name": "Google Tasks", "category": "productivity", "description": "Manage your task lists and to-dos in Google Tasks.", "tier": "BASIC", "provider": "composio", "providerConfig": '{"app": "googletasks"}'},
+        {"name": "Google Chat", "category": "communication", "description": "Send messages, search conversations and manage Google Chat spaces.", "tier": "BASIC", "provider": "composio", "providerConfig": '{"app": "googlechat"}'},
+        {"name": "Google Classroom", "category": "education", "description": "Manage courses, assignments and student work in Google Classroom.", "tier": "BASIC", "provider": "composio", "providerConfig": '{"app": "googleclassroom"}'},
+        {"name": "Google Forms", "category": "productivity", "description": "Create forms, manage questions, and retrieve responses from Google Forms.", "tier": "BASIC", "provider": "composio", "providerConfig": '{"app": "googleforms"}'},
+        {"name": "Google Maps", "category": "utility", "description": "Search places, get directions and location details via Google Maps.", "tier": "BASIC", "provider": "composio", "providerConfig": '{"app": "googlemaps"}'},
+
+        # ── Communication & Collaboration ─────────────────────────────────────
+        {"name": "Slack", "category": "communication", "description": "Post messages, search channels and manage Slack workspaces.", "tier": "BASIC", "provider": "composio", "providerConfig": '{"app": "slack"}'},
+        {"name": "Microsoft Teams", "category": "communication", "description": "Send messages, manage meetings and collaborate in Microsoft Teams.", "tier": "BASIC", "provider": "composio", "providerConfig": '{"app": "microsoftteams"}'},
+        {"name": "Zoom", "category": "communication", "description": "Schedule, manage and interact with Zoom meetings and team chats.", "tier": "BASIC", "provider": "composio", "providerConfig": '{"app": "zoom"}'},
+        {"name": "WhatsApp", "category": "communication", "description": "Send and receive WhatsApp messages programmatically.", "tier": "BASIC", "provider": "composio", "providerConfig": '{"app": "whatsapp"}'},
+        {"name": "Outlook", "category": "communication", "description": "Read, send and manage emails and calendar via Microsoft Outlook.", "tier": "BASIC", "provider": "composio", "providerConfig": '{"app": "outlook"}'},
+
+        # ── Project Management ────────────────────────────────────────────────
+        {"name": "Jira", "category": "productivity", "description": "Create, update and track Jira issues, sprints and projects.", "tier": "BASIC", "provider": "composio", "providerConfig": '{"app": "jira"}'},
+
+        # ── Social & Content ──────────────────────────────────────────────────
+        {"name": "Twitter", "category": "social", "description": "Post tweets, search timelines and manage Twitter/X interactions.", "tier": "BASIC", "provider": "composio", "providerConfig": '{"app": "twitter"}'},
+        {"name": "LinkedIn", "category": "social", "description": "Post updates, search profiles and manage LinkedIn connections.", "tier": "BASIC", "provider": "composio", "providerConfig": '{"app": "linkedin"}'},
+        {"name": "Instagram", "category": "social", "description": "Manage Instagram posts, stories and media content.", "tier": "BASIC", "provider": "composio", "providerConfig": '{"app": "instagram"}'},
+        {"name": "Pinterest", "category": "social", "description": "Create and manage Pinterest pins and boards.", "tier": "BASIC", "provider": "composio", "providerConfig": '{"app": "pinterest"}'},
+        {"name": "Spotify", "category": "entertainment", "description": "Search tracks, manage playlists and control Spotify playback.", "tier": "BASIC", "provider": "composio", "providerConfig": '{"app": "spotify"}'},
+
+        # ── Travel ────────────────────────────────────────────────────────────
+        {"name": "Tripadvisor Content", "category": "travel", "description": "Fetch hotel, restaurant and attraction content from the Tripadvisor Content API.", "tier": "BASIC", "provider": "composio", "providerConfig": '{"app": "tripadvisorcontent"}'},
+
+        # ── Context / Knowledge ───────────────────────────────────────────────
+        {"name": "Context7", "category": "knowledge", "description": "Fetch up-to-date library documentation and code examples via Context7.", "tier": "BASIC", "provider": "composio", "providerConfig": '{"app": "context7"}'},
     ]
     count = 0
     for m in mcps:

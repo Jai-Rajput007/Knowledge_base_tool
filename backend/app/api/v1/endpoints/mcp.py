@@ -42,10 +42,47 @@ def _get_robot_creds_map(db: Session, tenant_id: str):
             elif provider == "composio":
                 import os, json
                 api_key = os.environ.get("COMPOSIO_API_KEY", "ak_HlT2qEnTnTXF1OGcHMEG")
+                # Full list of Composio toolkit slugs enabled for this tenant.
+                # These map 1-to-1 with Composio's official slugs — do NOT use display names.
+                # Google Workspace apps (replacing the hand-rolled gcp_modules/):
+                # + Additional business/productivity/social apps.
+                composio_apps = [
+                    # Google Workspace
+                    "gmail",
+                    "googlecalendar",
+                    "googledrive",
+                    "googlesheets",
+                    "googledocs",
+                    "googleslides",
+                    "googletasks",
+                    "googlechat",
+                    "googleclassroom",
+                    "googleforms",
+                    "googlemaps",
+                    # Communication & Collaboration
+                    "slack",
+                    "microsoftteams",
+                    "zoom",
+                    "whatsapp",
+                    # Email & Calendar
+                    "outlook",
+                    # Project Management
+                    "jira",
+                    # Social & Content
+                    "twitter",
+                    "linkedin",
+                    "instagram",
+                    "pinterest",
+                    "spotify",
+                    # Travel
+                    "tripadvisorcontent",   # Tripadvisor Content API (not the management app)
+                    # Context
+                    "context7",
+                ]
                 creds_map["composio"] = json.dumps({
                     "api_key": api_key,
                     "user_id": config.composioUserId,
-                    "apps": []
+                    "apps": composio_apps
                 })
 
         enabled_public = (

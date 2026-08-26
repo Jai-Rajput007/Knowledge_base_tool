@@ -1,7 +1,7 @@
 import React from "react";
 import { Integration } from "../types";
 import { 
-  Puzzle, Crown, CheckCircle2, X, CreditCard, Cloud, FileText, Briefcase, Search, MessageSquare, Sun, Coins, ScanFace, User, HardHat, Navigation, Battery, Camera, Activity, Clock, Newspaper
+  Puzzle, Crown, CheckCircle2, X, CreditCard, Cloud, FileText, Briefcase, Search, MessageSquare, Sun, Coins, ScanFace, User, HardHat, Navigation, Battery, Camera, Activity, Clock, Newspaper, Map, BookOpen, Music, Plane
 } from "lucide-react";
 import { 
   SiJira, SiGithub, SiGitlab, SiHubspot, 
@@ -11,7 +11,10 @@ import {
   SiWikipedia, SiDiscord, SiGooglecalendar, SiGoogledrive, 
   SiGoogledocs, SiBrave, SiDuckduckgo, SiGooglemaps,
   SiGmail, SiGooglesheets, SiGoogleslides, SiGoogleforms,
-  SiGooglechat, SiGoogletasks
+  SiGooglechat, SiGoogletasks, SiSlack, SiX, SiLinkedin,
+  SiInstagram, SiPinterest, SiSpotify, SiWhatsapp,
+  SiMicrosoftteams, SiMicrosoftoutlook, SiGoogleclassroom,
+  SiTripadvisor
 } from "@icons-pack/react-simple-icons";
 
 interface IntegrationCardProps {
@@ -67,15 +70,40 @@ export function IntegrationCard({ integration, onToggle, onConfigure }: Integrat
     if (n.includes('google forms')) return <SiGoogleforms className={iconClass} color="default" />;
     if (n.includes('google chat')) return <SiGooglechat className={iconClass} color="default" />;
     if (n.includes('google tasks')) return <SiGoogletasks className={iconClass} color="default" />;
+    if (n.includes('google classroom')) return <SiGoogleclassroom className={iconClass} color="default" />;
+    if (n.includes('google maps')) return <SiGooglemaps className={iconClass} color="default" />;
+
+    // Communication & Collaboration
+    if (n.includes('slack')) return <SiSlack className={iconClass} color="default" />;
+    if (n.includes('microsoft teams') || n === 'teams') return <SiMicrosoftteams className={iconClass} color="default" />;
+    if (n.includes('whatsapp')) return <SiWhatsapp className={iconClass} color="default" />;
+    if (n.includes('zoom')) return <SiZoom className={iconClass} color="default" />;
+    if (n.includes('outlook')) return <SiMicrosoftoutlook className={iconClass} color="default" />;
+    if (n.includes('telegram')) return <SiTelegram className={iconClass} color="default" />;
+    if (n.includes('discord')) return <SiDiscord className={iconClass} color="default" />;
+
+    // Social & Content
+    if (n.includes('twitter') || n.includes('x.com')) return <SiX className={iconClass} color="default" />;
+    if (n.includes('linkedin')) return <SiLinkedin className={iconClass} color="default" />;
+    if (n.includes('instagram')) return <SiInstagram className={iconClass} color="default" />;
+    if (n.includes('pinterest')) return <SiPinterest className={iconClass} color="default" />;
+    if (n.includes('spotify')) return <SiSpotify className={iconClass} color="default" />;
+
+    // Travel
+    if (n.includes('tripadvisor')) return <SiTripadvisor className={iconClass} color="default" />;
+
+    // Knowledge / Dev
+    if (n.includes('context7')) return <BookOpen className={iconClass} style={{ color: '#7C3AED' }} />;
+    if (n.includes('notion')) return <SiNotion className={iconClass} color="default" />;
+    if (n.includes('confluence')) return <SiConfluence className={iconClass} color="default" />;
+    if (n.includes('wikipedia')) return <SiWikipedia className={iconClass} color="default" />;
 
     // Fallbacks for other generic apps
-    if (n.includes('slack')) return <MessageSquare className={iconClass} style={{ color: '#4A154B' }} />;
     if (n.includes('salesforce')) return <Cloud className={iconClass} style={{ color: '#00A1E0' }} />;
     if (n.includes('oracle')) return <Briefcase className={iconClass} style={{ color: '#C74634' }} />;
     if (n.includes('azure')) return <Cloud className={iconClass} style={{ color: '#0078D4' }} />;
     if (n.includes('sharepoint')) return <FileText className={iconClass} style={{ color: '#0078D4' }} />;
     if (n.includes('google workspace')) return <Cloud className={iconClass} style={{ color: '#4285F4' }} />;
-    if (n.includes('teams')) return <MessageSquare className={iconClass} style={{ color: '#464EB8' }} />;
     if (n.includes('onedrive')) return <Cloud className={iconClass} style={{ color: '#0078D4' }} />;
     if (n.includes('word') || n.includes('excel') || n.includes('microsoft 365')) return <FileText className={iconClass} style={{ color: '#185ABD' }} />;
     if (n.includes('aws') || n.includes('amazon')) return <Cloud className={iconClass} style={{ color: '#FF9900' }} />;
@@ -105,11 +133,6 @@ export function IntegrationCard({ integration, onToggle, onConfigure }: Integrat
     if (n.includes('stripe')) return <SiStripe className={iconClass} color="default" />;
     if (n.includes('shopify')) return <SiShopify className={iconClass} color="default" />;
     if (n.includes('woocommerce')) return <SiWoocommerce className={iconClass} color="default" />;
-    if (n.includes('zoom')) return <SiZoom className={iconClass} color="default" />;
-    if (n.includes('telegram')) return <SiTelegram className={iconClass} color="default" />;
-    if (n.includes('notion')) return <SiNotion className={iconClass} color="default" />;
-    if (n.includes('confluence')) return <SiConfluence className={iconClass} color="default" />;
-    if (n.includes('discord')) return <SiDiscord className={iconClass} color="default" />;
     if (n.includes('brave')) return <SiBrave className={iconClass} color="default" />;
 
     return <Puzzle className={iconClass} />;
