@@ -216,8 +216,23 @@ def _seed_personas(db):
         logger.info(f"Seeded {count} persona templates.")
 
 def _seed_mcps(db):
+    # ── Cleanup: remove stale/deprecated entries ──────────────────────────────
+    # These were seeded in a previous version and are no longer needed.
+    DEPRECATED_NAMES = [
+        "Composio Hub",          # replaced by individual per-app cards
+        "Google Contacts",       # not in Composio app list
+        "Google Custom Search",  # not in Composio app list
+    ]
+    for name in DEPRECATED_NAMES:
+        stale = db.query(McpIntegration).filter(McpIntegration.name == name).first()
+        if stale:
+            db.delete(stale)
+            logger.info(f"[Seed] Deleted deprecated MCP entry: '{name}'")
+    db.flush()
+
     mcps = [
         # Public Tools
+
         {"name": "Weather", "category": "utility", "description": "Current weather and forecasts.", "tier": "BASIC", "provider": "public", "providerConfig": "{}"},
         {"name": "Local Search", "category": "utility", "description": "Search local places and events.", "tier": "BASIC", "provider": "public", "providerConfig": "{}"},
         {"name": "News", "category": "news", "description": "Latest news articles.", "tier": "BASIC", "provider": "public", "providerConfig": "{}"},
@@ -261,12 +276,30 @@ def _seed_mcps(db):
         # ── Context / Knowledge ───────────────────────────────────────────────
         {"name": "Context7", "category": "knowledge", "description": "Fetch up-to-date library documentation and code examples via Context7.", "tier": "BASIC", "provider": "composio", "providerConfig": '{"app": "context7"}'},
     ]
-    count = 0
+    inserted = 0
+    updated = 0
     for m in mcps:
         existing = db.query(McpIntegration).filter(McpIntegration.name == m["name"]).first()
         if not existing:
+            # Insert new entry
             new_mcp = McpIntegration(**m)
             db.add(new_mcp)
-            count += 1
-    if count > 0:
-        logger.info(f"Seeded {count} MCP integrations.")
+            inserted += 1
+        else:
+            # Upsert: migrate old provider entries (e.g. taylorwilsdon → composio)
+            changed = False
+            if existing.provider != m["provider"]:
+                existing.provider = m["provider"]
+                changed = True
+            if existing.providerConfig != m["providerConfig"]:
+                existing.providerConfig = m["providerConfig"]
+                changed = True
+            if existing.description != m.get("description", existing.description):
+                existing.description = m["description"]
+                changed = True
+            if changed:
+                updated += 1
+    if inserted > 0:
+        logger.info(f"[Seed] Inserted {inserted} new MCP integrations.")
+    if updated > 0:
+        logger.info(f"[Seed] Updated {updated} existing MCP integrations (provider migration).")

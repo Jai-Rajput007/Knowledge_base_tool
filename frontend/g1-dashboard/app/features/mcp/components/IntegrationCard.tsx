@@ -18,28 +18,32 @@ import {
 
 interface IntegrationCardProps {
   integration: Integration;
+  /** Map of composio app slug → official logo URL fetched from Composio toolkit API */
+  logosMap?: Record<string, string>;
   onToggle: (id: string, currentStatus: boolean) => void;
   onConfigure: (id: string) => void;
 }
+}
 
-// ─── Composio Logo via CDN ────────────────────────────────────────────────────
-// Uses Composio's official logo CDN so every app gets its correct logo
-// without depending on npm icon packages that have incomplete coverage.
-const ComposioLogo = ({ appSlug, isEnabled }: { appSlug: string; isEnabled: boolean }) => {
+// ─── App Logo using Composio Toolkit API URL ──────────────────────────────────
+// The logo URL is fetched from GET /api/v3.1/toolkits/{slug} via our backend
+// /mcp/logos endpoint — this is Composio's official API, not a guessed CDN path.
+const AppLogo = ({
+  url,
+  appSlug,
+  isEnabled,
+}: {
+  url: string;
+  appSlug: string;
+  isEnabled: boolean;
+}) => {
   const [errored, setErrored] = useState(false);
-  const imgClass = `w-12 h-12 object-contain transition-all rounded-xl ${
+  const imgClass = `w-12 h-12 object-contain transition-all ${
     isEnabled ? "opacity-100 scale-105" : "opacity-80 group-hover:opacity-100 group-hover:scale-110"
   }`;
-
-  if (errored) return <Puzzle className={`w-12 h-12 transition-all ${isEnabled ? "opacity-100 scale-105" : "opacity-80"}`} />;
-
+  if (errored) return <Puzzle className={`w-12 h-12 ${isEnabled ? "opacity-100" : "opacity-70"}`} />;
   return (
-    <img
-      src={`https://logos.composio.dev/api/${appSlug}`}
-      alt={appSlug}
-      className={imgClass}
-      onError={() => setErrored(true)}
-    />
+    <img src={url} alt={appSlug} className={imgClass} onError={() => setErrored(true)} />
   );
 };
 
@@ -64,22 +68,27 @@ const AnimatedButton = ({ onClick, text, isPro }: { onClick: () => void; text: s
   </button>
 );
 
-export function IntegrationCard({ integration, onToggle, onConfigure }: IntegrationCardProps) {
+export function IntegrationCard({ integration, logosMap = {}, onToggle, onConfigure }: IntegrationCardProps) {
   const iconClass = `w-12 h-12 transition-all ${
     integration.is_active ? "opacity-100 scale-105" : "opacity-80 group-hover:opacity-100 group-hover:scale-110"
   }`;
   const n = integration.name.toLowerCase();
 
-  // ── For Composio provider apps: use CDN logo ─────────────────────────────
-  // config_schema holds the parsed providerConfig JSON, e.g. { app: "slack" }
+  // ── Composio apps: use the official logo URL from Composio's toolkit API ──
+  // config_schema holds parsed providerConfig JSON: e.g. { app: "slack" }
   const composioAppSlug = integration.provider === "composio"
     ? (integration.config_schema as any)?.app as string | undefined
     : undefined;
 
   const brandIcon = (() => {
-    // Composio apps: always use the CDN logo (guaranteed correct icon)
+    // Composio apps: use API-provided URL from logosMap (fetched via GET /mcp/logos)
     if (composioAppSlug) {
-      return <ComposioLogo appSlug={composioAppSlug} isEnabled={integration.is_active} />;
+      const logoUrl = logosMap[composioAppSlug];
+      if (logoUrl) {
+        return <AppLogo url={logoUrl} appSlug={composioAppSlug} isEnabled={integration.is_active} />;
+      }
+      // Logo not yet loaded (still fetching) — show subtle placeholder
+      return <Puzzle className={`w-12 h-12 opacity-30 animate-pulse`} />;
     }
 
     // ── Public / built-in tools: use local icons ────────────────────────────

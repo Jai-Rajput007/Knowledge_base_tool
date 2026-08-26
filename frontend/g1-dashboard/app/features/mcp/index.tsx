@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { FeatureGate } from "@/app/components/feature-gate";
 import { useMcpState } from "./hooks/useMcpState";
 import { McpHeader } from "./components/McpHeader";
 import { IntegrationCard } from "./components/IntegrationCard";
 import { ConfigModal } from "./components/ConfigModal";
+import { api as coreApi } from "@/lib/api";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 
@@ -25,6 +26,19 @@ export function McpModule() {
     handleConfigureClick,
     handleSaveConfig
   } = useMcpState();
+
+  // ── Fetch official Composio toolkit logo URLs once on mount ─────────────────
+  // Uses GET /mcp/logos which calls Composio's toolkit API (GET /api/v3.1/toolkits/{slug})
+  // and returns a map of { slug: logo_url } with the real logo for each app.
+  const [logosMap, setLogosMap] = useState<Record<string, string>>({});
+  useEffect(() => {
+    coreApi.getToolkitLogos()
+      .then((res: any) => {
+        const logos = res?.data?.logos || res?.logos || {};
+        setLogosMap(logos);
+      })
+      .catch((e: any) => console.warn("[MCP] Could not fetch toolkit logos:", e));
+  }, []);
 
   useGSAP(() => {
     if (!loading && integrations.length > 0) {
@@ -68,11 +82,12 @@ export function McpModule() {
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
               {integrations.map(integration => (
-                <IntegrationCard 
-                  key={integration.id} 
-                  integration={integration} 
-                  onToggle={handleToggle} 
-                  onConfigure={handleConfigureClick} 
+                <IntegrationCard
+                  key={integration.id}
+                  integration={integration}
+                  logosMap={logosMap}
+                  onToggle={handleToggle}
+                  onConfigure={handleConfigureClick}
                 />
               ))}
             </div>
@@ -80,7 +95,7 @@ export function McpModule() {
         </section>
       </div>
 
-      <ConfigModal 
+      <ConfigModal
         configuringId={configuringId}
         integrations={integrations}
         formValues={formValues}

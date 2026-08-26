@@ -549,6 +549,12 @@ class ApiClient {
     });
   }
 
+  /** Fetches official Composio toolkit logo URLs via GET /mcp/logos.
+   *  Returns { logos: { [slug]: logoUrl } }. Results are cached server-side. */
+  async getToolkitLogos() {
+    return this.request("/mcp/logos");
+  }
+
   // ── Audit Logs ─────────────────────────────────────────────────────────────
   
   async getAuditLogs(limit = 50, offset = 0) {

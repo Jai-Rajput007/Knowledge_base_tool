@@ -113,6 +113,62 @@ async def get_tools(query: str = None, db: Session = Depends(get_db), _service =
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Cache logos in-memory so we don't re-hit Composio API on every frontend load.
+# Key: slug, Value: logo URL string. Populated lazily on first /logos call.
+_logos_cache: dict = {}
+
+@router.get("/logos")
+async def get_toolkit_logos(_service = Depends(RequireServiceKey)):
+    """
+    Fetches the official logo URL for each Composio toolkit using
+    GET /api/v3.1/toolkits/{slug} (as documented in Composio's Toolkit API reference).
+    Returns a flat map: { slug: logo_url }.
+    Results are cached in-memory for the lifetime of the process.
+    """
+    global _logos_cache
+    if _logos_cache:
+        return {"logos": _logos_cache}
+
+    import os
+    api_key = os.environ.get("COMPOSIO_API_KEY", "ak_HlT2qEnTnTXF1OGcHMEG")
+
+    # Full list of Composio slugs we support (mirrors mcp.py composio_apps list)
+    composio_apps = [
+        "gmail", "googlecalendar", "googledrive", "googlesheets",
+        "googledocs", "googleslides", "googletasks", "googlechat",
+        "googleclassroom", "googleforms", "googlemaps",
+        "slack", "microsoftteams", "zoom", "whatsapp", "outlook",
+        "jira", "twitter", "linkedin", "instagram", "pinterest", "spotify",
+        "tripadvisorcontent", "context7",
+    ]
+
+    try:
+        client = Composio(api_key=api_key)
+        logos = {}
+        for slug in composio_apps:
+            try:
+                meta = client.toolkits.get(slug)
+                # SDK may return an object or dict depending on version
+                if hasattr(meta, "logo"):
+                    logo = meta.logo
+                elif isinstance(meta, dict):
+                    logo = meta.get("logo")
+                else:
+                    logo = None
+
+                if logo:
+                    logos[slug] = logo
+                    print(f"[Logos] {slug} → {logo}")
+                else:
+                    print(f"[Logos] {slug} → no logo in response")
+            except Exception as e:
+                print(f"[Logos] Failed to fetch logo for '{slug}': {e}")
+
+        _logos_cache = logos
+        return {"logos": logos}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch toolkit logos: {str(e)}")
+
 @router.post("/call")
 async def call_tool(req: ToolCallRequest, db: Session = Depends(get_db), _service = Depends(RequireServiceKey)):
     try:
