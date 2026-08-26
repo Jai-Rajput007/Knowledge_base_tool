@@ -329,7 +329,7 @@ async def composio_link(request: Request, db: Session = Depends(get_db), current
         # a Composio-managed auth config and returns the OAuth redirect URL.
         # Do NOT use connected_accounts.link() — that requires a pre-created auth config UUID.
         client = Composio(api_key=api_key)
-        connection_request = client.toolkits.authorize(user_id=user_id, slug=app_slug)
+        connection_request = client.toolkits.authorize(user_id=user_id, toolkit=app_slug)
         redirect_url = connection_request.redirect_url
 
         print(f"[ComposioLink] Got redirect URL for {app_slug}: {redirect_url!r}")
