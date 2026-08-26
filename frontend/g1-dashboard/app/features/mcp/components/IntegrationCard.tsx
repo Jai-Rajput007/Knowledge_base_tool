@@ -23,7 +23,6 @@ interface IntegrationCardProps {
   onToggle: (id: string, currentStatus: boolean) => void;
   onConfigure: (id: string) => void;
 }
-}
 
 // ─── App Logo using Composio Toolkit API URL ──────────────────────────────────
 // The logo URL is fetched from GET /api/v3.1/toolkits/{slug} via our backend
