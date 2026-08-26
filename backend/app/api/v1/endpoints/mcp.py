@@ -118,7 +118,7 @@ async def get_tools(query: str = None, db: Session = Depends(get_db), _service =
 _logos_cache: dict = {}
 
 @router.get("/logos")
-async def get_toolkit_logos(_service = Depends(RequireServiceKey)):
+async def get_toolkit_logos(current_user = Depends(RequireRole(["admin"]))):
     """
     Fetches the official logo URL for each Composio toolkit using
     GET /api/v3.1/toolkits/{slug} (as documented in Composio's Toolkit API reference).
@@ -287,50 +287,56 @@ async def configure_integration(request: Request, db: Session = Depends(get_db),
 
 @router.post("/composio-link")
 async def composio_link(request: Request, db: Session = Depends(get_db), current_user = Depends(RequireRole(["admin"]))):
+    """
+    Generates a Composio OAuth redirect URL for a given integration.
+    The user is sent to this URL to connect their account (e.g. Gmail, Slack).
+    Uses client.toolkits.authorize(user_id, slug=app_slug) — the correct API
+    for generating an OAuth link from a toolkit slug without needing a pre-created
+    auth config UUID.
+    """
     try:
         body = await request.json()
         mcp_id = body.get("mcpId")
 
-        # For this prototype, use the first tenant and a dummy user id
-        # In a real app we would get the user id from the auth token
         tenant = db.query(Tenant).first()
         if not tenant:
             raise HTTPException(status_code=400, detail="No tenant found")
-            
-        user_id = "user_default" 
-        tenant_id = tenant.id
 
         integration = db.query(McpIntegration).filter(McpIntegration.id == mcp_id).first()
         if not integration or integration.provider != "composio":
             raise HTTPException(status_code=400, detail="Invalid integration")
 
-        auth_config_id = integration.name.lower()
-        import json
+        # Get the app slug from providerConfig (e.g. {"app": "slack"} → "slack")
+        import json, os
+        app_slug = None
         try:
             if integration.providerConfig:
                 config_json = json.loads(integration.providerConfig)
-                if "auth_config_id" in config_json:
-                    auth_config_id = config_json["auth_config_id"]
+                app_slug = config_json.get("app")
         except Exception:
             pass
 
-        # Generate Composio link
-        # Use key from environment or fallback
-        import os
+        if not app_slug:
+            raise HTTPException(status_code=400, detail="Integration has no app slug configured")
+
+        # Use a consistent user_id per tenant — all users on this tenant share one Composio entity
+        user_id = f"tenant_{tenant.id}"
         api_key = os.environ.get("COMPOSIO_API_KEY", "ak_HlT2qEnTnTXF1OGcHMEG")
-        
+
+        print(f"[ComposioLink] Generating OAuth link: slug={app_slug!r} user_id={user_id!r}")
+
+        # toolkits.authorize() is the correct SDK method — it internally creates/reuses
+        # a Composio-managed auth config and returns the OAuth redirect URL.
+        # Do NOT use connected_accounts.link() — that requires a pre-created auth config UUID.
         client = Composio(api_key=api_key)
-        connection_request = client.connected_accounts.link(
-            user_id=user_id,
-            auth_config_id=auth_config_id,
-            allow_multiple=True
-        )
-        
+        connection_request = client.toolkits.authorize(user_id=user_id, slug=app_slug)
         redirect_url = connection_request.redirect_url
 
-        # Save to DB
+        print(f"[ComposioLink] Got redirect URL for {app_slug}: {redirect_url!r}")
+
+        # Mark as enabled in DB and store the composio user_id for later tool calls
         config = db.query(TenantMcpConfig).filter(
-            TenantMcpConfig.tenantId == tenant_id,
+            TenantMcpConfig.tenantId == tenant.id,
             TenantMcpConfig.mcpId == mcp_id
         ).first()
 
@@ -339,7 +345,7 @@ async def composio_link(request: Request, db: Session = Depends(get_db), current
             config.composioUserId = user_id
         else:
             config = TenantMcpConfig(
-                tenantId=tenant_id,
+                tenantId=tenant.id,
                 mcpId=mcp_id,
                 isUnlocked=True,
                 isEnabled=True,
@@ -347,10 +353,10 @@ async def composio_link(request: Request, db: Session = Depends(get_db), current
                 composioUserId=user_id
             )
             db.add(config)
-            
-        db.commit()
 
+        db.commit()
         return {"redirectUrl": redirect_url}
+
     except HTTPException as e:
         raise e
     except Exception as e:
