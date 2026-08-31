@@ -28,6 +28,7 @@ _ENDING_SUBS = {
     "jarvis": ["jarviss", "jarviz", "jarvus", "jervis", "gervais", "harvest", "travis",
                 "mavis", "avis", "harvis", "jharvis"],
     "daksh": ["dax", "dusk", "task", "disk", "dusk", "daks"],
+    "raghav": ["raghu", "ragav", "raagav", "ragu", "raghab", "regard", "rugged"],
 }
 
 
@@ -97,6 +98,12 @@ def generate(wake_phrase: str, count: int = 60) -> List[str]:
         "i need assistance", "thank you", "excuse me", "one moment please",
         "could you please", "i am looking for", "how do i get to",
         "background noise", "white noise", "music playing",
+        # Real ambient-conversation false positives captured during live
+        # wakeword testing (2026-08-31 session) — genuine nearby speech that
+        # scored high on acoustic similarity without containing the wake
+        # phrase, not synthetic guesses.
+        "are you still not free", "he's out with", "read that one",
+        "i think i'll", "still in the back", "a nice people",
     ]
     for extra in extras:
         if len(result) >= count:

@@ -44,7 +44,10 @@ def exit_maintenance(robot_local_ip: str) -> dict:
 
 def start_training(robot_local_ip: str, wake_phrase: str, model_name: str,
                    steps: int, n_samples: int,
-                   negative_phrases: list, sample_files: list) -> dict:
+                   negative_phrases: list, sample_files: list,
+                   model_size: str = "small", tts_backend: str = "piper_vits",
+                   voice_design_prompts: Optional[list] = None,
+                   skip_acav: bool = True) -> dict:
     """
     Send training request to AGX.
     sample_files: list of (filename, bytes) tuples
@@ -56,6 +59,10 @@ def start_training(robot_local_ip: str, wake_phrase: str, model_name: str,
         "steps":             str(steps),
         "n_samples":         str(n_samples),
         "negative_phrases":  json.dumps(negative_phrases),
+        "model_size":        model_size,
+        "tts_backend":       tts_backend,
+        "voice_design_prompts": json.dumps(voice_design_prompts or []),
+        "skip_acav":         str(skip_acav),
     }
     r = httpx.post(
         _agx_url(robot_local_ip, "/wakeword/train"),

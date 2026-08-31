@@ -1,6 +1,7 @@
 """Wake word training API endpoints."""
 
 import asyncio
+import json
 import os
 import pathlib
 import shutil
@@ -59,6 +60,9 @@ def _active_job(db: Session) -> Optional[WakewordJob]:
 async def start_training(
     wake_phrase: str            = Form(..., description="e.g. 'hey jai'"),
     quality:     str            = Form("standard", description="draft / standard / production"),
+    model_size:  str            = Form("small", description="tiny / small / medium / large"),
+    tts_backend: str            = Form("piper_vits", description="piper_vits / voxcpm"),
+    voice_design_prompts: str   = Form("[]", description="JSON array of voice descriptions (voxcpm only)"),
     samples:     List[UploadFile] = File(default=[], description="WAV recordings of the wake phrase"),
     db: Session                 = Depends(get_db),
 ):
@@ -138,6 +142,13 @@ async def start_training(
     logger.info(f"Saved {saved} sample(s) for '{phrase}' (backend={backend})")
 
     negative_phrases = neg_gen.generate(phrase, count=60)
+    voice_prompts    = json.loads(voice_design_prompts) if voice_design_prompts else []
+    # Real-world negative audio (ACAV100M) is skipped by default to keep
+    # draft/standard runs fast on the AGX — production runs enable it since
+    # phonetic phrase negatives alone (hard-capped at ~66 unique variants,
+    # see negatives.py) aren't enough real-world diversity for a production
+    # model, and the AGX has confirmed headroom for it.
+    skip_acav = quality != "production"
 
     # Create job record
     job = WakewordJob(
@@ -174,7 +185,8 @@ async def start_training(
         asyncio.create_task(_run_local_training(
             job.id, settings.WAKEWORD_AGX_IP, phrase, model_name,
             preset["steps"], preset["n_samples"],
-            negative_phrases, sample_files
+            negative_phrases, sample_files,
+            model_size, tts_backend, voice_prompts, skip_acav
         ))
         est = {"draft": 150, "standard": 300, "production": 600}[quality]
         warning = "Robot is in maintenance mode and unavailable during training."
@@ -414,7 +426,10 @@ def agx_exit_maintenance(robot_ip: str):
 
 async def _run_local_training(job_id: int, robot_ip: str, wake_phrase: str,
                                model_name: str, steps: int, n_samples: int,
-                               negative_phrases: list, sample_files: list):
+                               negative_phrases: list, sample_files: list,
+                               model_size: str = "small", tts_backend: str = "piper_vits",
+                               voice_design_prompts: Optional[list] = None,
+                               skip_acav: bool = True):
     """Background task: send training job to AGX, poll until done."""
     from app.db.database import SessionLocal
 
@@ -431,7 +446,8 @@ async def _run_local_training(job_id: int, robot_ip: str, wake_phrase: str,
         result = await asyncio.to_thread(
             agx.start_training,
             robot_ip, wake_phrase, model_name, steps, n_samples,
-            negative_phrases, sample_files
+            negative_phrases, sample_files,
+            model_size, tts_backend, voice_design_prompts or [], skip_acav
         )
         _update(status=WakewordJobStatus.RUNNING)
         logger.info(f"Local job {job_id}: training started on AGX (pid {result.get('pid')})")
