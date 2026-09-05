@@ -9,11 +9,25 @@ const PUBLIC_ROUTES = ["/sign-in", "/api/auth/login", "/api/auth/logout"];
 // Routes that should bypass middleware entirely (Next.js internals, static assets)
 const BYPASS_PREFIXES = ["/_next", "/favicon", "/public", "/icons", "/images"];
 
+// Next.js serves everything in public/ from the ROOT (e.g. public/bg.mp4 -> /bg.mp4),
+// never under a /public prefix — so BYPASS_PREFIXES above never actually matches any
+// real static asset filename. Without this, a fresh unauthenticated request for any
+// public/ file (video backgrounds, 3D scene binaries, etc.) got treated as a protected
+// page and 307-redirected to /sign-in, feeding the requester an HTML redirect body
+// instead of the real asset. Confirmed live: curl against /bg.mp4 and /scene.splinecode
+// both returned 307s, which is why the sign-in video rendered blank and the landing
+// page's Spline model crashed trying to parse a redirect page as binary scene data.
+const STATIC_FILE_PATTERN =
+  /\.(?:png|jpg|jpeg|gif|svg|webp|avif|ico|mp4|webm|mov|mp3|wav|ogg|css|map|woff2?|ttf|eot|json|splinecode|txt|pdf)$/i;
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 1. Always bypass for Next.js internals and static files
-  if (BYPASS_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
+  // 1. Always bypass for Next.js internals and any static file by extension
+  if (
+    BYPASS_PREFIXES.some((prefix) => pathname.startsWith(prefix)) ||
+    STATIC_FILE_PATTERN.test(pathname)
+  ) {
     return NextResponse.next();
   }
 
