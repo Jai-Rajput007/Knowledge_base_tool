@@ -8,11 +8,14 @@ const publicRoutes = ["/", "/sign-in"];
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [isLoading, setIsLoading] = useState(true);
+  const isPublic = publicRoutes.some(r => pathname === r || pathname.startsWith("/sign-in"));
+  // Public pages (landing page, sign-in) render immediately instead of being
+  // hidden behind the opaque loading screen below — middleware already gates
+  // protected routes server-side, so this check only needs to redirect an
+  // already-logged-in visitor away from /sign-in, not block first paint.
+  const [isLoading, setIsLoading] = useState(!isPublic);
 
   useEffect(() => {
-    const isPublic = publicRoutes.some(r => pathname === r || pathname.startsWith("/sign-in"));
-
     fetch("/api/auth/me")
       .then((res) => {
         if (res.ok) {

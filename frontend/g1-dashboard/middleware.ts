@@ -21,9 +21,12 @@ export function middleware(request: NextRequest) {
   const hasSession = Boolean(sessionCookie?.value);
 
   // 2. Public route handling
-  const isPublicRoute = PUBLIC_ROUTES.some(
-    (route) => pathname === route || pathname.startsWith(route)
-  );
+  // "/" is the marketing landing page — public regardless of session, exact
+  // match only (a startsWith check here would whitelist every route, since
+  // every pathname begins with "/").
+  const isPublicRoute =
+    pathname === "/" ||
+    PUBLIC_ROUTES.some((route) => pathname === route || pathname.startsWith(route));
 
   if (isPublicRoute) {
     // If already logged in and visiting /sign-in, redirect to dashboard
