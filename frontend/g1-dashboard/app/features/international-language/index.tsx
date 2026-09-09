@@ -6,13 +6,15 @@ import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { FeatureGate } from "@/app/components/feature-gate";
 
-// Mirrors config/language_config.json on the robot (g1-nlp) — selectable:false
-// languages are held back pending an LLM conversational-quality check (outside
-// Llama-3.1's officially-evaluated language set), and Thai ships as
-// experimental (its ASR sits in Nemotron's "Adaptation-Ready" tier, not yet
-// production-ready per NVIDIA's own model card). Keep in sync with that file;
-// this list is hardcoded client-side the same way the Indic language list in
-// language-settings/index.tsx is.
+// Mirrors config/language_config.json on the robot (g1-nlp). All 12 are
+// selectable — the earlier "coming soon" gate on ar/ru/ja/ko/vi/zh (pending an
+// LLM conversational-quality check) was lifted per explicit user decision:
+// ASR, LLM, and TTS are all judged capable of handling these languages
+// (see `_gate_history` in language_config.json for the prior rationale).
+// Thai stays flagged experimental — its ASR sits in Nemotron's
+// "Adaptation-Ready" tier, not yet production-ready per NVIDIA's own model
+// card. Keep in sync with that file; this list is hardcoded client-side the
+// same way the Indic language list in language-settings/index.tsx is.
 const INTERNATIONAL_LANGUAGES = [
   { id: "de", name: "German", nativeName: "Deutsch", flag: "🇩🇪", selectable: true },
   { id: "fr", name: "French", nativeName: "Français", flag: "🇫🇷", selectable: true },
@@ -20,12 +22,12 @@ const INTERNATIONAL_LANGUAGES = [
   { id: "pt", name: "Portuguese", nativeName: "Português", flag: "🇵🇹", selectable: true },
   { id: "es", name: "Spanish", nativeName: "Español", flag: "🇪🇸", selectable: true },
   { id: "th", name: "Thai", nativeName: "ไทย", flag: "🇹🇭", selectable: true, experimental: true },
-  { id: "ar", name: "Arabic", nativeName: "العربية", flag: "🇸🇦", selectable: false },
-  { id: "ru", name: "Russian", nativeName: "Русский", flag: "🇷🇺", selectable: false },
-  { id: "ja", name: "Japanese", nativeName: "日本語", flag: "🇯🇵", selectable: false },
-  { id: "ko", name: "Korean", nativeName: "한국어", flag: "🇰🇷", selectable: false },
-  { id: "vi", name: "Vietnamese", nativeName: "Tiếng Việt", flag: "🇻🇳", selectable: false },
-  { id: "zh", name: "Mandarin", nativeName: "中文", flag: "🇨🇳", selectable: false },
+  { id: "ar", name: "Arabic", nativeName: "العربية", flag: "🇸🇦", selectable: true },
+  { id: "ru", name: "Russian", nativeName: "Русский", flag: "🇷🇺", selectable: true },
+  { id: "ja", name: "Japanese", nativeName: "日本語", flag: "🇯🇵", selectable: true },
+  { id: "ko", name: "Korean", nativeName: "한국어", flag: "🇰🇷", selectable: true },
+  { id: "vi", name: "Vietnamese", nativeName: "Tiếng Việt", flag: "🇻🇳", selectable: true },
+  { id: "zh", name: "Mandarin", nativeName: "中文", flag: "🇨🇳", selectable: true },
 ];
 
 function InternationalLanguageModuleInner() {
@@ -153,11 +155,9 @@ function InternationalLanguageModuleInner() {
           <strong className="text-foreground font-medium block mb-1">Dynamic Speech Models</strong>
           Switching an international language hot-swaps ASR, LLM instruction, and TTS together —
           the robot always answers in the language you select here, never auto-detected. German,
-          French, Italian, Portuguese, and Spanish route through Nemotron ASR and Kokoro TTS;
-          Arabic, Russian, Korean, Vietnamese, and Thai route through Nemotron ASR and OmniVoice TTS.
-          "Coming soon" languages are already built end-to-end but held back from selection until
-          their LLM conversational quality is validated. Voices for these languages are managed in
-          the Voice settings tab.
+          French, Italian, Portuguese, Spanish, Japanese, and Mandarin route through Nemotron ASR
+          and Kokoro TTS; Arabic, Russian, Korean, Vietnamese, and Thai route through Nemotron ASR
+          and OmniVoice TTS. Voices for these languages are managed in the Voice settings tab.
         </div>
       </div>
     </div>
