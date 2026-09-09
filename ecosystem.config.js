@@ -114,6 +114,14 @@ module.exports = {
       max_restarts: 20,
     },
     {
+      name: "omnivoice-tts",
+      cwd: "../g1-nlp",
+      script: "./start_omnivoice.sh",
+      interpreter: "bash",
+      restart_delay: 3000,
+      max_restarts: 20,
+    },
+    {
       name: "sglang",
       cwd: "../g1-nlp",
       script: "./start_sglang.sh",

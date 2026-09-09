@@ -23,6 +23,7 @@ export function FeaturesConfigTab({ tenantId }: { tenantId: string }) {
     { key: "rollback", name: "Rollback", desc: "Allow rolling back to previous configurations and states." },
     { key: "auditing", name: "Auditing & Logs", desc: "Audit every action and provide detailed system logs." },
     { key: "multilingual", name: "Multilingual Support", desc: "Enable multiple languages for communication." },
+    { key: "internationalLanguage", name: "International Language", desc: "Enable non-Indic languages (German, French, Arabic, etc.) for speech recognition and interaction." },
     { key: "skillLibrary", name: "Skill Library", desc: "Provide access to the expanded robot skill library." },
     { key: "webhook", name: "Webhooks", desc: "Enable custom webhooks for integrations." },
     { key: "healthStats", name: "Health Stats", desc: "Display real-time robot health statistics and metrics." },

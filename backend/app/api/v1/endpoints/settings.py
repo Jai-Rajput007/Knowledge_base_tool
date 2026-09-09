@@ -230,12 +230,26 @@ async def get_voice_params():
                     "pa": "mani", "or": "neha",
                 },
             },
+            "international": {
+                "kokoro_language_voices": {
+                    "ja": "jf_alpha", "zh": "zf_xiaoxiao", "es": "ef_dora",
+                    "fr": "ff_siwis", "it": "if_sara", "pt": "pf_dora",
+                },
+                "omnivoice": {
+                    "default_voice": "female", "num_step": 32, "gain": 2.0,
+                    "language_voices": {
+                        "de": "male", "ar": "female", "ru": "male",
+                        "ko": "female", "vi": "male", "th": "female",
+                    },
+                },
+            },
         }
 
 
 class VoiceParamsUpdate(BaseModel):
     english: Optional[dict] = None
     indic: Optional[dict] = None
+    international: Optional[dict] = None
 
 @router.put("/voice-params")
 async def update_voice_params(payload: VoiceParamsUpdate):

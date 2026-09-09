@@ -46,6 +46,7 @@ export default function PermissionsPage() {
             { id: "rollback", name: "Rollback", desc: "Allow rolling back to previous configurations and states.", enabled: 0, total: 1, type: "Core Feature" },
             { id: "auditing", name: "Auditing & Logs", desc: "Audit every action and provide detailed system logs.", enabled: 0, total: 1, type: "Enterprise Only" },
             { id: "multilingual", name: "Multilingual Support", desc: "Enable multiple languages for communication.", enabled: 0, total: 1, type: "Core Feature" },
+            { id: "internationalLanguage", name: "International Language", desc: "Enable non-Indic languages (German, French, Arabic, etc.) for speech recognition and interaction.", enabled: 0, total: 1, type: "Core Feature" },
             { id: "skillLibrary", name: "Skill Library", desc: "Provide access to the expanded robot skill library.", enabled: 0, total: 1, type: "Core Feature" },
             { id: "webhook", name: "Webhooks", desc: "Enable custom webhooks for integrations.", enabled: 0, total: 1, type: "Developer Tool" },
             { id: "healthStats", name: "Health Stats", desc: "Display real-time robot health statistics and metrics.", enabled: 0, total: 1, type: "Core Feature" },

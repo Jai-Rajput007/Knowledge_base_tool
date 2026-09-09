@@ -17,6 +17,7 @@ const CANONICAL_FEATURES: Record<string, boolean> = {
   rollback: false,
   auditing: false,
   multilingual: false,
+  internationalLanguage: false,
   skillLibrary: false,
   webhook: false,
   healthStats: false,

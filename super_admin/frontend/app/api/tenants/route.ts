@@ -61,6 +61,7 @@ export async function POST(request: Request) {
             rollback: false,
             auditing: false,
             multilingual: false,
+            internationalLanguage: false,
             skillLibrary: false,
             webhook: false,
             healthStats: false,

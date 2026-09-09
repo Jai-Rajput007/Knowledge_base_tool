@@ -11,9 +11,22 @@ export interface IndicVoiceSettings {
   language_voices: Record<string, string>;
 }
 
+export interface OmniVoiceSettings {
+  default_voice: "male" | "female";
+  num_step: number;
+  gain: number;
+  language_voices: Record<string, "male" | "female">;
+}
+
+export interface InternationalVoiceSettings {
+  kokoro_language_voices: Record<string, string>;
+  omnivoice: OmniVoiceSettings;
+}
+
 export interface VoiceSettings {
   english: EnglishVoiceSettings;
   indic: IndicVoiceSettings;
+  international: InternationalVoiceSettings;
 }
 
 export interface KokoroVoice {

@@ -7,7 +7,7 @@ import {
   FiCheck, FiChevronDown, FiUser, FiUsers,
 } from "react-icons/fi";
 import { useVoiceParams, useSaveVoiceParams } from "./hooks";
-import type { KokoroVoice, SarvamLanguage, VoiceSettings } from "./types";
+import type { KokoroVoice, SarvamLanguage, VoiceSettings, OmniVoiceSettings } from "./types";
 
 // ── Kokoro English voices (American + British, female + male) ──────────────
 const KOKORO_VOICES: KokoroVoice[] = [
@@ -40,6 +40,60 @@ const SARVAM_LANGUAGES: SarvamLanguage[] = [
   { code: "or", label: "Odia",      nativeLabel: "ଓଡ଼ିଆ",   voices: [{ id: "shubh",    label: "Shubh",    gender: "male" }, { id: "ritu",     label: "Ritu",     gender: "female" }, { id: "pooja",   label: "Pooja",   gender: "female" }] },
 ];
 
+// ── International languages: Kokoro-served (native voice packs, per HF
+// hexgrad/Kokoro-82M VOICES.md) and OmniVoice-served (Voice Design mode —
+// male/female only, see docs/OMNIVOICE_RTF_FINDINGS.md) ─────────────────────
+interface KokoroIntlLanguage {
+  code: string; label: string; nativeLabel: string;
+  voices: { id: string; label: string; gender: "male" | "female" }[];
+}
+
+const KOKORO_INTL_LANGUAGES: KokoroIntlLanguage[] = [
+  { code: "ja", label: "Japanese", nativeLabel: "日本語", voices: [
+    { id: "jf_alpha", label: "Alpha", gender: "female" },
+    { id: "jf_gongitsune", label: "Gongitsune", gender: "female" },
+    { id: "jf_nezumi", label: "Nezumi", gender: "female" },
+    { id: "jf_tebukuro", label: "Tebukuro", gender: "female" },
+    { id: "jm_kumo", label: "Kumo", gender: "male" },
+  ] },
+  { code: "zh", label: "Mandarin", nativeLabel: "中文", voices: [
+    { id: "zf_xiaobei", label: "Xiaobei", gender: "female" },
+    { id: "zf_xiaoni", label: "Xiaoni", gender: "female" },
+    { id: "zf_xiaoxiao", label: "Xiaoxiao", gender: "female" },
+    { id: "zf_xiaoyi", label: "Xiaoyi", gender: "female" },
+    { id: "zm_yunjian", label: "Yunjian", gender: "male" },
+    { id: "zm_yunxi", label: "Yunxi", gender: "male" },
+    { id: "zm_yunxia", label: "Yunxia", gender: "male" },
+    { id: "zm_yunyang", label: "Yunyang", gender: "male" },
+  ] },
+  { code: "es", label: "Spanish", nativeLabel: "Español", voices: [
+    { id: "ef_dora", label: "Dora", gender: "female" },
+    { id: "em_alex", label: "Alex", gender: "male" },
+    { id: "em_santa", label: "Santa", gender: "male" },
+  ] },
+  { code: "fr", label: "French", nativeLabel: "Français", voices: [
+    { id: "ff_siwis", label: "Siwis", gender: "female" },
+  ] },
+  { code: "it", label: "Italian", nativeLabel: "Italiano", voices: [
+    { id: "if_sara", label: "Sara", gender: "female" },
+    { id: "im_nicola", label: "Nicola", gender: "male" },
+  ] },
+  { code: "pt", label: "Portuguese", nativeLabel: "Português", voices: [
+    { id: "pf_dora", label: "Dora", gender: "female" },
+    { id: "pm_alex", label: "Alex", gender: "male" },
+    { id: "pm_santa", label: "Santa", gender: "male" },
+  ] },
+];
+
+const OMNIVOICE_LANGUAGES: { code: string; label: string; nativeLabel: string }[] = [
+  { code: "de", label: "German", nativeLabel: "Deutsch" },
+  { code: "ar", label: "Arabic", nativeLabel: "العربية" },
+  { code: "ru", label: "Russian", nativeLabel: "Русский" },
+  { code: "ko", label: "Korean", nativeLabel: "한국어" },
+  { code: "vi", label: "Vietnamese", nativeLabel: "Tiếng Việt" },
+  { code: "th", label: "Thai", nativeLabel: "ไทย" },
+];
+
 const DEFAULT_SETTINGS: VoiceSettings = {
   english: { voice: "af_heart", speed: 1.0, gain: 2.0 },
   indic: {
@@ -48,6 +102,16 @@ const DEFAULT_SETTINGS: VoiceSettings = {
       hi: "shubh", ta: "ratan", te: "shubh", gu: "ratan",
       bn: "rehan", kn: "shubh", ml: "shubh", mr: "ratan",
       pa: "mani", or: "shubh",
+    },
+  },
+  international: {
+    kokoro_language_voices: {
+      ja: "jf_alpha", zh: "zf_xiaoxiao", es: "ef_dora",
+      fr: "ff_siwis", it: "if_sara", pt: "pf_dora",
+    },
+    omnivoice: {
+      default_voice: "female", num_step: 32, gain: 2.0,
+      language_voices: { de: "male", ar: "female", ru: "male", ko: "female", vi: "male", th: "female" },
     },
   },
 };
@@ -165,7 +229,9 @@ export function VoiceSettingsModule() {
   const [settings, setSettings] = useState<VoiceSettings>(DEFAULT_SETTINGS);
   const [englishOpen, setEnglishOpen] = useState(true);
   const [indicOpen, setIndicOpen] = useState(true);
+  const [internationalOpen, setInternationalOpen] = useState(true);
   const [activeLanguage, setActiveLanguage] = useState("hi");
+  const [activeIntlLanguage, setActiveIntlLanguage] = useState("ja");
   const [saved, setSaved] = useState(false);
   const [voiceFilter, setVoiceFilter] = useState<"all" | "female" | "male">("all");
 
@@ -180,6 +246,22 @@ export function VoiceSettingsModule() {
           language_voices: {
             ...prev.indic.language_voices,
             ...remoteSettings.indic?.language_voices,
+          },
+        },
+        international: {
+          ...prev.international,
+          ...remoteSettings.international,
+          kokoro_language_voices: {
+            ...prev.international.kokoro_language_voices,
+            ...remoteSettings.international?.kokoro_language_voices,
+          },
+          omnivoice: {
+            ...prev.international.omnivoice,
+            ...remoteSettings.international?.omnivoice,
+            language_voices: {
+              ...prev.international.omnivoice.language_voices,
+              ...remoteSettings.international?.omnivoice?.language_voices,
+            },
           },
         },
       }));
@@ -204,6 +286,36 @@ export function VoiceSettingsModule() {
     }));
   }, []);
 
+  const setKokoroIntlVoice = useCallback((lang: string, voice: string) => {
+    setSettings((s) => ({
+      ...s,
+      international: {
+        ...s.international,
+        kokoro_language_voices: { ...s.international.kokoro_language_voices, [lang]: voice },
+      },
+    }));
+  }, []);
+
+  const setOmniVoice = useCallback((patch: Partial<OmniVoiceSettings>) => {
+    setSettings((s) => ({
+      ...s,
+      international: { ...s.international, omnivoice: { ...s.international.omnivoice, ...patch } },
+    }));
+  }, []);
+
+  const setOmniVoiceLanguageVoice = useCallback((lang: string, voice: "male" | "female") => {
+    setSettings((s) => ({
+      ...s,
+      international: {
+        ...s.international,
+        omnivoice: {
+          ...s.international.omnivoice,
+          language_voices: { ...s.international.omnivoice.language_voices, [lang]: voice },
+        },
+      },
+    }));
+  }, []);
+
   const handleSave = async () => {
     try {
       await save(settings);
@@ -220,6 +332,12 @@ export function VoiceSettingsModule() {
 
   const activeLang = SARVAM_LANGUAGES.find((l) => l.code === activeLanguage)!;
   const currentVoice = settings.indic.language_voices[activeLanguage];
+
+  const activeKokoroIntlLang = KOKORO_INTL_LANGUAGES.find((l) => l.code === activeIntlLanguage);
+  const activeOmniVoiceLang = OMNIVOICE_LANGUAGES.find((l) => l.code === activeIntlLanguage);
+  const isActiveIntlOmniVoice = !!activeOmniVoiceLang;
+  const currentKokoroIntlVoice = settings.international.kokoro_language_voices[activeIntlLanguage];
+  const currentOmniVoiceGender = settings.international.omnivoice.language_voices[activeIntlLanguage];
 
   if (isLoading) {
     return (
@@ -407,6 +525,166 @@ export function VoiceSettingsModule() {
             </div>
           )}
         </div>
+
+        {/* ── International Language Voice ─────────────────────────────── */}
+        <FeatureGate featureKey="internationalLanguage" hideWhenDisabled>
+          <div className="border border-border rounded-2xl overflow-hidden bg-card/10">
+            <SectionHeader
+              icon={FiUsers}
+              title="International Language Voice"
+              subtitle="Per-language voice for Kokoro (native packs) and OmniVoice (male/female) languages"
+              open={internationalOpen}
+              onToggle={() => setInternationalOpen((o) => !o)}
+            />
+
+            {internationalOpen && (
+              <div className="px-5 pb-6 border-t border-border pt-5 space-y-5">
+
+                {/* Language tabs — Kokoro-served first, then OmniVoice-served */}
+                <div className="flex flex-wrap gap-1.5">
+                  {KOKORO_INTL_LANGUAGES.map((lang) => {
+                    const isActive = activeIntlLanguage === lang.code;
+                    return (
+                      <button
+                        key={lang.code}
+                        onClick={() => setActiveIntlLanguage(lang.code)}
+                        className={`flex flex-col items-center px-3 py-2 rounded-xl border transition-all ${
+                          isActive
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground bg-card/20"
+                        }`}
+                      >
+                        <span className="text-xs font-mono font-semibold">{lang.nativeLabel}</span>
+                        <span className="text-[10px] font-mono opacity-70">{lang.label} · Kokoro</span>
+                      </button>
+                    );
+                  })}
+                  {OMNIVOICE_LANGUAGES.map((lang) => {
+                    const isActive = activeIntlLanguage === lang.code;
+                    return (
+                      <button
+                        key={lang.code}
+                        onClick={() => setActiveIntlLanguage(lang.code)}
+                        className={`flex flex-col items-center px-3 py-2 rounded-xl border transition-all ${
+                          isActive
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground bg-card/20"
+                        }`}
+                      >
+                        <span className="text-xs font-mono font-semibold">{lang.nativeLabel}</span>
+                        <span className="text-[10px] font-mono opacity-70">{lang.label} · OmniVoice</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Kokoro: pick one of that language's native voices */}
+                {activeKokoroIntlLang && (
+                  <div className="p-4 border border-border rounded-xl bg-card/20 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <FiUser size={14} className="text-muted-foreground" />
+                      <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+                        {activeKokoroIntlLang.label} voice
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {activeKokoroIntlLang.voices.map((v) => {
+                        const selected = currentKokoroIntlVoice === v.id;
+                        return (
+                          <button
+                            key={v.id}
+                            onClick={() => setKokoroIntlVoice(activeIntlLanguage, v.id)}
+                            className={`flex items-center justify-between p-3.5 rounded-xl border transition-all ${
+                              selected
+                                ? "border-primary bg-primary/10"
+                                : "border-border bg-card/10 hover:border-primary/40 hover:bg-card/30"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                                v.gender === "female" ? "bg-pink-500/15 text-pink-500" : "bg-blue-500/15 text-blue-500"
+                              }`}>
+                                {v.gender === "female" ? "F" : "M"}
+                              </span>
+                              <span className="font-mono text-sm font-medium text-foreground">{v.label}</span>
+                            </div>
+                            {selected && <FiCheck size={14} className="text-primary" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* OmniVoice: male/female only — same two fixed Voice Design prompts
+                    ("male, moderate pitch" / "female, moderate pitch") reused across
+                    every OmniVoice-served language, per design (docs/OMNIVOICE_RTF_FINDINGS.md) */}
+                {isActiveIntlOmniVoice && (
+                  <div className="p-4 border border-border rounded-xl bg-card/20 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <FiUser size={14} className="text-muted-foreground" />
+                      <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+                        {activeOmniVoiceLang!.label} voice
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(["male", "female"] as const).map((gender) => {
+                        const selected = currentOmniVoiceGender === gender;
+                        return (
+                          <button
+                            key={gender}
+                            onClick={() => setOmniVoiceLanguageVoice(activeIntlLanguage, gender)}
+                            className={`flex items-center justify-between p-3.5 rounded-xl border transition-all ${
+                              selected
+                                ? "border-primary bg-primary/10"
+                                : "border-border bg-card/10 hover:border-primary/40 hover:bg-card/30"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                                gender === "female" ? "bg-pink-500/15 text-pink-500" : "bg-blue-500/15 text-blue-500"
+                              }`}>
+                                {gender === "female" ? "F" : "M"}
+                              </span>
+                              <span className="font-mono text-sm font-medium text-foreground capitalize">{gender}</span>
+                            </div>
+                            {selected && <FiCheck size={14} className="text-primary" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Global OmniVoice sliders — apply to every OmniVoice-served language */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <ControlSlider
+                    label="OmniVoice Diffusion Steps"
+                    icon={FiZap}
+                    value={settings.international.omnivoice.num_step}
+                    min={8} max={32} step={8}
+                    onChange={(v) => setOmniVoice({ num_step: v })}
+                    format={(v) => `${v.toFixed(0)} steps`}
+                  />
+                  <ControlSlider
+                    label="OmniVoice Volume Boost"
+                    icon={FiVolume2}
+                    value={settings.international.omnivoice.gain}
+                    min={1.0} max={4.0} step={0.1}
+                    onChange={(v) => setOmniVoice({ gain: v })}
+                    format={(v) => `${v.toFixed(1)}×`}
+                  />
+                </div>
+
+                <p className="text-[11px] text-muted-foreground font-mono">
+                  Lower diffusion steps trade voice quality for lower latency (measured RTF: 32 steps ≈
+                  0.23–0.77, 16 steps ≈ 0.11–0.14, 8 steps ≈ 0.06–0.07 — every value stays real-time).
+                  Kokoro voice packs have no step/quality tradeoff.
+                </p>
+              </div>
+            )}
+          </div>
+        </FeatureGate>
 
         {/* ── Save bar ──────────────────────────────────────────────────── */}
         <div className="flex items-center justify-end gap-3 pt-2">
