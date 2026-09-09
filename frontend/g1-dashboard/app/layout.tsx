@@ -37,8 +37,11 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       requiresPasswordChange = session.requiresPasswordChange === true;
 
       try {
+        // Server-side fetch: must use an ABSOLUTE url. NEXT_PUBLIC_API_URL is now
+        // the relative "/api/v1" (same-origin proxy, see next.config.ts), which
+        // Node's fetch cannot parse — so server code reads BACKEND_INTERNAL_URL.
         const res = await fetch(
-          (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1") + "/tenant/profile",
+          (process.env.BACKEND_INTERNAL_URL || "http://localhost:8000/api/v1") + "/tenant/profile",
           { cache: "no-store" }
         );
         if (res.ok) tenantData = await res.json();

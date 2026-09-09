@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
-const BACKEND_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1") + "/tenant";
+// Server-side only: absolute URL required, so this reads BACKEND_INTERNAL_URL
+// instead of the now-relative NEXT_PUBLIC_API_URL (see next.config.ts rewrites).
+const BACKEND_URL = (process.env.BACKEND_INTERNAL_URL || "http://localhost:8000/api/v1") + "/tenant";
 
 export async function GET(req: Request) {
   try {

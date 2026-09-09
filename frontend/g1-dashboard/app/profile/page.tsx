@@ -19,7 +19,9 @@ export default async function ProfilePage() {
 
   let tenant = null;
   try {
-    const res = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1") + "/tenant/profile", { cache: 'no-store' });
+    // Server component: needs an absolute URL, so it reads the server-only
+    // BACKEND_INTERNAL_URL rather than the now-relative NEXT_PUBLIC_API_URL.
+    const res = await fetch((process.env.BACKEND_INTERNAL_URL || "http://localhost:8000/api/v1") + "/tenant/profile", { cache: 'no-store' });
     if (res.ok) {
       tenant = await res.json();
     }

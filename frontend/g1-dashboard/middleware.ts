@@ -7,7 +7,15 @@ const SESSION_COOKIE = "g1_session";
 const PUBLIC_ROUTES = ["/sign-in", "/api/auth/login", "/api/auth/logout"];
 
 // Routes that should bypass middleware entirely (Next.js internals, static assets)
-const BYPASS_PREFIXES = ["/_next", "/favicon", "/public", "/icons", "/images"];
+//
+// "/api/v1" is the same-origin proxy to the FastAPI backend (see next.config.ts
+// rewrites). It must bypass this middleware: without it, an API call made before
+// a session cookie exists gets 307-redirected to /sign-in, so the caller receives
+// an HTML redirect body instead of a JSON response or a clean 401. The backend
+// enforces its own PASETO auth on every one of those routes, so skipping the
+// cookie check here removes no protection — it only stops API replies from being
+// rewritten into sign-in pages.
+const BYPASS_PREFIXES = ["/_next", "/favicon", "/public", "/icons", "/images", "/api/v1"];
 
 // Next.js serves everything in public/ from the ROOT (e.g. public/bg.mp4 -> /bg.mp4),
 // never under a /public prefix — so BYPASS_PREFIXES above never actually matches any
