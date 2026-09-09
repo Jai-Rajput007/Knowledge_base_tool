@@ -289,16 +289,16 @@ export default function Settings() {
                   setActiveTab(tab.id);
                 }}
                 className={cn(
-                  "w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all",
+                  "w-full flex items-start gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-left transition-all",
                   activeTab === tab.id
                     ? "bg-accent text-accent-foreground"
                     : "text-muted-foreground hover:bg-card hover:text-foreground"
                 )}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={tab.icon} />
                 </svg>
-                {tab.label}
+                <span className="text-left leading-snug">{tab.label}</span>
               </button>
             ))}
           </div>
