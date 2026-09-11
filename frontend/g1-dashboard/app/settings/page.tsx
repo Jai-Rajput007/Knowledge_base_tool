@@ -60,6 +60,11 @@ interface UserRecord {
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState("general");
+  // Deep link, e.g. /settings?tab=voice from Voice Studio's "Robot voice" chip.
+  useEffect(() => {
+    const tab = new URLSearchParams(window.location.search).get("tab");
+    if (tab) setActiveTab(tab);
+  }, []);
   const [isLoading, setIsLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [currentUserRole, setCurrentUserRole] = useState<string>("user");

@@ -16,6 +16,7 @@ export function FeaturesConfigTab({ tenantId }: { tenantId: string }) {
     { key: "mcp", name: "MCP Integration", desc: "Enable basic and agentic Model Context Protocol capabilities." },
     { key: "wakeWordSettings", name: "Wake Word Settings", desc: "Allow wake word change and custom training settings." },
     { key: "voiceSettings", name: "Voice Settings", desc: "Advanced voice settings (Sample rate, pitch, volume, speed)." },
+    { key: "voiceStudio", name: "Voice Studio", desc: "Make the robot speak typed text, .txt scripts and turn-by-turn playlists in its configured voice." },
     { key: "chatSimulator", name: "Chat Simulator", desc: "Enable the chat simulator for testing and debugging." },
     { key: "rag", name: "RAG Capabilities", desc: "Enable Document RAG and Web page RAG capabilities." },
     { key: "rbac", name: "RBAC Control", desc: "Enable Role-Based Access Control configuration." },

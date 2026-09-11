@@ -560,6 +560,40 @@ class ApiClient {
   async getAuditLogs(limit = 50, offset = 0) {
     return this.request(`/audit-logs?limit=${limit}&offset=${offset}`);
   }
+
+  // ── Voice Studio (feature flag `voiceStudio`) ─────────────────────────────
+  // Robot-side playback; the backend proxies to robot_sync /studio/*.
+
+  async voiceStudioPlay(items: { id?: string; text: string }[], language: string) {
+    return this.request<any>("/voice-studio/play", {
+      method: "POST",
+      body: JSON.stringify({ items, language }),
+    });
+  }
+
+  async voiceStudioControl(action: "pause" | "resume" | "stop") {
+    return this.request<any>(`/voice-studio/${action}`, { method: "POST" });
+  }
+
+  async voiceStudioStatus() {
+    return this.request<any>("/voice-studio/status");
+  }
+
+  async voiceStudioVoice(language: string) {
+    return this.request<any>(`/voice-studio/voice?language=${encodeURIComponent(language)}`);
+  }
+
+  // ── FRS live feed (admin) ─────────────────────────────────────────────────
+
+  /** Short-lived ticket for the MJPEG <img> stream (an <img> can't send the Bearer token). */
+  async frsLiveFeedTicket() {
+    return this.request<{ ticket: string; expires_in: number; max_seconds: number }>(
+      "/employees/live-feed/ticket", { method: "POST" });
+  }
+
+  frsLiveFeedStreamUrl(ticket: string) {
+    return `${this.baseUrl}/employees/live-feed/stream?ticket=${encodeURIComponent(ticket)}`;
+  }
 }
 
 

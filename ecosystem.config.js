@@ -66,7 +66,9 @@ module.exports = {
     {
       name: "g1-frs-server",
       cwd: "../g1-nlp/frs",
-      script: path.join(homeDir, "miniconda3/envs/frs-env/bin/python3"),
+      // frs-env-py311: Python 3.11 + Jetson onnxruntime-gpu 1.27.1 → InsightFace runs on CUDA
+      // (~110 ms/frame vs ~3.4 s on the CPU-only frs-env). Rollback: point back at envs/frs-env.
+      script: path.join(homeDir, "miniconda3/envs/frs-env-py311/bin/python3"),
       args: "frs_server.py --no-display --port 8001",
       restart_delay: 5000,
       max_restarts: 20,

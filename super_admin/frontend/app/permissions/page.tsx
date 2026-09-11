@@ -39,6 +39,7 @@ export default function PermissionsPage() {
             { id: "mcp", name: "MCP Integration", desc: "Enable basic and agentic Model Context Protocol capabilities.", enabled: 0, total: 1, type: "Core Feature" },
             { id: "wakeWordSettings", name: "Wake Word Settings", desc: "Allow wake word change and custom training settings.", enabled: 0, total: 1, type: "Enterprise Only" },
             { id: "voiceSettings", name: "Voice Settings", desc: "Advanced voice settings (Sample rate, pitch, volume, speed).", enabled: 0, total: 1, type: "Core Feature" },
+            { id: "voiceStudio", name: "Voice Studio", desc: "Make the robot speak typed text, .txt scripts and turn-by-turn playlists in its configured voice.", enabled: 0, total: 1, type: "Core Feature" },
             { id: "chatSimulator", name: "Chat Simulator", desc: "Enable the chat simulator for testing and debugging.", enabled: 0, total: 1, type: "Developer Tool" },
             { id: "rag", name: "RAG Capabilities", desc: "Enable Document RAG and Web page RAG capabilities.", enabled: 0, total: 1, type: "Core Feature" },
             { id: "rbac", name: "RBAC Control", desc: "Enable Role-Based Access Control configuration.", enabled: 0, total: 1, type: "Enterprise Only" },

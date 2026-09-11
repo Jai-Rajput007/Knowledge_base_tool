@@ -7,7 +7,7 @@ import { motion } from "motion/react";
 import {
   FiTerminal, FiMessageSquare, FiVolume2,
   FiCamera, FiFileText, FiSettings,
-  FiBookOpen, FiInfo, FiLifeBuoy, FiLogOut,
+  FiBookOpen, FiInfo, FiLifeBuoy, FiLogOut, FiMic,
 } from "react-icons/fi";
 import {
   AceternitySidebar,
@@ -26,6 +26,7 @@ export const Sidebar = ({ tenant, role }: { tenant?: any; role?: string | null }
     { label: "Chat Simulator", href: "/chat",          icon: <FiMessageSquare className="h-5 w-5 shrink-0 text-sidebar-foreground" /> },
     { label: "Wake Word",      href: "/wake-word",     icon: <FiVolume2 className="h-5 w-5 shrink-0 text-sidebar-foreground" /> },
     { label: "FRS",            href: "/employees",     icon: <FiCamera className="h-5 w-5 shrink-0 text-sidebar-foreground" /> },
+    ...(isAdmin || role === "editor" ? [{ label: "Voice Studio", href: "/voice-studio", icon: <FiMic className="h-5 w-5 shrink-0 text-sidebar-foreground" /> }] : []),
     ...(isAdmin ? [{ label: "Audit Logs",   href: "/audit-logs",   icon: <FiFileText className="h-5 w-5 shrink-0 text-sidebar-foreground" /> }] : []),
     { label: "Documentation",  href: "/documentation", icon: <FiBookOpen className="h-5 w-5 shrink-0 text-sidebar-foreground" /> },
     { label: "About",          href: "/about",         icon: <FiInfo className="h-5 w-5 shrink-0 text-sidebar-foreground" /> },

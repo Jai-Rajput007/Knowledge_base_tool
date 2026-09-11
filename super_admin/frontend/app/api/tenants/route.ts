@@ -70,7 +70,8 @@ export async function POST(request: Request) {
             communicationGestures: false,
             navigation: false,
             featureSuggestions: false,
-            frs: false
+            frs: false,
+            voiceStudio: false
           })
         }
     });

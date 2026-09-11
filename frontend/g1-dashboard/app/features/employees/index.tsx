@@ -4,6 +4,9 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { FeatureGate } from "@/app/components/feature-gate";
+import { Video } from "lucide-react";
+import { LiveFeedModal } from "./components/LiveFeedModal";
+import { liveFeedApi } from "./api";
 
 interface Employee {
   id: number;
@@ -47,6 +50,9 @@ export function EmployeesModule() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [showBulk, setShowBulk] = useState(false);
+  const [showLiveFeed, setShowLiveFeed] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => { liveFeedApi.isAdmin().then(setIsAdmin).catch(() => setIsAdmin(false)); }, []);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -152,6 +158,12 @@ export function EmployeesModule() {
             <p className="text-[10px] font-mono text-muted-foreground mt-2 uppercase tracking-widest">Manage employee face enrollment for robot recognition</p>
           </div>
           <div className="flex gap-2">
+            {isAdmin && (
+              <button onClick={() => setShowLiveFeed(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg border border-border hover:bg-muted transition-colors">
+                <Video className="h-4 w-4" /> Show live feed
+              </button>
+            )}
             <button onClick={() => { setShowBulk(true); setError(""); setBulkResult(null); }}
               className="px-4 py-2 text-sm rounded-lg border border-border hover:bg-muted transition-colors">
               Bulk Import (Excel)
@@ -338,6 +350,8 @@ export function EmployeesModule() {
           </div>
         </div>
       )}
+
+      {showLiveFeed && <LiveFeedModal onClose={() => setShowLiveFeed(false)} />}
     </FeatureGate>
   );
 }

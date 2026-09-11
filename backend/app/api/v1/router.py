@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends
 from app.core.security import RequireRole
 
-from app.api.v1.endpoints import documents, chat, settings, dashboard, health, retrieve, auth, sessions, memory, employees, wakeword, navigation, personas, tenant, mcp, gestures, robot, audit, notifications
+from app.api.v1.endpoints import documents, chat, settings, dashboard, health, retrieve, auth, sessions, memory, employees, wakeword, navigation, personas, tenant, mcp, gestures, robot, audit, notifications, voice_studio, frs_live_feed
 
 api_router = APIRouter()
 
@@ -23,6 +23,7 @@ api_router.include_router(wakeword.router,  prefix="/wakeword",  tags=["wakeword
 api_router.include_router(gestures.router,  prefix="/gestures",  tags=["gestures"])
 api_router.include_router(robot.router,     prefix="/robot",     tags=["robot"])
 api_router.include_router(navigation.router,prefix="/navigation",tags=["navigation"])
+api_router.include_router(voice_studio.router, prefix="/voice-studio", tags=["voice-studio"], dependencies=[Depends(RequireRole(["admin", "editor"]))])
 
 # --- ADMIN, EDITOR, USER ---
 api_router.include_router(chat.router,      prefix="/chat",      tags=["chat"],       dependencies=[Depends(RequireRole(["admin", "editor", "user"]))])
@@ -33,6 +34,7 @@ api_router.include_router(notifications.router, prefix="/notifications", tags=["
 
 # --- MIXED / PUBLIC (Auth applied per-endpoint) ---
 api_router.include_router(auth.router,      prefix="/auth",      tags=["auth"])
+api_router.include_router(frs_live_feed.router, prefix="/employees/live-feed", tags=["frs-live-feed"])  # admin ticket + ticket-auth stream
 api_router.include_router(employees.router, prefix="/employees", tags=["employees"])
 api_router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
 api_router.include_router(health.router,    prefix="/health",    tags=["health"])

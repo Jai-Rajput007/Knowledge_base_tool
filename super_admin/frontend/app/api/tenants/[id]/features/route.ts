@@ -27,6 +27,7 @@ const CANONICAL_FEATURES: Record<string, boolean> = {
   navigation: false,
   featureSuggestions: false,
   frs: false,
+  voiceStudio: false,
 };
 
 export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
