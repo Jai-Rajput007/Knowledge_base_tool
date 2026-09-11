@@ -248,6 +248,51 @@ async def delete_gesture(
     return {"status": "deleted", "name": name}
 
 
+# Canonical builtin gesture names — mirrors BUILTIN_GESTURES in robot_sync.py.
+# Kept here so the backend can validate before hitting the robot network.
+BUILTIN_GESTURES = {
+    "wave_hello", "wave_goodbye", "shake_hand", "high_five", "hug",
+    "high_wave", "clap", "left_kiss", "right_kiss", "two_hand_kiss",
+    "heart", "hands_up", "x_ray", "reject",
+}
+
+
+@router.post("/builtin/{gesture_name}/play")
+async def play_builtin_gesture(
+    gesture_name: str,
+    robot_ip: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Execute one of the G1's built-in arm-action gestures.
+    Proxies directly to robot_sync POST /gestures/builtin/{name}/play.
+    No DB lookup — these are hardware-defined, not tenant data.
+    """
+    if gesture_name not in BUILTIN_GESTURES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown builtin gesture '{gesture_name}'. "
+                   f"Valid: {sorted(BUILTIN_GESTURES)}"
+        )
+    base = _robot_sync_url(robot_ip)
+    async with httpx.AsyncClient() as client:
+        try:
+            r = await client.post(
+                f"{base}/gestures/builtin/{gesture_name}/play",
+                timeout=30.0,
+            )
+            r.raise_for_status()
+            logger.info(f"[Gestures] Builtin '{gesture_name}' dispatched to robot")
+            return {"status": "playing", "gesture": gesture_name}
+        except httpx.ConnectError:
+            raise HTTPException(status_code=502, detail=f"Cannot reach robot_sync at {base}.")
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+        except Exception as e:
+            logger.error(f"[Gestures] Error playing builtin '{gesture_name}': {e}")
+            raise HTTPException(status_code=502, detail=str(e))
+
+
 @router.get("/health")
 async def get_health(robot_ip: Optional[str] = None):
     """Check if robot_sync.py is reachable on the AGX."""
