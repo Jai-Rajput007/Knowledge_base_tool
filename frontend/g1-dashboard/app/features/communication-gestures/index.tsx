@@ -4,12 +4,12 @@ import React, { useState, useCallback } from "react";
 import { FeatureGate } from "@/app/components/feature-gate";
 import {
   FiPlay, FiLoader, FiCheckCircle, FiAlertCircle,
-  FiCpu, FiList, FiMessageSquare, FiSave
+  FiCpu, FiList, FiMessageSquare, FiSave, FiPlus, FiX
 } from "react-icons/fi";
 import { api, API_BASE_URL } from "@/lib/api";
 import { useGestures } from "@/app/features/configuration-gestures/useGestures";
 import { useCommunicationSet } from "./hooks";
-import { durationBand } from "./types";
+import { DURATION_BANDS, durationBand, type DurationBand } from "./types";
 
 // ── Builtin gesture catalogue ────────────────────────────────────────────────
 // Names must exactly match the keys in robot_agent.cpp's gesture dispatcher
@@ -112,47 +112,85 @@ function RecordedCard({
   gesture,
   canPlay,
   onPlay,
+  inCommSet,
+  occupiedBy,
+  onAddToSet,
+  onRemoveFromSet,
 }: {
   gesture: { id: string; name: string; duration_s: number; sample_count: number; created_at: string };
   canPlay: boolean;
   onPlay: () => void;
+  /** Is THIS gesture currently the one occupying its band in the communication set? */
+  inCommSet: boolean;
+  /** If a DIFFERENT gesture currently occupies this one's band, its name — used to warn on replace. */
+  occupiedBy: string | null;
+  onAddToSet: () => void;
+  onRemoveFromSet: () => void;
 }) {
+  const band = durationBand(gesture.duration_s);
   return (
-    <div className="p-5 rounded-2xl border border-border bg-card/30 hover:bg-card/60 transition-all group">
-      <div className="text-3xl mb-3 leading-none">🎭</div>
+    <div className={`p-5 rounded-2xl border transition-all group ${
+      inCommSet ? "border-primary bg-primary/5" : "border-border bg-card/30 hover:bg-card/60"
+    }`}>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-3xl leading-none">🎭</span>
+        <span className="text-[10px] font-bold uppercase tracking-widest text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+          {band}
+        </span>
+      </div>
       <h4 className="font-bold text-sm text-foreground font-mono mb-1 truncate">{gesture.name}</h4>
       <p className="text-[11px] text-muted-foreground mb-4">
         {gesture.duration_s.toFixed(1)}s · {gesture.sample_count} frames
       </p>
-      <button
-        onClick={onPlay}
-        disabled={!canPlay}
-        className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all
-          ${canPlay
-            ? "bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground"
-            : "bg-muted/20 text-muted-foreground cursor-not-allowed opacity-50"}`}
-      >
-        <FiPlay /> Play
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={onPlay}
+          disabled={!canPlay}
+          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all
+            ${canPlay
+              ? "bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground"
+              : "bg-muted/20 text-muted-foreground cursor-not-allowed opacity-50"}`}
+        >
+          <FiPlay /> Play
+        </button>
+        <button
+          onClick={inCommSet ? onRemoveFromSet : onAddToSet}
+          title={
+            inCommSet
+              ? "Remove from Use While Explaining"
+              : occupiedBy
+              ? `Replaces '${occupiedBy}' as the ${band} gesture`
+              : `Use as the ${band} gesture while explaining`
+          }
+          className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-widest transition-all shrink-0 ${
+            inCommSet
+              ? "bg-primary text-primary-foreground hover:opacity-90"
+              : "bg-foreground/5 text-foreground hover:bg-foreground/10"
+          }`}
+        >
+          {inCommSet ? <FiCheckCircle /> : <FiPlus />}
+        </button>
+      </div>
     </div>
   );
 }
 
 // ── "Use while explaining" panel ─────────────────────────────────────────────
-// Selects which recorded gestures the robot chains through while giving a spoken
-// explanation (CommGestureController on the robot picks among these per-reply,
-// based on how much speech is left — see g1-nlp/services/gesture/comm_gesture.py).
+// Shows the current Short/Medium/Long slots (add gestures to them from the Recorded
+// tab below) and lets the robot chain through whichever ones are filled while giving
+// a spoken explanation — see g1-nlp/services/gesture/comm_gesture.py. Removing a
+// gesture here only takes it out of this set; the recording itself is untouched.
 function CommunicationSetPanel({
-  recorded,
+  set,
   canControl,
 }: {
-  recorded: { id: string; name: string; duration_s: number; sample_count: number }[];
+  set: ReturnType<typeof useCommunicationSet>;
   canControl: boolean;
 }) {
   const {
-    selected, enabled, setEnabled, toggle, dirty,
-    loading, saving, testing, error, clearError, save, test, maxSelected,
-  } = useCommunicationSet();
+    selected, bandOf, removeFromSet, enabled, setEnabled, dirty,
+    loading, saving, testing, error, clearError, save, test,
+  } = set;
   const [savedMsg, setSavedMsg] = useState(false);
 
   const onSave = async () => {
@@ -163,6 +201,12 @@ function CommunicationSetPanel({
     }
   };
 
+  const slotted: Record<DurationBand, string | null> = { Short: null, Medium: null, Long: null };
+  for (const name of selected) {
+    const band = bandOf(name);
+    if (band) slotted[band] = name;
+  }
+
   return (
     <div className="p-6 rounded-2xl border border-border bg-card/30 space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -171,8 +215,9 @@ function CommunicationSetPanel({
           <div>
             <h3 className="font-bold text-sm text-foreground uppercase tracking-wide">Use While Explaining</h3>
             <p className="text-xs text-muted-foreground">
-              Pick up to {maxSelected} recorded gestures — the robot chains between them
-              while speaking a reply and returns its hands to rest when it stops talking.
+              One gesture per Short / Medium / Long slot — the robot picks whichever fits
+              how much is left to say, and returns its hands to rest when it stops talking.
+              Add gestures to a slot from the Recorded tab below.
             </p>
           </div>
         </div>
@@ -199,38 +244,33 @@ function CommunicationSetPanel({
 
       {loading ? (
         <div className="text-center py-8 text-sm text-muted-foreground">Loading…</div>
-      ) : recorded.length === 0 ? (
-        <div className="text-center py-8 border border-dashed border-border rounded-xl text-sm text-muted-foreground">
-          Record at least one gesture in the Recorded tab before choosing a communication set.
-        </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          {recorded.map((g) => {
-            const isSelected = selected.includes(g.name);
-            const disabled = !isSelected && selected.length >= maxSelected;
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {DURATION_BANDS.map((band) => {
+            const name = slotted[band];
             return (
-              <button
-                key={g.id}
-                type="button"
-                disabled={disabled}
-                onClick={() => toggle(g.name)}
-                className={`text-left p-4 rounded-xl border transition-all ${
-                  isSelected
-                    ? "border-primary bg-primary/10"
-                    : disabled
-                    ? "border-border bg-muted/10 opacity-50 cursor-not-allowed"
-                    : "border-border bg-card/40 hover:bg-card/70"
+              <div
+                key={band}
+                className={`p-4 rounded-xl border ${
+                  name ? "border-primary bg-primary/5" : "border-dashed border-border bg-muted/10"
                 }`}
               >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-primary">
-                    {durationBand(g.duration_s)}
-                  </span>
-                  {isSelected && <FiCheckCircle className="text-primary" size={14} />}
-                </div>
-                <p className="text-sm font-mono font-semibold text-foreground truncate">{g.name}</p>
-                <p className="text-[11px] text-muted-foreground">{g.duration_s.toFixed(1)}s</p>
-              </button>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-primary">{band}</span>
+                {name ? (
+                  <div className="flex items-center justify-between mt-1 gap-2">
+                    <p className="text-sm font-mono font-semibold text-foreground truncate">{name}</p>
+                    <button
+                      onClick={() => removeFromSet(name)}
+                      title="Remove from Use While Explaining (keeps the recording)"
+                      className="shrink-0 p-1 rounded-md text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                    >
+                      <FiX size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground mt-1">Not set</p>
+                )}
+              </div>
             );
           })}
         </div>
@@ -281,6 +321,7 @@ export function CommunicationGesturesModule() {
   // Reuse the same robot-health hook used by ConfigurationGesturesModule
   const { isHealthy, robotStatus, gestures, loading, playGesture } = useGestures();
   const { playStates, playBuiltin } = useBuiltinGestures();
+  const commSet = useCommunicationSet(gestures);
 
   const canControl = isHealthy === true && robotStatus === "online";
 
@@ -373,14 +414,22 @@ export function CommunicationGesturesModule() {
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {gestures.map((g) => (
-                  <RecordedCard
-                    key={g.id}
-                    gesture={g}
-                    canPlay={canControl}
-                    onPlay={() => playGesture(g.name)}
-                  />
-                ))}
+                {gestures.map((g) => {
+                  const band = durationBand(g.duration_s);
+                  const occupant = commSet.selected.find((n) => n !== g.name && commSet.bandOf(n) === band);
+                  return (
+                    <RecordedCard
+                      key={g.id}
+                      gesture={g}
+                      canPlay={canControl}
+                      onPlay={() => playGesture(g.name)}
+                      inCommSet={commSet.selected.includes(g.name)}
+                      occupiedBy={occupant ?? null}
+                      onAddToSet={() => commSet.addToSet(g.name)}
+                      onRemoveFromSet={() => commSet.removeFromSet(g.name)}
+                    />
+                  );
+                })}
               </div>
             )}
           </>
@@ -396,7 +445,7 @@ export function CommunicationGesturesModule() {
         )}
 
         {/* Communication-gesture set — which recordings the robot uses while explaining */}
-        <CommunicationSetPanel recorded={gestures} canControl={canControl} />
+        <CommunicationSetPanel set={commSet} canControl={canControl} />
       </div>
     </FeatureGate>
   );

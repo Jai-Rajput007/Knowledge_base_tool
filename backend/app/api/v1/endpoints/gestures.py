@@ -284,6 +284,22 @@ async def _ensure_on_robot(client: httpx.AsyncClient, base: str, gesture: Custom
         exists.raise_for_status()
 
 
+def _duration_band(duration_s: float) -> str:
+    """
+    Short/Medium/Long band from a recording's measured length — mirrors
+    frontend/g1-dashboard/app/features/communication-gestures/types.ts durationBand().
+    Short: 1-10s, Medium: 10-30s, Long: 30s+. The communication set is exactly one
+    gesture per band (never two of the same length class) so the robot's per-reply
+    selection (g1-nlp comm_seq_select_take) always has one option per rough speech
+    length rather than two competing for the same slot.
+    """
+    if duration_s < 10:
+        return "Short"
+    if duration_s < 30:
+        return "Medium"
+    return "Long"
+
+
 def _tenant_gestures(db: Session, tenant_id: str, names: List[str]) -> List[CustomGesture]:
     """Resolve logical names to this tenant's rows, preserving order; 404 on any unknown name."""
     unique = list(dict.fromkeys(n.strip() for n in names if n and n.strip()))
@@ -341,8 +357,22 @@ async def put_communication_set(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Select up to 3 recorded gestures for the robot to use while explaining."""
+    """
+    Select recorded gestures for the robot to use while explaining — at most one per
+    Short/Medium/Long band (the frontend enforces this by replacing on add; this is
+    the server-side backstop, e.g. against a stale second browser tab).
+    """
     rows = _tenant_gestures(db, current_user.tenant_id, body.names)
+    bands: dict = {}
+    for g in rows:
+        band = _duration_band(g.duration_s)
+        if band in bands:
+            raise HTTPException(
+                status_code=400,
+                detail=f"'{g.name}' and '{bands[band]}' are both {band} ({g.duration_s:.1f}s) — "
+                       f"only one {band} gesture may be used at a time. Remove one first.",
+            )
+        bands[band] = g.name
     base = _robot_sync_url(robot_ip)
     disk_names = [_disk_name(current_user.tenant_id, g.name) for g in rows]
     try:
