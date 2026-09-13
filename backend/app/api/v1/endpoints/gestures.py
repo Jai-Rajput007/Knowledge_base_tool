@@ -28,9 +28,10 @@ Environment variables (set in .env):
 from fastapi import APIRouter, HTTPException, Form, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+from pydantic import BaseModel, Field
 import httpx
 import logging
-from typing import Optional
+from typing import List, Optional
 
 from app.core.config import settings
 from app.core.security import get_current_user
@@ -246,6 +247,158 @@ async def delete_gesture(
         logger.warning(f"[Gestures] Best-effort file delete failed for '{name}': {e}")
 
     return {"status": "deleted", "name": name}
+
+
+# ── Communication gestures ────────────────────────────────────────────────────
+# Which recorded gestures the robot uses while explaining. The selection lives on the
+# robot (app_config.json → g1.communication_gestures, read fresh by the pipeline every
+# reply); this API maps the tenant's logical names to on-disk names and makes sure every
+# selected recording is actually present on the Thor before it is selected.
+
+COMM_GESTURE_MAX = 3
+
+
+class CommunicationSetIn(BaseModel):
+    enabled: bool = False
+    names: List[str] = Field(default_factory=list)
+    min_reply_chars: Optional[int] = Field(default=None, ge=20, le=2000)
+
+
+class CommunicationTestIn(BaseModel):
+    names: List[str] = Field(default_factory=list)
+    seconds: float = Field(default=10.0, ge=3.0, le=30.0)
+
+
+async def _ensure_on_robot(client: httpx.AsyncClient, base: str, gesture: CustomGesture, disk_name: str) -> None:
+    """Push a recording from Postgres to the Thor if its .gesture file is missing (reflash, robot swap)."""
+    exists = await client.head(f"{base}/gestures/custom/{disk_name}", timeout=5.0)
+    if exists.status_code == 404:
+        logger.info(f"[Gestures] '{gesture.name}' missing on Thor — pushing from Postgres")
+        push = await client.post(
+            f"{base}/gestures/custom/push",
+            json={"name": disk_name, "waypoints": gesture.waypoints},
+            timeout=15.0,
+        )
+        push.raise_for_status()
+    else:
+        exists.raise_for_status()
+
+
+def _tenant_gestures(db: Session, tenant_id: str, names: List[str]) -> List[CustomGesture]:
+    """Resolve logical names to this tenant's rows, preserving order; 404 on any unknown name."""
+    unique = list(dict.fromkeys(n.strip() for n in names if n and n.strip()))
+    if len(unique) > COMM_GESTURE_MAX:
+        raise HTTPException(status_code=400, detail=f"Choose at most {COMM_GESTURE_MAX} gestures")
+    rows = []
+    for n in unique:
+        row = (
+            db.query(CustomGesture)
+            .filter(CustomGesture.tenant_id == tenant_id, CustomGesture.name == n)
+            .first()
+        )
+        if not row:
+            raise HTTPException(status_code=404, detail=f"Gesture '{n}' not found")
+        rows.append(row)
+    return rows
+
+
+def _robot_error(base: str, exc: Exception) -> HTTPException:
+    if isinstance(exc, httpx.ConnectError):
+        return HTTPException(status_code=502, detail=f"Cannot reach robot_sync at {base}.")
+    if isinstance(exc, httpx.HTTPStatusError):
+        return HTTPException(status_code=exc.response.status_code, detail=exc.response.text)
+    return HTTPException(status_code=502, detail=str(exc))
+
+
+@router.get("/communication")
+async def get_communication_set(
+    robot_ip: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+):
+    """The robot's current communication-gesture set, in this tenant's logical names."""
+    base = _robot_sync_url(robot_ip)
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.get(f"{base}/gestures/communication", timeout=5.0)
+            r.raise_for_status()
+    except Exception as e:
+        raise _robot_error(base, e)
+
+    data = r.json()
+    prefix = f"{current_user.tenant_id}__"
+    names = [n[len(prefix):] for n in data.get("names", []) if n.startswith(prefix)]
+    return {
+        "enabled": bool(data.get("enabled")) and bool(names),
+        "names": names,
+        "min_reply_chars": data.get("min_reply_chars", 120),
+    }
+
+
+@router.put("/communication")
+async def put_communication_set(
+    body: CommunicationSetIn,
+    robot_ip: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Select up to 3 recorded gestures for the robot to use while explaining."""
+    rows = _tenant_gestures(db, current_user.tenant_id, body.names)
+    base = _robot_sync_url(robot_ip)
+    disk_names = [_disk_name(current_user.tenant_id, g.name) for g in rows]
+    try:
+        async with httpx.AsyncClient() as client:
+            for g, disk in zip(rows, disk_names):
+                await _ensure_on_robot(client, base, g, disk)
+            r = await client.put(
+                f"{base}/gestures/communication",
+                json={"enabled": body.enabled, "names": disk_names, "min_reply_chars": body.min_reply_chars},
+                timeout=10.0,
+            )
+            r.raise_for_status()
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[Gestures] Saving communication set failed: {e}")
+        raise _robot_error(base, e)
+
+    saved = r.json()
+    logger.info(f"[Gestures] Communication set (tenant={current_user.tenant_id}): "
+                f"enabled={saved.get('enabled')} names={[g.name for g in rows]}")
+    return {
+        "enabled": bool(saved.get("enabled")),
+        "names": [g.name for g in rows],
+        "min_reply_chars": saved.get("min_reply_chars", 120),
+    }
+
+
+@router.post("/communication/test")
+async def test_communication_set(
+    body: CommunicationTestIn,
+    robot_ip: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Play the given gestures as a communication sequence for a few seconds, without speech."""
+    rows = _tenant_gestures(db, current_user.tenant_id, body.names)
+    if not rows:
+        raise HTTPException(status_code=400, detail="Select at least one gesture to test")
+    base = _robot_sync_url(robot_ip)
+    disk_names = [_disk_name(current_user.tenant_id, g.name) for g in rows]
+    try:
+        async with httpx.AsyncClient() as client:
+            for g, disk in zip(rows, disk_names):
+                await _ensure_on_robot(client, base, g, disk)
+            r = await client.post(
+                f"{base}/gestures/communication/test",
+                json={"names": disk_names, "seconds": body.seconds},
+                timeout=10.0,
+            )
+            r.raise_for_status()
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise _robot_error(base, e)
+    return {"status": "testing", "names": [g.name for g in rows], "seconds": body.seconds}
 
 
 # Canonical builtin gesture names — mirrors BUILTIN_GESTURES in robot_sync.py.

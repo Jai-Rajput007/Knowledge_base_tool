@@ -4,10 +4,12 @@ import React, { useState, useCallback } from "react";
 import { FeatureGate } from "@/app/components/feature-gate";
 import {
   FiPlay, FiLoader, FiCheckCircle, FiAlertCircle,
-  FiCpu, FiList
+  FiCpu, FiList, FiMessageSquare, FiSave
 } from "react-icons/fi";
 import { api, API_BASE_URL } from "@/lib/api";
 import { useGestures } from "@/app/features/configuration-gestures/useGestures";
+import { useCommunicationSet } from "./hooks";
+import { durationBand } from "./types";
 
 // ── Builtin gesture catalogue ────────────────────────────────────────────────
 // Names must exactly match the keys in robot_agent.cpp's gesture dispatcher
@@ -136,6 +138,142 @@ function RecordedCard({
   );
 }
 
+// ── "Use while explaining" panel ─────────────────────────────────────────────
+// Selects which recorded gestures the robot chains through while giving a spoken
+// explanation (CommGestureController on the robot picks among these per-reply,
+// based on how much speech is left — see g1-nlp/services/gesture/comm_gesture.py).
+function CommunicationSetPanel({
+  recorded,
+  canControl,
+}: {
+  recorded: { id: string; name: string; duration_s: number; sample_count: number }[];
+  canControl: boolean;
+}) {
+  const {
+    selected, enabled, setEnabled, toggle, dirty,
+    loading, saving, testing, error, clearError, save, test, maxSelected,
+  } = useCommunicationSet();
+  const [savedMsg, setSavedMsg] = useState(false);
+
+  const onSave = async () => {
+    const ok = await save();
+    if (ok) {
+      setSavedMsg(true);
+      setTimeout(() => setSavedMsg(false), 2500);
+    }
+  };
+
+  return (
+    <div className="p-6 rounded-2xl border border-border bg-card/30 space-y-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span className="text-primary font-mono text-sm bg-primary/10 px-2 py-1 rounded">[EXPLAIN]</span>
+          <div>
+            <h3 className="font-bold text-sm text-foreground uppercase tracking-wide">Use While Explaining</h3>
+            <p className="text-xs text-muted-foreground">
+              Pick up to {maxSelected} recorded gestures — the robot chains between them
+              while speaking a reply and returns its hands to rest when it stops talking.
+            </p>
+          </div>
+        </div>
+
+        <label className="flex items-center gap-2 shrink-0 cursor-pointer select-none">
+          <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            {enabled ? "Enabled" : "Disabled"}
+          </span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={enabled}
+            onClick={() => setEnabled(!enabled)}
+            className={`relative w-10 h-6 rounded-full transition-colors ${enabled ? "bg-primary" : "bg-muted"}`}
+          >
+            <span
+              className={`absolute top-1 h-4 w-4 rounded-full bg-background transition-transform ${
+                enabled ? "translate-x-5" : "translate-x-1"
+              }`}
+            />
+          </button>
+        </label>
+      </div>
+
+      {loading ? (
+        <div className="text-center py-8 text-sm text-muted-foreground">Loading…</div>
+      ) : recorded.length === 0 ? (
+        <div className="text-center py-8 border border-dashed border-border rounded-xl text-sm text-muted-foreground">
+          Record at least one gesture in the Recorded tab before choosing a communication set.
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          {recorded.map((g) => {
+            const isSelected = selected.includes(g.name);
+            const disabled = !isSelected && selected.length >= maxSelected;
+            return (
+              <button
+                key={g.id}
+                type="button"
+                disabled={disabled}
+                onClick={() => toggle(g.name)}
+                className={`text-left p-4 rounded-xl border transition-all ${
+                  isSelected
+                    ? "border-primary bg-primary/10"
+                    : disabled
+                    ? "border-border bg-muted/10 opacity-50 cursor-not-allowed"
+                    : "border-border bg-card/40 hover:bg-card/70"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-primary">
+                    {durationBand(g.duration_s)}
+                  </span>
+                  {isSelected && <FiCheckCircle className="text-primary" size={14} />}
+                </div>
+                <p className="text-sm font-mono font-semibold text-foreground truncate">{g.name}</p>
+                <p className="text-[11px] text-muted-foreground">{g.duration_s.toFixed(1)}s</p>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {error && (
+        <div className="flex items-center justify-between gap-3 px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
+          <span>{error}</span>
+          <button onClick={clearError} className="font-bold">✕</button>
+        </div>
+      )}
+
+      <div className="flex items-center gap-3">
+        <button
+          onClick={onSave}
+          disabled={!dirty || saving}
+          className={`flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
+            dirty && !saving
+              ? "bg-primary text-primary-foreground hover:bg-primary/90"
+              : "bg-muted/20 text-muted-foreground cursor-not-allowed opacity-50"
+          }`}
+        >
+          {saving ? <><FiLoader className="animate-spin" /> Saving…</> : <><FiSave /> Save</>}
+        </button>
+
+        <button
+          onClick={test}
+          disabled={selected.length === 0 || testing || !canControl}
+          className={`flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
+            selected.length > 0 && !testing && canControl
+              ? "bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground"
+              : "bg-muted/20 text-muted-foreground cursor-not-allowed opacity-50"
+          }`}
+        >
+          {testing ? <><FiLoader className="animate-spin" /> Testing…</> : <><FiMessageSquare /> Test Sequence</>}
+        </button>
+
+        {savedMsg && <span className="text-xs text-green-400 font-semibold">Saved</span>}
+      </div>
+    </div>
+  );
+}
+
 // ── Main module ──────────────────────────────────────────────────────────────
 export function CommunicationGesturesModule() {
   const [tab, setTab] = useState<"builtin" | "recorded">("builtin");
@@ -256,6 +394,9 @@ export function CommunicationGesturesModule() {
               : "⚠ Robot is offline — power on the G1 and connect it to the Thor before playing gestures."}
           </p>
         )}
+
+        {/* Communication-gesture set — which recordings the robot uses while explaining */}
+        <CommunicationSetPanel recorded={gestures} canControl={canControl} />
       </div>
     </FeatureGate>
   );
