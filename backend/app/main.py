@@ -94,6 +94,7 @@ def create_application() -> FastAPI:
             db.close()
             
         asyncio.create_task(_resume_wakeword_jobs())
+        asyncio.create_task(_warm_reranker())
 
     @app.on_event("shutdown")
     async def shutdown_event():
@@ -108,6 +109,31 @@ def create_application() -> FastAPI:
         return {"name": settings.APP_NAME, "version": settings.APP_VERSION, "docs": "/docs"}
 
     return app
+
+
+async def _warm_reranker():
+    """
+    Load the cross-encoder reranker at startup instead of on the first live request.
+
+    `_get_reranker()` in retrieval_service.py lazy-loads `CrossEncoder(RERANKER_MODEL)`
+    from sentence_transformers on first call and caches it in a module-level global —
+    every call after that is fast. On the Thor this first load (reading the model off
+    disk/HF cache and initializing it on CPU) took long enough to blow through the
+    robot's `knowledge_base.timeout_ms` (2.5s) on its very first KB question of a
+    session, which then got treated as "knowledge base unavailable" — a real question
+    answerable from an uploaded document came back as "I'm not familiar with X" purely
+    because the model happened to still be cold. Warming here means the very first
+    `/retrieve` call after a backend restart never pays that cost.
+    """
+    from app.services.retrieval_service import _get_reranker
+
+    await asyncio.sleep(1)  # let the startup event finish returning before the CPU-bound load
+    try:
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, _get_reranker)
+        logger.info("Reranker warmed at startup")
+    except Exception as e:
+        logger.warning(f"Reranker warmup failed (will lazy-load on first request instead): {e}")
 
 
 async def _resume_wakeword_jobs():
