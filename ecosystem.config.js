@@ -124,14 +124,6 @@ module.exports = {
       max_restarts: 20,
     },
     {
-      name: "sglang",
-      cwd: "../g1-nlp",
-      script: "./start_sglang.sh",
-      interpreter: "bash",
-      restart_delay: 5000,
-      max_restarts: 20,
-    },
-    {
       // nemotron-3.5-asr-streaming-0.6b, for the international-languages pipeline
       // (docs/INTERNATIONAL_LANGUAGES_PLAN.md). Separate env from nlp-env — see
       // g1-nlp/docs/NEMOTRON_ARABIC_ASR.md for why (transformers version conflict).
