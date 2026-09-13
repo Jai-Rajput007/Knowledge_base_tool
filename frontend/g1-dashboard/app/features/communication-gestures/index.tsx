@@ -197,7 +197,7 @@ function CommunicationSetPanel({
     mode, switchMode, selected, bandOf, removeFromSet,
     unitreeRoles, setUnitreeRole, verifying, verifyResult, rolesVerified, verifyRoles,
     enabled, setEnabled, canEnable, dirty,
-    loading, saving, testing, error, clearError, save, test,
+    loading, saving, testing, testingRole, testRole, error, clearError, save, test,
   } = set;
   const [savedMsg, setSavedMsg] = useState(false);
 
@@ -323,9 +323,25 @@ function CommunicationSetPanel({
             {UNITREE_ROLES.map((role) => {
               const status = verifyResult?.[role];
               const value = unitreeRoles[role];
+              const isTestingThis = testingRole === role;
               return (
                 <div key={role} className="p-4 rounded-xl border border-border bg-muted/10 space-y-2">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-primary">{role}</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-primary">{role}</span>
+                    <button
+                      onClick={() => testRole(role)}
+                      disabled={!value.trim() || isTestingThis || !canControl}
+                      title={`Play just the ${role} gesture on the robot`}
+                      className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all ${
+                        value.trim() && !isTestingThis && canControl
+                          ? "bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground"
+                          : "bg-muted/20 text-muted-foreground cursor-not-allowed opacity-50"
+                      }`}
+                    >
+                      {isTestingThis ? <FiLoader className="animate-spin" size={11} /> : <FiPlay size={11} />}
+                      Test
+                    </button>
+                  </div>
                   <input
                     type="text"
                     value={value}

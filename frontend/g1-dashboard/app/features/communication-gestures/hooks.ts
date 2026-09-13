@@ -65,6 +65,7 @@ export function useCommunicationSet(recorded: RecordedLite[]) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [testingRole, setTestingRole] = useState<UnitreeRole | null>(null);
   const [verifying, setVerifying] = useState(false);
   const [verifyResult, setVerifyResult] = useState<UnitreeVerifyResult | null>(null);
   const [verifiedRoles, setVerifiedRoles] = useState<UnitreeRoles | null>(null);
@@ -202,13 +203,35 @@ export function useCommunicationSet(recorded: RecordedLite[]) {
     setTesting(true);
     setError(null);
     try {
-      await testCommunicationSet(mode, mode === "recorded" ? selected : unitreeRoles, 10);
+      // 20s (not 10s): long enough that, when more than one role is set, the budget
+      // decays through more than one band during the test — so switching between
+      // gestures is actually demonstrated, not just whichever band a flat 10s budget
+      // happens to land in.
+      await testCommunicationSet(mode, mode === "recorded" ? selected : unitreeRoles, 20);
     } catch (e: unknown) {
       setError(errorMessage(e, "Failed to start the test sequence"));
     } finally {
-      setTimeout(() => setTesting(false), 10_000);
+      setTimeout(() => setTesting(false), 20_000);
     }
   }, [mode, selected, unitreeRoles]);
+
+  /** Test one specific Unitree-app role in isolation (a dedicated Test button per slot). */
+  const testRole = useCallback(
+    async (role: UnitreeRole) => {
+      const name = (unitreeRoles[role] || "").trim();
+      if (!name) return;
+      setTestingRole(role);
+      setError(null);
+      try {
+        await testCommunicationSet("unitree_app", { ...EMPTY_UNITREE_ROLES, [role]: name }, 6);
+      } catch (e: unknown) {
+        setError(errorMessage(e, `Failed to test the ${role} gesture`));
+      } finally {
+        setTimeout(() => setTestingRole(null), 6_000);
+      }
+    },
+    [unitreeRoles]
+  );
 
   return {
     saved,
@@ -227,6 +250,8 @@ export function useCommunicationSet(recorded: RecordedLite[]) {
     loading,
     saving,
     testing,
+    testingRole,
+    testRole,
     verifying,
     verifyResult,
     rolesVerified,
