@@ -68,6 +68,7 @@ export async function POST(request: Request) {
             otaUpdates: false,
             emotions: false,
             communicationGestures: false,
+            vlmVision: false,
             navigation: false,
             featureSuggestions: false,
             frs: false,

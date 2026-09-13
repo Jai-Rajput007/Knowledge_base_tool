@@ -54,6 +54,7 @@ export default function PermissionsPage() {
             { id: "otaUpdates", name: "OTA Updates", desc: "Enable Over-The-Air remote updates for the robots.", enabled: 0, total: 1, type: "Enterprise Only" },
             { id: "emotions", name: "Emotions", desc: "Enable visual and vocal emotional responses while communicating.", enabled: 0, total: 1, type: "Beta" },
             { id: "communicationGestures", name: "Communication Gestures", desc: "Enable physical gestures while the robot is explaining something.", enabled: 0, total: 1, type: "Beta" },
+            { id: "vlmVision", name: "VLM Vision", desc: "Let the robot answer 'how am I looking' / 'what do you see' by calling its onboard vision-language model.", enabled: 0, total: 1, type: "Beta" },
             { id: "navigation", name: "Navigation", desc: "Enable the robot's physical autonomous navigation features.", enabled: 0, total: 1, type: "Enterprise Only" },
             { id: "featureSuggestions", name: "Feature Suggestions", desc: "Provide intelligent feature suggestions according to the specific robot model.", enabled: 0, total: 1, type: "Beta" },
             { id: "frs", name: "Facial Recognition System", desc: "Enable the facial recognition employee tracking module.", enabled: 0, total: 1, type: "Core Feature" },

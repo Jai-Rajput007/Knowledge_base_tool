@@ -24,6 +24,7 @@ const CANONICAL_FEATURES: Record<string, boolean> = {
   otaUpdates: false,
   emotions: false,
   communicationGestures: false,
+  vlmVision: false,
   navigation: false,
   featureSuggestions: false,
   frs: false,

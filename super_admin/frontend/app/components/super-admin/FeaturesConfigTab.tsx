@@ -31,6 +31,7 @@ export function FeaturesConfigTab({ tenantId }: { tenantId: string }) {
     { key: "otaUpdates", name: "OTA Updates", desc: "Enable Over-The-Air remote updates for the robots." },
     { key: "emotions", name: "Emotions", desc: "Enable visual and vocal emotional responses while communicating." },
     { key: "communicationGestures", name: "Communication Gestures", desc: "Enable physical gestures while the robot is explaining something." },
+    { key: "vlmVision", name: "VLM Vision", desc: "Let the robot answer 'how am I looking' / 'what do you see' by calling its onboard vision-language model." },
     { key: "navigation", name: "Navigation", desc: "Enable the robot's physical autonomous navigation features." },
     { key: "featureSuggestions", name: "Feature Suggestions", desc: "Provide intelligent feature suggestions according to the specific robot model." },
     { key: "frs", name: "Facial Recognition System", desc: "Enable the facial recognition employee tracking module." },

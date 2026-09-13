@@ -10,6 +10,7 @@ const OtaUpdatesModule = dynamic(() => import("@/app/features/ota-updates").then
 const VoiceSettingsModule = dynamic(() => import("@/app/features/voice-settings").then(m => m.VoiceSettingsModule), { ssr: false });
 const LanguageSettingsModule = dynamic(() => import("@/app/features/language-settings").then(m => m.LanguageSettingsModule), { ssr: false });
 const InternationalLanguageModule = dynamic(() => import("@/app/features/international-language").then(m => m.InternationalLanguageModule), { ssr: false });
+const VlmVisionModule = dynamic(() => import("@/app/features/vlm-vision").then(m => m.VlmVisionModule), { ssr: false });
 
 /**
  * Settings Page
@@ -269,6 +270,7 @@ export default function Settings() {
     { id: "language", label: "Language", adminOnly: false, hidden: false, icon: "M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 15h5.498" },
     { id: "international-language", label: "International Language", adminOnly: false, hidden: false, icon: "M12 21a9 9 0 100-18 9 9 0 000 18zM3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 014 9 15 15 0 01-4 9 15 15 0 01-4-9 15 15 0 014-9z" },
     
+    { id: "vlm-vision", label: "VLM Vision", adminOnly: false, hidden: false, icon: "M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z M15 12a3 3 0 11-6 0 3 3 0 016 0z" },
     { id: "rbac", label: "RBAC", adminOnly: true, hidden: false, icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" },
     { id: "rollback", label: "Rollback", adminOnly: false, hidden: false, icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
     { id: "ota", label: "OTA Updates", adminOnly: false, hidden: false, icon: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" },
@@ -276,7 +278,7 @@ export default function Settings() {
   ];
 
   const tabs = allTabs.filter(t => !t.hidden && (!t.adminOnly || currentUserRole === "admin"));
-  const showSaveButton = !["users", "rbac", "rollback", "ota", "voice", "language"].includes(activeTab);
+  const showSaveButton = !["users", "rbac", "rollback", "ota", "voice", "language", "vlm-vision"].includes(activeTab);
 
   return (
     <div className="flex-1 p-6 bg-background">
@@ -556,6 +558,16 @@ export default function Settings() {
                     API keys are stored locally and never sent to our servers.
                   </p>
                 </div>
+              </div>
+            )}
+
+            {activeTab === "vlm-vision" && (
+              <div className="bg-card border border-border rounded-2xl p-6 space-y-8">
+                <div>
+                  <h2 className="text-xl font-semibold text-card-foreground mb-1">VLM Vision</h2>
+                  <p className="text-muted-foreground">Let the robot answer questions about what it sees</p>
+                </div>
+                <VlmVisionModule />
               </div>
             )}
 
