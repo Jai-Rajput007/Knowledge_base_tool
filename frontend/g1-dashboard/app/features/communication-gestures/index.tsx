@@ -4,12 +4,12 @@ import React, { useState, useCallback } from "react";
 import { FeatureGate } from "@/app/components/feature-gate";
 import {
   FiPlay, FiLoader, FiCheckCircle, FiAlertCircle,
-  FiCpu, FiList, FiMessageSquare, FiSave, FiPlus, FiX
+  FiCpu, FiList, FiMessageSquare, FiSave, FiPlus, FiX, FiShield
 } from "react-icons/fi";
 import { api, API_BASE_URL } from "@/lib/api";
 import { useGestures } from "@/app/features/configuration-gestures/useGestures";
 import { useCommunicationSet } from "./hooks";
-import { DURATION_BANDS, durationBand, type DurationBand } from "./types";
+import { DURATION_BANDS, durationBand, UNITREE_ROLES, type DurationBand } from "./types";
 
 // ── Builtin gesture catalogue ────────────────────────────────────────────────
 // Names must exactly match the keys in robot_agent.cpp's gesture dispatcher
@@ -176,10 +176,16 @@ function RecordedCard({
 }
 
 // ── "Use while explaining" panel ─────────────────────────────────────────────
-// Shows the current Short/Medium/Long slots (add gestures to them from the Recorded
-// tab below) and lets the robot chain through whichever ones are filled while giving
-// a spoken explanation — see g1-nlp/services/gesture/comm_gesture.py. Removing a
-// gesture here only takes it out of this set; the recording itself is untouched.
+// Shows the current Short/Medium/Long slots and lets the robot chain through whichever
+// ones are filled while giving a spoken explanation — see
+// g1-nlp/services/gesture/comm_gesture.py. Two mutually exclusive modes, picked per robot
+// depending on whether it has a physical waist lock fitted:
+//   "recorded"     — our own recordings (add from the Recorded tab below). Needs a waist
+//                    lock: recording without one was found to destabilize the robot.
+//   "unitree_app"  — 3 gestures taught through the Unitree mobile app's "demo teaching"
+//                    feature, typed in here by name and confirmed with Verify before they
+//                    can be enabled (there's no way to list them — Verify actually fires
+//                    each one briefly to check the robot accepts it).
 function CommunicationSetPanel({
   set,
   canControl,
@@ -188,7 +194,9 @@ function CommunicationSetPanel({
   canControl: boolean;
 }) {
   const {
-    selected, bandOf, removeFromSet, enabled, setEnabled, dirty,
+    mode, switchMode, selected, bandOf, removeFromSet,
+    unitreeRoles, setUnitreeRole, verifying, verifyResult, rolesVerified, verifyRoles,
+    enabled, setEnabled, canEnable, dirty,
     loading, saving, testing, error, clearError, save, test,
   } = set;
   const [savedMsg, setSavedMsg] = useState(false);
@@ -207,6 +215,9 @@ function CommunicationSetPanel({
     if (band) slotted[band] = name;
   }
 
+  const hasAnyRole = UNITREE_ROLES.some((r) => unitreeRoles[r]?.trim());
+  const canTest = mode === "recorded" ? selected.length > 0 : hasAnyRole;
+
   return (
     <div className="p-6 rounded-2xl border border-border bg-card/30 space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -215,9 +226,8 @@ function CommunicationSetPanel({
           <div>
             <h3 className="font-bold text-sm text-foreground uppercase tracking-wide">Use While Explaining</h3>
             <p className="text-xs text-muted-foreground">
-              One gesture per Short / Medium / Long slot — the robot picks whichever fits
-              how much is left to say, and returns its hands to rest when it stops talking.
-              Add gestures to a slot from the Recorded tab below.
+              The robot picks whichever gesture fits how much is left to say, and returns
+              its hands to rest when it stops talking.
             </p>
           </div>
         </div>
@@ -230,8 +240,12 @@ function CommunicationSetPanel({
             type="button"
             role="switch"
             aria-checked={enabled}
+            disabled={!canEnable && !enabled}
+            title={!canEnable && !enabled ? "Nothing set up to enable yet" : undefined}
             onClick={() => setEnabled(!enabled)}
-            className={`relative w-10 h-6 rounded-full transition-colors ${enabled ? "bg-primary" : "bg-muted"}`}
+            className={`relative w-10 h-6 rounded-full transition-colors ${enabled ? "bg-primary" : "bg-muted"} ${
+              !canEnable && !enabled ? "opacity-40 cursor-not-allowed" : ""
+            }`}
           >
             <span
               className={`absolute top-1 h-4 w-4 rounded-full bg-background transition-transform ${
@@ -242,9 +256,31 @@ function CommunicationSetPanel({
         </label>
       </div>
 
+      {/* Mode toggle */}
+      <div className="flex gap-1 p-1 bg-muted/30 rounded-xl w-fit border border-border">
+        {(
+          [
+            ["recorded", "Our UI (needs waist lock)"],
+            ["unitree_app", "Unitree App (no waist lock)"],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => switchMode(key)}
+            className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+              mode === key
+                ? "bg-background text-foreground shadow-sm border border-border"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
       {loading ? (
         <div className="text-center py-8 text-sm text-muted-foreground">Loading…</div>
-      ) : (
+      ) : mode === "recorded" ? (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {DURATION_BANDS.map((band) => {
             const name = slotted[band];
@@ -268,11 +304,67 @@ function CommunicationSetPanel({
                     </button>
                   </div>
                 ) : (
-                  <p className="text-xs text-muted-foreground mt-1">Not set</p>
+                  <p className="text-xs text-muted-foreground mt-1">Not set — add one from the Recorded tab below</p>
                 )}
               </div>
             );
           })}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Teach 3 gestures through the Unitree mobile app&apos;s <em>demo teaching</em> feature (e.g.
+            named <code className="font-mono">small-demo</code>, <code className="font-mono">medium-demo</code>,{" "}
+            <code className="font-mono">long-demo</code>), type the exact names below, then click Verify —
+            there&apos;s no way to list taught gestures, so Verify briefly fires each one to confirm the
+            robot accepts it.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {UNITREE_ROLES.map((role) => {
+              const status = verifyResult?.[role];
+              const value = unitreeRoles[role];
+              return (
+                <div key={role} className="p-4 rounded-xl border border-border bg-muted/10 space-y-2">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-primary">{role}</span>
+                  <input
+                    type="text"
+                    value={value}
+                    onChange={(e) => setUnitreeRole(role, e.target.value)}
+                    placeholder={`${role}-demo`}
+                    className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-sm font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  />
+                  {value.trim() && status && (
+                    <div
+                      className={`flex items-center gap-1.5 text-[11px] font-semibold ${
+                        status.found ? "text-green-400" : "text-red-400"
+                      }`}
+                    >
+                      {status.found ? <FiCheckCircle size={12} /> : <FiAlertCircle size={12} />}
+                      {status.found ? "Found on robot" : `Not found (ret=${status.ret})`}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={verifyRoles}
+              disabled={!hasAnyRole || verifying || !canControl}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
+                hasAnyRole && !verifying && canControl
+                  ? "bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground"
+                  : "bg-muted/20 text-muted-foreground cursor-not-allowed opacity-50"
+              }`}
+            >
+              {verifying ? <><FiLoader className="animate-spin" /> Verifying…</> : <><FiShield /> Verify</>}
+            </button>
+            {rolesVerified && (
+              <span className="text-xs text-green-400 font-semibold flex items-center gap-1">
+                <FiCheckCircle /> All set gestures confirmed on robot
+              </span>
+            )}
+          </div>
         </div>
       )}
 
@@ -298,9 +390,9 @@ function CommunicationSetPanel({
 
         <button
           onClick={test}
-          disabled={selected.length === 0 || testing || !canControl}
+          disabled={!canTest || testing || !canControl}
           className={`flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
-            selected.length > 0 && !testing && canControl
+            canTest && !testing && canControl
               ? "bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground"
               : "bg-muted/20 text-muted-foreground cursor-not-allowed opacity-50"
           }`}

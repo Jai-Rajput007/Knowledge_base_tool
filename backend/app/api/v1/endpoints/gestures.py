@@ -31,7 +31,7 @@ from sqlalchemy.exc import IntegrityError
 from pydantic import BaseModel, Field
 import httpx
 import logging
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from app.core.config import settings
 from app.core.security import get_current_user
@@ -250,23 +250,49 @@ async def delete_gesture(
 
 
 # ── Communication gestures ────────────────────────────────────────────────────
-# Which recorded gestures the robot uses while explaining. The selection lives on the
-# robot (app_config.json → g1.communication_gestures, read fresh by the pipeline every
-# reply); this API maps the tenant's logical names to on-disk names and makes sure every
-# selected recording is actually present on the Thor before it is selected.
+# Which gestures the robot uses while explaining. The selection lives on the robot
+# (app_config.json → g1.communication_gestures, read fresh by the pipeline every reply).
+# Two mutually exclusive modes, chosen per-robot depending on whether it has a physical
+# waist lock fitted:
+#
+#   mode="recorded"     (HAS a waist lock) — our own recorded .gesture files, tenant-scoped
+#                       Postgres rows (CustomGesture), namespaced on-disk per _disk_name().
+#   mode="unitree_app"  (NO waist lock) — recording through our own UI was found to
+#                       destabilize a robot's balance without a physical waist lock, so this
+#                       robot's 3 comm gestures ("short"/"medium"/"long" roles) are instead
+#                       taught through the Unitree mobile app's "demo teaching" feature and
+#                       fired via ExecuteAction(name). These are free-text names typed by the
+#                       operator (not files, not tenant-scoped rows — one robot per tenant, so
+#                       no namespacing collision risk) that must be confirmed present on the
+#                       robot with POST .../communication/verify before being relied on.
 
 COMM_GESTURE_MAX = 3
+UDEMO_ROLES = ("short", "medium", "long")
 
 
 class CommunicationSetIn(BaseModel):
     enabled: bool = False
-    names: List[str] = Field(default_factory=list)
+    mode: str = Field(default="recorded", pattern="^(recorded|unitree_app)$")
+    names: List[str] = Field(default_factory=list)              # mode="recorded"
+    unitree_roles: Dict[str, str] = Field(default_factory=dict)  # mode="unitree_app"
     min_reply_chars: Optional[int] = Field(default=None, ge=20, le=2000)
 
 
 class CommunicationTestIn(BaseModel):
+    mode: Optional[str] = None
     names: List[str] = Field(default_factory=list)
+    unitree_roles: Dict[str, str] = Field(default_factory=dict)
     seconds: float = Field(default=10.0, ge=3.0, le=30.0)
+
+
+class CommunicationVerifyIn(BaseModel):
+    unitree_roles: Dict[str, str] = Field(default_factory=dict)
+
+
+def _clean_unitree_roles(roles: Dict[str, str]) -> Dict[str, str]:
+    """Only the 3 known roles, trimmed, empty-string default for unset ones."""
+    cleaned = {role: str((roles or {}).get(role, "")).strip() for role in UDEMO_ROLES}
+    return cleaned
 
 
 async def _ensure_on_robot(client: httpx.AsyncClient, base: str, gesture: CustomGesture, disk_name: str) -> None:
@@ -343,9 +369,13 @@ async def get_communication_set(
     data = r.json()
     prefix = f"{current_user.tenant_id}__"
     names = [n[len(prefix):] for n in data.get("names", []) if n.startswith(prefix)]
+    mode = data.get("mode") if data.get("mode") in ("recorded", "unitree_app") else "recorded"
+    unitree_roles = _clean_unitree_roles(data.get("unitree_roles") or {})
     return {
-        "enabled": bool(data.get("enabled")) and bool(names),
+        "enabled": bool(data.get("enabled")) and (bool(names) if mode == "recorded" else any(unitree_roles.values())),
+        "mode": mode,
         "names": names,
+        "unitree_roles": unitree_roles,
         "min_reply_chars": data.get("min_reply_chars", 120),
     }
 
@@ -358,10 +388,47 @@ async def put_communication_set(
     db: Session = Depends(get_db),
 ):
     """
-    Select recorded gestures for the robot to use while explaining — at most one per
-    Short/Medium/Long band (the frontend enforces this by replacing on add; this is
-    the server-side backstop, e.g. against a stale second browser tab).
+    Select gestures for the robot to use while explaining.
+
+    mode="recorded": at most one per Short/Medium/Long band (the frontend enforces this by
+    replacing on add; this is the server-side backstop, e.g. against a stale second browser
+    tab) — our own recorded gestures, needs a physical waist lock on the robot.
+
+    mode="unitree_app": short/medium/long role → gesture name taught through the Unitree
+    app's "demo teaching" feature — no waist lock needed. Names aren't validated here (they
+    aren't local files); call POST .../communication/verify first to confirm they're
+    actually taught on the robot.
     """
+    base = _robot_sync_url(robot_ip)
+
+    if body.mode == "unitree_app":
+        roles = _clean_unitree_roles(body.unitree_roles)
+        try:
+            async with httpx.AsyncClient() as client:
+                r = await client.put(
+                    f"{base}/gestures/communication",
+                    json={"enabled": body.enabled, "mode": "unitree_app",
+                          "unitree_roles": roles, "min_reply_chars": body.min_reply_chars},
+                    timeout=10.0,
+                )
+                r.raise_for_status()
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"[Gestures] Saving communication set (unitree_app) failed: {e}")
+            raise _robot_error(base, e)
+
+        saved = r.json()
+        logger.info(f"[Gestures] Communication set (tenant={current_user.tenant_id}, mode=unitree_app): "
+                    f"enabled={saved.get('enabled')} roles={saved.get('unitree_roles')}")
+        return {
+            "enabled": bool(saved.get("enabled")),
+            "mode": "unitree_app",
+            "names": [],
+            "unitree_roles": _clean_unitree_roles(saved.get("unitree_roles") or roles),
+            "min_reply_chars": saved.get("min_reply_chars", 120),
+        }
+
     rows = _tenant_gestures(db, current_user.tenant_id, body.names)
     bands: dict = {}
     for g in rows:
@@ -373,7 +440,6 @@ async def put_communication_set(
                        f"only one {band} gesture may be used at a time. Remove one first.",
             )
         bands[band] = g.name
-    base = _robot_sync_url(robot_ip)
     disk_names = [_disk_name(current_user.tenant_id, g.name) for g in rows]
     try:
         async with httpx.AsyncClient() as client:
@@ -381,7 +447,8 @@ async def put_communication_set(
                 await _ensure_on_robot(client, base, g, disk)
             r = await client.put(
                 f"{base}/gestures/communication",
-                json={"enabled": body.enabled, "names": disk_names, "min_reply_chars": body.min_reply_chars},
+                json={"enabled": body.enabled, "mode": "recorded", "names": disk_names,
+                      "min_reply_chars": body.min_reply_chars},
                 timeout=10.0,
             )
             r.raise_for_status()
@@ -396,9 +463,47 @@ async def put_communication_set(
                 f"enabled={saved.get('enabled')} names={[g.name for g in rows]}")
     return {
         "enabled": bool(saved.get("enabled")),
+        "mode": "recorded",
         "names": [g.name for g in rows],
+        "unitree_roles": {"short": "", "medium": "", "long": ""},
         "min_reply_chars": saved.get("min_reply_chars", 120),
     }
+
+
+@router.post("/communication/verify")
+async def verify_communication_set(
+    body: CommunicationVerifyIn,
+    robot_ip: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Confirm gestures taught through the Unitree app's "demo teaching" feature actually exist
+    on the robot, before enabling mode="unitree_app". There's no documented Unitree SDK API
+    to list custom-taught action names, so robot_sync/robot_agent briefly fire each name
+    (~400ms) and report whether the robot accepted it — this necessarily moves the arm
+    briefly for each named role given.
+
+    Body: {"unitree_roles": {"short": "NAME", "medium": "NAME", "long": "NAME"}}
+    (any subset may be given — only non-empty names are tested)
+    Returns: {"short": {"name": "...", "found": bool, "ret": int}, ...}
+    """
+    roles = {role: name for role, name in _clean_unitree_roles(body.unitree_roles).items() if name}
+    if not roles:
+        raise HTTPException(status_code=400, detail="Provide at least one gesture name to verify")
+    base = _robot_sync_url(robot_ip)
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.post(
+                f"{base}/gestures/communication/verify",
+                json={"unitree_roles": roles},
+                timeout=15.0,
+            )
+            r.raise_for_status()
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise _robot_error(base, e)
+    return r.json()
 
 
 @router.post("/communication/test")
@@ -409,10 +514,30 @@ async def test_communication_set(
     db: Session = Depends(get_db),
 ):
     """Play the given gestures as a communication sequence for a few seconds, without speech."""
+    base = _robot_sync_url(robot_ip)
+    mode = body.mode if body.mode in ("recorded", "unitree_app") else "recorded"
+
+    if mode == "unitree_app":
+        roles = {role: name for role, name in _clean_unitree_roles(body.unitree_roles).items() if name}
+        if not roles:
+            raise HTTPException(status_code=400, detail="Select at least one Unitree-app gesture to test")
+        try:
+            async with httpx.AsyncClient() as client:
+                r = await client.post(
+                    f"{base}/gestures/communication/test",
+                    json={"mode": "unitree_app", "unitree_roles": roles, "seconds": body.seconds},
+                    timeout=10.0,
+                )
+                r.raise_for_status()
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise _robot_error(base, e)
+        return {"status": "testing", "mode": mode, "unitree_roles": roles, "seconds": body.seconds}
+
     rows = _tenant_gestures(db, current_user.tenant_id, body.names)
     if not rows:
         raise HTTPException(status_code=400, detail="Select at least one gesture to test")
-    base = _robot_sync_url(robot_ip)
     disk_names = [_disk_name(current_user.tenant_id, g.name) for g in rows]
     try:
         async with httpx.AsyncClient() as client:
@@ -420,7 +545,7 @@ async def test_communication_set(
                 await _ensure_on_robot(client, base, g, disk)
             r = await client.post(
                 f"{base}/gestures/communication/test",
-                json={"names": disk_names, "seconds": body.seconds},
+                json={"mode": "recorded", "names": disk_names, "seconds": body.seconds},
                 timeout=10.0,
             )
             r.raise_for_status()
@@ -428,7 +553,7 @@ async def test_communication_set(
         raise
     except Exception as e:
         raise _robot_error(base, e)
-    return {"status": "testing", "names": [g.name for g in rows], "seconds": body.seconds}
+    return {"status": "testing", "mode": mode, "names": [g.name for g in rows], "seconds": body.seconds}
 
 
 # Canonical builtin gesture names — mirrors BUILTIN_GESTURES in robot_sync.py.
