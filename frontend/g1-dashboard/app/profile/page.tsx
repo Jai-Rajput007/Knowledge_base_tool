@@ -1,5 +1,6 @@
 import { ProfileFeature } from "@/app/features/profile";
 import { verifyToken } from "@/lib/auth";
+import { IS_DEMO, DEMO_TENANT_COOKIE, demoTenantFromCookie } from "@/lib/demo/config";
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -18,7 +19,9 @@ export default async function ProfilePage() {
   }
 
   let tenant = null;
-  try {
+  if (IS_DEMO) {
+    tenant = demoTenantFromCookie(cookieStore.get(DEMO_TENANT_COOKIE)?.value);
+  } else try {
     // Server component: needs an absolute URL, so it reads the server-only
     // BACKEND_INTERNAL_URL rather than the now-relative NEXT_PUBLIC_API_URL.
     const res = await fetch((process.env.BACKEND_INTERNAL_URL || "http://localhost:8000/api/v1") + "/tenant/profile", { cache: 'no-store' });

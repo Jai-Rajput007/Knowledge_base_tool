@@ -10,6 +10,8 @@ import { Sidebar } from "./components/sidebar";
 import { ScrollProgress } from "@/components/ui/scroll-progress";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
+import { IS_DEMO, DEMO_TENANT_COOKIE, demoTenantFromCookie } from "@/lib/demo/config";
+import { DemoBootstrap } from "./components/demo-bootstrap";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -36,7 +38,9 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       role = session.role;
       requiresPasswordChange = session.requiresPasswordChange === true;
 
-      try {
+      if (IS_DEMO) {
+        tenantData = demoTenantFromCookie(cookieStore.get(DEMO_TENANT_COOKIE)?.value);
+      } else try {
         // Server-side fetch: must use an ABSOLUTE url. NEXT_PUBLIC_API_URL is now
         // the relative "/api/v1" (same-origin proxy, see next.config.ts), which
         // Node's fetch cannot parse — so server code reads BACKEND_INTERNAL_URL.
@@ -75,6 +79,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       suppressHydrationWarning
     >
       <body className="h-full bg-background text-foreground antialiased">
+        {IS_DEMO && <DemoBootstrap />}
         <ThemeProvider>
           {showRagUi ? (
             /* Dashboard layout: grey tray → sidebar + curved content sheet */

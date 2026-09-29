@@ -2,6 +2,7 @@ import { V3 } from 'paseto';
 import { createSecretKey } from 'crypto';
 import { cookies } from 'next/headers';
 import type { UserRole } from '@/lib/mock-db';
+import { IS_DEMO, DEMO_SESSION_TOKEN, demoSessionPayload } from '@/lib/demo/config';
 
 const COOKIE_NAME = 'g1_session';
 const TOKEN_EXPIRY = '8h';
@@ -42,6 +43,10 @@ export async function createToken(payload: TokenPayload): Promise<string> {
  * Returns the payload if valid, null if expired/tampered/invalid.
  */
 export async function verifyToken(token: string): Promise<TokenPayload | null> {
+  // Demo deployment: the session cookie is a fixed marker, no PASETO key required.
+  if (IS_DEMO) {
+    return token === DEMO_SESSION_TOKEN ? (demoSessionPayload() as unknown as TokenPayload) : null;
+  }
   try {
     const key = getSecretKey();
     // V3.decrypt returns the payload directly (not wrapped in { payload })

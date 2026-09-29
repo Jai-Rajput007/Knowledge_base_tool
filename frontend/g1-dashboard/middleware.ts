@@ -4,7 +4,12 @@ import { NextRequest, NextResponse } from "next/server";
 const SESSION_COOKIE = "g1_session";
 
 // Routes that are publicly accessible (no auth required)
-const PUBLIC_ROUTES = ["/sign-in", "/api/auth/login", "/api/auth/logout"];
+const PUBLIC_ROUTES = [
+  "/sign-in", "/api/auth/login", "/api/auth/logout",
+  // Demo deployment only: the simulated third-party OAuth consent page opens in a
+  // new tab and must render even though it is outside the dashboard shell.
+  ...(process.env.NEXT_PUBLIC_DEMO_MODE === "true" ? ["/demo-oauth"] : []),
+];
 
 // Routes that should bypass middleware entirely (Next.js internals, static assets)
 //
