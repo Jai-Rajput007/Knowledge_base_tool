@@ -182,12 +182,12 @@ export const LimelightNav = ({
 
   return (
     <div 
-      className="sticky top-6 z-50 flex justify-center w-full" 
+      className="sticky top-6 z-40 md:z-50 flex justify-center w-full pt-2 md:pt-0 px-3 md:px-0" 
       onMouseLeave={() => handleSetHovered(null)}
     >
       <div className="relative">
         <nav
-          className="relative flex items-center h-16 rounded-2xl bg-card/70 text-card-foreground border border-border/50 shadow-lg px-2 backdrop-blur-lg"
+          className="relative flex items-center h-14 md:h-16 rounded-2xl bg-card/70 text-card-foreground border border-border/50 shadow-lg px-2 backdrop-blur-lg"
           style={{ boxShadow: `0 10px 40px -10px var(--shadow-color)` }}
         >
         {visibleItems.map((item, index) => {
@@ -203,7 +203,9 @@ export const LimelightNav = ({
                 navItemRefs.current[index] = el;
               }}
               onMouseEnter={() => handleSetHovered(index)}
-              className="relative z-20 flex items-center justify-center gap-2 px-4 py-2 cursor-pointer group"
+              aria-label={item.label}
+              title={item.label}
+              className="relative z-20 flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2 min-h-11 cursor-pointer group"
             >
               {React.cloneElement(item.icon, {
                 className: `w-4 h-4 transition-all duration-300 ease-in-out ${
@@ -213,7 +215,7 @@ export const LimelightNav = ({
                 }`,
               } as any)}
               <span
-                className={`text-xs font-semibold transition-all duration-300 ease-in-out ${
+                className={`hidden xl:inline text-xs font-semibold transition-all duration-300 ease-in-out ${
                   isHighlighted
                     ? "text-primary opacity-100"
                     : "text-muted-foreground opacity-60 group-hover:text-foreground group-hover:opacity-100"
@@ -263,7 +265,7 @@ const DropdownContent = ({ selectedItem, dir, center }: any) => {
       animate={{ opacity: 1, y: 0, x: `calc(${center}px - 50%)` }}
       exit={{ opacity: 0, y: 8, x: `calc(${center}px - 50%)` }}
       transition={{ duration: 0.25, ease: "easeInOut" }}
-      className="absolute top-full mt-3 left-0 rounded-xl border border-border bg-card shadow-2xl z-50 w-fit"
+      className="absolute top-full mt-3 left-0 rounded-xl border border-border bg-card shadow-2xl z-50 w-fit hidden md:block"
     >
       {/* Invisible bridge from nav bottom to dropdown top */}
       <div className="absolute -top-[12px] left-1/2 -translate-x-1/2 w-[200%] h-[12px]" />

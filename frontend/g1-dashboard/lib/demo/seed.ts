@@ -463,14 +463,14 @@ function seedAudit(): DemoAudit[] {
     ["DEPLOY_PERSONA", "/api/v1/personas/6f1c2a90/deploy", "POST", 2 * HOUR, { persona: "Veda Reception", robot_synced: true }],
     ["UPDATE_LANGUAGE", "/api/v1/settings/language", "PUT", 5 * HOUR, { language: "en" }],
     ["UPLOAD_DOCUMENT", "/api/v1/documents/upload", "POST", 2 * DAY, { file: "Company Policies 2026.md" }],
-    ["ENROLL_EMPLOYEE", "/api/v1/employees/", "POST", 7 * DAY, { employee_id: "BI-0027", photos: 3 }],
+    ["ENROLL_EMPLOYEE", "/api/v1/employees", "POST", 7 * DAY, { employee_id: "BI-0027", photos: 3 }],
     ["RECORD_GESTURE", "/api/v1/gestures/custom/record/stop", "POST", 3 * DAY, { gesture: "presentation_sweep" }],
     ["CONFIGURE_MCP", "/api/v1/mcp/configure", "POST", 4 * DAY, { integration: "Google Calendar", enabled: true }],
     ["DEPLOY_WAKEWORD", "/api/v1/wakeword/jobs/2/deploy", "POST", 11 * DAY, { wake_phrase: "hey veda" }],
     ["LOGIN", "/api/v1/auth/login", "POST", 26 * HOUR, { ip: "103.21.58.14" }],
   ];
   return rows.map(([action, endpoint, method, ago, details]) => ({
-    id: uuid(), action, endpoint, method, status: method === "POST" && endpoint.endsWith("/employees/") ? "201" : "200", timestamp: iso(ago),
+    id: uuid(), action, endpoint, method, status: method === "POST" && endpoint.endsWith("/employees") ? "201" : "200", timestamp: iso(ago),
     name: DEMO_USER.name, email: DEMO_USER.email, details,
   }));
 }

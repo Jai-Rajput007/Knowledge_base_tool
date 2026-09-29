@@ -150,14 +150,14 @@ export function EmployeesModule() {
 
   return (
     <FeatureGate featureKey="frs">
-      <div className="max-w-6xl mx-auto space-y-16 pb-32 pt-8">
+      <div className="max-w-6xl mx-auto space-y-10 md:space-y-16 pb-32 pt-4 md:pt-8">
         {/* Header */}
-        <div className="border-b border-border pb-6 flex items-center justify-between">
+        <div className="border-b border-border pb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-4xl font-bold tracking-tighter uppercase text-foreground">Employees</h1>
             <p className="text-[10px] font-mono text-muted-foreground mt-2 uppercase tracking-widest">Manage employee face enrollment for robot recognition</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {isAdmin && (
               <button onClick={() => setShowLiveFeed(true)}
                 className="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg border border-border hover:bg-muted transition-colors">
@@ -192,8 +192,8 @@ export function EmployeesModule() {
         )}
 
         {/* Table */}
-        <div className="rounded-xl border border-border bg-card overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="rounded-xl border border-border bg-card overflow-hidden overflow-x-auto">
+          <table className="w-full text-sm min-w-[720px] md:min-w-0">
             <thead>
               <tr className="border-b border-border bg-muted/40">
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Employee ID</th>

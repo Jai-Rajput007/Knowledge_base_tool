@@ -14,10 +14,10 @@ export function ChatHeader({
 }: ChatHeaderProps) {
   return (
     <>
-      <div className="p-4 border-b border-border">
+      <div className="p-3 md:p-4 border-b border-border">
         <div className="flex items-center justify-between mb-2">
           <div>
-            <h1 className="text-xl font-semibold text-foreground">Chat with your robot</h1>
+            <h1 className="text-lg md:text-xl font-semibold text-foreground">Chat with your robot</h1>
           </div>
           <div className="flex items-center gap-3">
             {messages.length > 0 && (

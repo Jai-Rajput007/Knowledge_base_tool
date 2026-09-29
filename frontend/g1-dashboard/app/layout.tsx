@@ -83,13 +83,13 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <ThemeProvider>
           {showRagUi ? (
             /* Dashboard layout: grey tray → sidebar + curved content sheet */
-            <div className="flex h-screen overflow-hidden bg-sidebar">
+            <div className="flex flex-col md:flex-row h-dvh overflow-hidden bg-sidebar">
               <Sidebar tenant={tenantData} role={role} />
 
-              <div className="flex flex-col flex-1 min-h-0 rounded-tl-2xl bg-background overflow-hidden">
+              <div className="flex flex-col flex-1 min-h-0 min-w-0 rounded-t-2xl md:rounded-tr-none md:rounded-tl-2xl bg-background overflow-hidden">
                 <LimelightNav role={role} />
                 <HeaderActions isLoggedIn={isLoggedIn} tenant={tenantData} />
-                <main className="flex-1 overflow-y-auto p-6">
+                <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6">
                   <AuthGuard>
                     <FeaturesProvider>
                       {children}

@@ -50,7 +50,7 @@ export function HeaderActions({ isLoggedIn = false, tenant }: { isLoggedIn?: boo
   }, [isLoggedIn, isAuthPage]);
 
   return (
-    <div className="fixed top-6 right-6 z-50 flex items-center gap-3">
+    <div className="fixed top-2 right-3 md:top-6 md:right-6 z-50 flex items-center gap-2 md:gap-3">
       {/* Notification bell */}
       {!isAuthPage && isLoggedIn && (
         <button
@@ -80,7 +80,7 @@ export function HeaderActions({ isLoggedIn = false, tenant }: { isLoggedIn?: boo
             className="rounded-full hover:ring-2 hover:ring-primary/40 transition-all"
             title="Profile"
           >
-            <Avatar className="h-11 w-11 rounded-full border-2 border-border shadow-sm cursor-pointer hover:border-primary transition-colors">
+            <Avatar className="h-10 w-10 md:h-11 md:w-11 rounded-full border-2 border-border shadow-sm cursor-pointer hover:border-primary transition-colors">
               {logo ? <AvatarImage src={logo} alt={tenantName} className="object-cover rounded-full" /> : null}
               <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-[15px] rounded-full">
                 {initial}

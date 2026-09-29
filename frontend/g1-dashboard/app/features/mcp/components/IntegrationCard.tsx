@@ -197,7 +197,7 @@ export function IntegrationCard({ integration, logosMap = {}, onToggle, onConfig
 
   return (
     <div
-      className={`mcp-card relative group flex flex-col justify-between aspect-square rounded-[2rem] border ${
+      className={`mcp-card relative group flex flex-col justify-between min-h-[230px] sm:min-h-0 sm:aspect-square rounded-[2rem] border ${
         integration.is_active
           ? "border-primary/50 bg-background shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.16)]"
           : "border-border bg-card/40 shadow-sm hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:border-primary/30 hover:bg-background"

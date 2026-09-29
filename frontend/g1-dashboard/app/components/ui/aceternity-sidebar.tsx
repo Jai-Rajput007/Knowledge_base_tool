@@ -107,15 +107,20 @@ export const MobileSidebar = ({
   return (
     <div
       className={cn(
-        "h-10 px-4 py-4 flex flex-row md:hidden items-center justify-between bg-sidebar w-full"
+        "h-14 shrink-0 px-4 flex flex-row md:hidden items-center justify-between bg-sidebar w-full"
       )}
       {...props}
     >
-      <div className="flex justify-end z-20 w-full">
-        <IconMenu2
-          className="text-sidebar-foreground cursor-pointer"
+      <div className="flex items-center gap-3 z-20">
+        <button
+          type="button"
+          aria-label="Open menu"
+          className="flex h-10 w-10 items-center justify-center rounded-xl text-sidebar-foreground hover:bg-sidebar-accent"
           onClick={() => setOpen(!open)}
-        />
+        >
+          <IconMenu2 />
+        </button>
+        <span className="text-base font-semibold text-sidebar-foreground">Veda</span>
       </div>
       <AnimatePresence>
         {open && (
@@ -125,16 +130,18 @@ export const MobileSidebar = ({
             exit={{ x: "-100%", opacity: 0 }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
             className={cn(
-              "fixed h-full w-full inset-0 bg-sidebar p-10 z-[100] flex flex-col justify-between",
+              "fixed h-dvh w-full inset-0 bg-sidebar px-6 pt-16 pb-8 sm:p-10 z-[100] flex flex-col justify-between overflow-y-auto",
               className
             )}
           >
-            <div
-              className="absolute right-10 top-10 z-50 text-sidebar-foreground cursor-pointer"
+            <button
+              type="button"
+              aria-label="Close menu"
+              className="absolute right-4 top-3 sm:right-10 sm:top-10 z-50 flex h-10 w-10 items-center justify-center rounded-xl text-sidebar-foreground hover:bg-sidebar-accent"
               onClick={() => setOpen(!open)}
             >
               <IconX />
-            </div>
+            </button>
             {children}
           </motion.div>
         )}

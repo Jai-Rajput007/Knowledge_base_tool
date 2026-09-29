@@ -132,13 +132,15 @@ export function FeaturesGrid() {
                     {feature.subtitle}
                   </MorphingDialogSubtitle>
                 </div>
-                <button
-                  type='button'
+                {/* A <span>, not a <button>: the whole card is already the trigger button,
+                    and a nested <button> is invalid HTML that forces React to discard the
+                    server-rendered landing page and re-render it on the client. */}
+                <span
+                  aria-hidden='true'
                   className='relative ml-1 flex h-6 w-6 shrink-0 scale-100 select-none appearance-none items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 active:scale-[0.98]'
-                  aria-label='Open dialog'
                 >
                   <PlusIcon size={12} />
-                </button>
+                </span>
               </div>
             </MorphingDialogTrigger>
 

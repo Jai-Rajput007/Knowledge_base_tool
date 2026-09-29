@@ -102,20 +102,20 @@ export function RbacModule() {
           </button>
         </div>
 
-        <div className="border border-border rounded-xl overflow-hidden bg-card/30 relative shadow-inner">
+        <div className="border border-border rounded-xl overflow-hidden overflow-x-auto bg-card/30 relative shadow-inner">
           {loading && (
             <div className="absolute inset-0 bg-background/50 backdrop-blur-sm z-10 flex items-center justify-center">
               <span className="text-sm font-mono text-muted-foreground animate-pulse bg-background/80 px-4 py-2 rounded-full shadow-lg border border-border">Loading team...</span>
             </div>
           )}
           
-          <div className="grid grid-cols-4 gap-4 p-4 border-b border-border bg-muted/50 text-xs font-mono text-muted-foreground uppercase tracking-wider">
+          <div className="min-w-[520px] md:min-w-0 grid grid-cols-4 gap-4 p-4 border-b border-border bg-muted/50 text-xs font-mono text-muted-foreground uppercase tracking-wider">
             <div className="col-span-2">User Profile</div>
             <div>Access Level</div>
             <div className="text-right">Actions</div>
           </div>
           
-          <div className="divide-y divide-border/50 min-h-[100px]">
+          <div className="min-w-[520px] md:min-w-0 divide-y divide-border/50 min-h-[100px]">
             {users.length === 0 && !loading && (
                <div className="p-8 text-center text-muted-foreground font-mono text-sm">No users found.</div>
             )}
