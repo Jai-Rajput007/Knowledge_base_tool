@@ -56,11 +56,13 @@ export default function SignInPage() {
         loop 
         muted 
         playsInline
-        preload="auto"
+        preload="metadata"
         poster="/bg-poster.jpg" 
         className="absolute inset-0 w-full h-full object-cover -z-20"
       >
-        <source src="/bg.mp4" type="video/mp4" />
+        {/* Compressed renditions of bg.mp4 (20 MB) — phones get the lighter 480p file. */}
+        <source src="/bg-480.mp4" type="video/mp4" media="(max-width: 767px)" />
+        <source src="/bg-720.mp4" type="video/mp4" />
       </video>
 
       {/* Dark overlay for better text readability and glassmorphism contrast */}

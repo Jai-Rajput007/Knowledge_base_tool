@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import dynamic from 'next/dynamic';
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { Application } from "@splinetool/runtime";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { AnimatedArrowButton } from "@/components/ui/animated-arrow-button";
@@ -32,6 +33,36 @@ export default function Home() {
   const vedaRef = useRef<HTMLDivElement>(null);
   const featuresRef = useRef<HTMLDivElement>(null);
   const footerRef = useRef<HTMLDivElement>(null);
+  const splineAppRef = useRef<Application | null>(null);
+  // The 3D robot (Spline runtime + 1.3 MB scene) mounts once the hero text has
+  // painted, fades in when ready, and stops rendering while scrolled off-screen —
+  // it was the main source of jank on phones when everything loaded at once.
+  const [mountSpline, setMountSpline] = useState(false);
+  const [splineReady, setSplineReady] = useState(false);
+
+  useEffect(() => {
+    const start = () => setMountSpline(true);
+    const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number };
+    if (w.requestIdleCallback) {
+      const id = w.requestIdleCallback(start, { timeout: 1200 });
+      return () => (window as Window & { cancelIdleCallback?: (id: number) => void }).cancelIdleCallback?.(id);
+    }
+    const t = setTimeout(start, 400);
+    return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    const el = splineRef.current;
+    if (!el || !splineReady) return;
+    const io = new IntersectionObserver(([entry]) => {
+      const app = splineAppRef.current;
+      if (!app) return;
+      if (entry.isIntersecting) app.play();
+      else app.stop();
+    }, { threshold: 0.05 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [splineReady]);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -138,7 +169,22 @@ export default function Home() {
 
             {/* The Spline Robot */}
             <div ref={splineRef} className="absolute inset-0 z-10">
-              <Spline scene="/scene.splinecode" />
+              {!splineReady && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none" aria-hidden="true">
+                  <div className="h-40 w-40 lg:h-56 lg:w-56 rounded-full bg-primary/10 blur-2xl animate-pulse" />
+                </div>
+              )}
+              {mountSpline && (
+                <div className={`absolute inset-0 transition-opacity duration-700 ${splineReady ? "opacity-100" : "opacity-0"}`}>
+                  <Spline
+                    scene="/scene.splinecode"
+                    onLoad={(app) => {
+                      splineAppRef.current = app;
+                      setSplineReady(true);
+                    }}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>

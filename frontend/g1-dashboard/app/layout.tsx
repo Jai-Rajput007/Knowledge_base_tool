@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 export const metadata: Metadata = {
   title: "Veda",
   description: "Robot Management Platform",
-  icons: { icon: "/logo.svg" },
+  icons: { icon: "/icon-64.png", apple: "/apple-icon-180.png" },
 };
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

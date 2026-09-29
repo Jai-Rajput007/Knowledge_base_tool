@@ -18,7 +18,7 @@ const featuresData = [
   {
     title: "Persona",
     subtitle: "Custom Robot Personalities",
-    image: "/persona.png",
+    image: "/persona.webp",
     paragraphs: [
       "Define distinct behavioral personas for each robot in your fleet. A persona controls everything from the robot's tone of voice and conversation style to how it greets users, handles awkward pauses, and responds to unexpected questions.",
       "With VEDA's persona engine you can deploy the same hardware with entirely different personalities — a cheerful concierge for the hotel lobby, a focused safety assistant for the factory floor, and a playful companion for the children's ward — all managed from one dashboard.",
@@ -27,7 +27,7 @@ const featuresData = [
   {
     title: "Integrations",
     subtitle: "Seamless API Connectivity",
-    image: "/integrations.png",
+    image: "/integrations.webp",
     paragraphs: [
       "Connect your robot fleet to essential external services without writing a single line of code. VEDA ships with pre-built adapters for Google Workspace (Calendar, Gmail, Drive, Docs), CRM platforms, ticketing systems, and custom REST/GraphQL APIs.",
       "Every integration runs through a secure MCP (Model Context Protocol) layer, meaning your robot can read a visitor's calendar, draft an email summary, or create a support ticket — all in real time during a conversation.",
@@ -36,7 +36,7 @@ const featuresData = [
   {
     title: "Wake Word",
     subtitle: "Voice Activation Control",
-    image: "/wakeword.png",
+    image: "/wakeword.webp",
     paragraphs: [
       "Set and manage fully custom wake words that activate your robot's listening pipeline. Instead of generic \"Hey Robot,\" deploy brand-specific triggers like \"Hey VEDA\" or \"Hello Nova\" that reinforce your identity.",
       "Fine-tune activation sensitivity, noise-gate thresholds, and cooldown timers to eliminate false positives in noisy environments like trade shows or retail floors while ensuring the robot never misses a genuine command.",
@@ -45,7 +45,7 @@ const featuresData = [
   {
     title: "Knowledge Hub",
     subtitle: "Centralized Intelligence",
-    image: "/knoweledge_hub.png",
+    image: "/knoweledge_hub.webp",
     paragraphs: [
       "Upload SOPs, product manuals, FAQs, and company policy documents into a centralized knowledge base that every robot in your fleet can query in real time. Documents are automatically chunked, embedded, and indexed for instant retrieval.",
       "The Knowledge Hub runs entirely on-premise with Ollama, meaning sensitive data never leaves your network. Version history, access logs, and per-document analytics let you track exactly which knowledge your robots rely on most.",
@@ -54,7 +54,7 @@ const featuresData = [
   {
     title: "RBAC",
     subtitle: "Role-Based Access Control",
-    image: "/rbac.png",
+    image: "/rbac.webp",
     paragraphs: [
       "Enterprise-grade security built into every layer. Define granular roles — Owner, Admin, Operator, Viewer — and control exactly who can upload documents, modify robot personas, toggle integrations, or access conversation logs.",
       "RBAC policies propagate instantly across the entire fleet. Combined with PASETO session tokens and audit trails, you get full compliance-ready access management without slowing down your operations team.",
@@ -63,7 +63,7 @@ const featuresData = [
   {
     title: "Multilingual",
     subtitle: "Global Language Support",
-    image: "/multilingual.png",
+    image: "/multilingual.webp",
     paragraphs: [
       "Deploy robots that detect and adapt to the user's spoken language automatically. VEDA supports real-time language switching mid-conversation — a visitor can start in English, switch to Hindi, and the robot follows seamlessly.",
       "Configure primary and fallback languages per robot, manage translation quality thresholds, and ensure every persona maintains its character across languages. Ideal for international hotels, airports, and multi-region corporate offices.",
@@ -72,7 +72,7 @@ const featuresData = [
   {
     title: "Custom Gestures",
     subtitle: "Physical Expression Engine",
-    image: "/custom-gesture.png",
+    image: "/custom-gesture.webp",
     paragraphs: [
       "Program specific motor sequences that bring your Unitree G1 to life. Map verbal cues to physical actions — a wave when greeting, a pointing gesture when giving directions, or a bow when saying goodbye.",
       "The gesture editor lets you define keyframe sequences, set timing curves, and preview animations before deployment. Chain gestures with speech events so the robot's body language feels natural and synchronized with its words.",
@@ -81,7 +81,7 @@ const featuresData = [
   {
     title: "Support",
     subtitle: "24/7 Dedicated Assistance",
-    image: "/support.png",
+    image: "/support.webp",
     paragraphs: [
       "Our dedicated support team is available around the clock through an advanced ticketing system. Whether it's a critical deployment issue at 3 AM or a configuration question during business hours, you'll always reach a real engineer.",
       "Every ticket is tracked from creation to resolution with full SLA guarantees. Priority escalation, live diagnostics, and remote debugging ensure your fleet never stays down longer than necessary. We treat your uptime as our responsibility.",
