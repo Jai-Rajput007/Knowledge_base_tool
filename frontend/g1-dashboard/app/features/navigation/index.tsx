@@ -169,7 +169,7 @@ export function NavigationModule() {
     <FeatureGate featureKey="navigation">
       <div className="max-w-6xl mx-auto space-y-12 pb-32 pt-8">
         
-        <div className="flex items-center justify-between border-b border-border pb-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border pb-6">
           <div>
             <h1 className="text-4xl font-bold tracking-tighter uppercase text-foreground">
               Navigation
@@ -181,7 +181,7 @@ export function NavigationModule() {
           
           <button 
             onClick={handleEmergencyStop}
-            className="flex items-center gap-2 px-8 py-4 bg-red-500/20 text-red-500 border border-red-500/50 hover:bg-red-500 hover:text-white transition-all rounded-lg font-bold uppercase tracking-widest"
+            className="flex items-center justify-center gap-2 px-6 md:px-8 py-3 md:py-4 bg-red-500/20 text-red-500 border border-red-500/50 hover:bg-red-500 hover:text-white transition-all rounded-lg font-bold uppercase tracking-widest"
           >
             <Square className="w-5 h-5 fill-current" />
             Emergency Stop

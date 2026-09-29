@@ -54,7 +54,7 @@ export function ProfileForm({
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-8">
-      <div className="flex justify-between items-center pb-4 border-b border-border">
+      <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center pb-4 border-b border-border">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Tenant Profile</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage your workspace and company details.</p>

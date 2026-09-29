@@ -13,7 +13,7 @@ interface ChatInputProps {
 
 export function ChatInput({ input, setInput, isLoading, sendMessage }: ChatInputProps) {
   return (
-    <div className="p-4 border-t border-border">
+    <div className="p-3 md:p-4 border-t border-border">
       <div className="relative">
         <textarea
           value={input}

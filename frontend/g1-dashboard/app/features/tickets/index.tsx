@@ -154,7 +154,7 @@ export function SupportTicketsModule() {
 
   return (
     <FeatureGate featureKey="tickets">
-      <div className="h-full p-8 max-w-5xl mx-auto space-y-8 overflow-y-auto pb-32">
+      <div className="h-full p-0 sm:p-4 md:p-8 max-w-5xl mx-auto space-y-8 overflow-y-auto pb-32">
         {/* Toast Notification */}
         <AnimatePresence>
           {toast.visible && (
@@ -170,9 +170,9 @@ export function SupportTicketsModule() {
           )}
         </AnimatePresence>
 
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-3">
               <FiLifeBuoy className="text-primary" />
               Support Tickets
             </h1>
@@ -182,7 +182,7 @@ export function SupportTicketsModule() {
           </div>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium shadow hover:bg-primary/90 transition-colors"
+            className="flex items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 sm:py-2 rounded-lg font-medium shadow hover:bg-primary/90 transition-colors shrink-0"
           >
             <FiPlus /> Raise a ticket
           </button>

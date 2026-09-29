@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1280 720" width="1280" height="720">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="45%" r="75%">
+      <stop offset="0" stop-color="#2b3340"/>
+      <stop offset="1" stop-color="#0c0f14"/>
+    </radialGradient>
+    <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a4250"/>
+      <stop offset="1" stop-color="#1b2029"/>
+    </linearGradient>
+    <linearGradient id="scan" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#34d399" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#34d399" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#34d399" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="soft"><feGaussianBlur stdDeviation="6"/></filter>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bg)"/>
+  <!-- office backdrop -->
+  <rect x="0" y="0" width="1280" height="470" fill="url(#wall)"/>
+  <rect x="0" y="470" width="1280" height="250" fill="#141920"/>
+  <rect x="90" y="120" width="260" height="190" rx="6" fill="#4b5a6e" opacity="0.55"/>
+  <rect x="930" y="110" width="250" height="210" rx="6" fill="#56667c" opacity="0.45"/>
+  <rect x="1010" y="380" width="120" height="200" rx="10" fill="#2a3240" opacity="0.8"/>
+  <!-- person -->
+  <g filter="url(#soft)" opacity="0.95">
+    <ellipse cx="640" cy="640" rx="250" ry="170" fill="#1f2b3b"/>
+  </g>
+  <path d="M430 720 C 450 560, 540 500, 640 500 C 740 500, 830 560, 850 720 Z" fill="#2c3e57"/>
+  <rect x="610" y="440" width="60" height="70" rx="20" fill="#b98b6e"/>
+  <ellipse cx="640" cy="360" rx="92" ry="112" fill="#c99a7c"/>
+  <path d="M548 340 C 548 250, 610 225, 648 228 C 700 230, 735 262, 734 330 C 715 290, 680 280, 640 282 C 600 284, 565 300, 548 340 Z" fill="#231a16"/>
+  <ellipse cx="605" cy="365" rx="10" ry="7" fill="#2b1f1a"/>
+  <ellipse cx="675" cy="365" rx="10" ry="7" fill="#2b1f1a"/>
+  <path d="M615 420 Q 640 436 665 420" stroke="#7a4b3c" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <!-- subtle head motion -->
+  <animateTransform xlink:href="#face" attributeName="transform" type="translate" values="0 0; 6 2; 0 0; -5 1; 0 0" dur="6s" repeatCount="indefinite"/>
+  <!-- detection box -->
+  <g id="face">
+    <rect x="532" y="232" width="216" height="258" fill="none" stroke="#34d399" stroke-width="4" rx="4">
+      <animate attributeName="stroke-opacity" values="1;0.55;1" dur="1.6s" repeatCount="indefinite"/>
+    </rect>
+    <path d="M532 262 V232 H562 M718 232 H748 V262 M748 460 V490 H718 M562 490 H532 V460" stroke="#a7f3d0" stroke-width="7" fill="none"/>
+    <rect x="532" y="186" width="300" height="40" rx="4" fill="#059669"/>
+    <text x="546" y="213" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="700" fill="#ecfdf5">Jai Rajput · BI-0001 · 0.97</text>
+  </g>
+  <!-- scanning beam -->
+  <rect x="532" y="232" width="216" height="46" fill="url(#scan)">
+    <animate attributeName="y" values="232;444;232" dur="2.4s" repeatCount="indefinite"/>
+  </rect>
+  <!-- HUD -->
+  <rect x="24" y="24" width="330" height="44" rx="8" fill="#000" fill-opacity="0.55"/>
+  <circle cx="48" cy="46" r="8" fill="#ef4444"><animate attributeName="opacity" values="1;0.2;1" dur="1.2s" repeatCount="indefinite"/></circle>
+  <text x="66" y="54" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="700" fill="#fff">LIVE · G1 HEAD CAM</text>
+  <rect x="930" y="24" width="326" height="44" rx="8" fill="#000" fill-opacity="0.55"/>
+  <text x="948" y="54" font-family="ui-monospace, Menlo, monospace" font-size="20" fill="#d1fae5">FRS 15 fps · 1 face · 42 ms</text>
+  <rect x="24" y="652" width="470" height="44" rx="8" fill="#000" fill-opacity="0.55"/>
+  <text x="44" y="682" font-family="ui-monospace, Menlo, monospace" font-size="19" fill="#e5e7eb">Recognised: Jai Rajput (Engineering) — greeting sent</text>
+</svg>

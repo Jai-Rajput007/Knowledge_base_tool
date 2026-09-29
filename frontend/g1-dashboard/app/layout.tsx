@@ -10,6 +10,8 @@ import { Sidebar } from "./components/sidebar";
 import { ScrollProgress } from "@/components/ui/scroll-progress";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
+import { IS_DEMO, DEMO_TENANT_COOKIE, demoTenantFromCookie } from "@/lib/demo/config";
+import { DemoBootstrap } from "./components/demo-bootstrap";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -17,7 +19,7 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 export const metadata: Metadata = {
   title: "Veda",
   description: "Robot Management Platform",
-  icons: { icon: "/logo.svg" },
+  icons: { icon: "/icon-64.png", apple: "/apple-icon-180.png" },
 };
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -36,7 +38,9 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       role = session.role;
       requiresPasswordChange = session.requiresPasswordChange === true;
 
-      try {
+      if (IS_DEMO) {
+        tenantData = demoTenantFromCookie(cookieStore.get(DEMO_TENANT_COOKIE)?.value);
+      } else try {
         // Server-side fetch: must use an ABSOLUTE url. NEXT_PUBLIC_API_URL is now
         // the relative "/api/v1" (same-origin proxy, see next.config.ts), which
         // Node's fetch cannot parse — so server code reads BACKEND_INTERNAL_URL.
@@ -75,16 +79,17 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       suppressHydrationWarning
     >
       <body className="h-full bg-background text-foreground antialiased">
+        {IS_DEMO && <DemoBootstrap />}
         <ThemeProvider>
           {showRagUi ? (
             /* Dashboard layout: grey tray → sidebar + curved content sheet */
-            <div className="flex h-screen overflow-hidden bg-sidebar">
+            <div className="flex flex-col md:flex-row h-dvh overflow-hidden bg-sidebar">
               <Sidebar tenant={tenantData} role={role} />
 
-              <div className="flex flex-col flex-1 min-h-0 rounded-tl-2xl bg-background overflow-hidden">
+              <div className="flex flex-col flex-1 min-h-0 min-w-0 rounded-t-2xl md:rounded-tr-none md:rounded-tl-2xl bg-background overflow-hidden">
                 <LimelightNav role={role} />
                 <HeaderActions isLoggedIn={isLoggedIn} tenant={tenantData} />
-                <main className="flex-1 overflow-y-auto p-6">
+                <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6">
                   <AuthGuard>
                     <FeaturesProvider>
                       {children}

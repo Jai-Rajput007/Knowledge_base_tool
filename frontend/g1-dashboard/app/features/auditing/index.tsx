@@ -206,15 +206,15 @@ export function AuditingModule() {
           </div>
         </div>
 
-        <div className="border border-border rounded-xl overflow-hidden bg-card/30">
-          <div className="grid grid-cols-7 gap-4 p-4 border-b border-border bg-muted/50 text-xs font-mono text-muted-foreground uppercase tracking-wider">
+        <div className="border border-border rounded-xl overflow-hidden overflow-x-auto bg-card/30">
+          <div className="min-w-[680px] md:min-w-0 grid grid-cols-7 gap-4 p-4 border-b border-border bg-muted/50 text-xs font-mono text-muted-foreground uppercase tracking-wider">
             <div className="col-span-2">User</div>
             <div className="col-span-2">Action</div>
             <div>Status</div>
             <div className="col-span-2 text-right">Timestamp</div>
           </div>
 
-          <div className="flex flex-col max-h-[600px] overflow-y-auto">
+          <div className="min-w-[680px] md:min-w-0 flex flex-col max-h-[600px] overflow-y-auto">
             {isLoading && <div className="p-8 text-center text-muted-foreground font-mono">Loading audit logs...</div>}
             {isError && <div className="p-8 text-center text-red-500 font-mono">Error loading audit logs</div>}
             

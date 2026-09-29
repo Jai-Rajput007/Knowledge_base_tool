@@ -6,6 +6,7 @@ import { Floating3DCard } from "@/app/components/ui/3d-card";
 import { FeatureGate } from "@/app/components/feature-gate";
 import { usePersonaContext } from "../persona/context";
 import { api } from "@/lib/api";
+import { IS_DEMO } from "@/lib/demo/config";
 
 export function GenerativePersonaModule() {
   const { fetchPersonas } = usePersonaContext();
@@ -64,7 +65,7 @@ export function GenerativePersonaModule() {
                 <h2 className="text-2xl font-bold uppercase tracking-wider text-primary flex items-center gap-2">
                   <FiCpu /> Generative Persona
                 </h2>
-                <p className="text-xs font-mono text-muted-foreground uppercase">Powered by Qwen2.5:7b</p>
+                <p className="text-xs font-mono text-muted-foreground uppercase">Powered by {IS_DEMO ? "Llama 3.3 70B (Groq)" : "Qwen2.5:7b"}</p>
               </div>
               <button 
                 onClick={() => setIsOpen(false)}

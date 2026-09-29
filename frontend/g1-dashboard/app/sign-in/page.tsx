@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { IS_DEMO, DEMO_USER } from '@/lib/demo/config';
 
 export default function SignInPage() {
   const router = useRouter();
@@ -55,11 +56,13 @@ export default function SignInPage() {
         loop 
         muted 
         playsInline
-        preload="auto"
+        preload="metadata"
         poster="/bg-poster.jpg" 
         className="absolute inset-0 w-full h-full object-cover -z-20"
       >
-        <source src="/bg.mp4" type="video/mp4" />
+        {/* Compressed renditions of bg.mp4 (20 MB) — phones get the lighter 480p file. */}
+        <source src="/bg-480.mp4" type="video/mp4" media="(max-width: 767px)" />
+        <source src="/bg-720.mp4" type="video/mp4" />
       </video>
 
       {/* Dark overlay for better text readability and glassmorphism contrast */}
@@ -195,6 +198,18 @@ export default function SignInPage() {
             </div>
           </form>
         </div>
+
+        {IS_DEMO && (
+          <button
+            type="button"
+            onClick={() => { setEmail(DEMO_USER.email); setPassword(DEMO_USER.password); setError(''); }}
+            className="mt-4 w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-left text-xs text-gray-300 backdrop-blur-sm transition-colors hover:bg-white/10 cursor-pointer"
+          >
+            <span className="block font-semibold text-white">Demo access</span>
+            <span className="block mt-0.5 break-all">{DEMO_USER.email} · {DEMO_USER.password}</span>
+            <span className="block mt-1 text-[11px] text-gray-400">Tap to fill in</span>
+          </button>
+        )}
 
         <p className="text-center text-xs text-gray-400 mt-6 font-medium">
           Secured with PASETO v4 encrypted tokens

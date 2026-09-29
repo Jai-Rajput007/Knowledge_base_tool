@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface Session {
@@ -22,12 +22,25 @@ export function ChatSidebar({
   onNewChat,
   onDeleteSession,
 }: ChatSidebarProps) {
+  // Phones: the history list collapses behind a toggle so the conversation keeps the screen.
+  const [mobileOpen, setMobileOpen] = useState(false);
   return (
-    <div className="w-64 border-r border-border bg-card flex flex-col h-full">
-      <div className="p-4 border-b border-border">
+    <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-border bg-card flex flex-col md:h-full shrink-0">
+      <div className="p-3 md:p-4 border-b border-border flex gap-2">
         <button
-          onClick={onNewChat}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-all font-medium"
+          type="button"
+          onClick={() => setMobileOpen((o) => !o)}
+          className="md:hidden flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-sm text-foreground hover:bg-accent"
+          aria-expanded={mobileOpen}
+        >
+          History ({sessions.length})
+          <svg className={cn("w-4 h-4 transition-transform", mobileOpen && "rotate-180")} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        <button
+          onClick={() => { setMobileOpen(false); onNewChat(); }}
+          className="flex-1 md:w-full flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-all font-medium"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -36,7 +49,7 @@ export function ChatSidebar({
         </button>
       </div>
       
-      <div className="flex-1 overflow-y-auto p-2 space-y-1">
+      <div className={cn("flex-1 overflow-y-auto p-2 space-y-1 max-h-56 md:max-h-none", mobileOpen ? "block" : "hidden md:block")}>
         <h3 className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
           Previous Chats
         </h3>
@@ -55,7 +68,7 @@ export function ChatSidebar({
                   ? "bg-primary/10 text-primary font-medium"
                   : "hover:bg-accent text-foreground"
               )}
-              onClick={() => onSelectSession(session.id)}
+              onClick={() => { setMobileOpen(false); onSelectSession(session.id); }}
             >
               <div className="flex-1 truncate text-sm">
                 {session.title || "New Chat"}
@@ -65,7 +78,7 @@ export function ChatSidebar({
                   e.stopPropagation();
                   onDeleteSession(session.id);
                 }}
-                className="opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-red-500 transition-opacity"
+                className="opacity-100 md:opacity-0 md:group-hover:opacity-100 p-1 text-muted-foreground hover:text-red-500 transition-opacity"
                 title="Delete chat"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

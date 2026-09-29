@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createToken } from '@/lib/auth';
 import type { UserRole } from '@/lib/mock-db';
+import { IS_DEMO, DEMO_USER, DEMO_SESSION_TOKEN, DEMO_ACCESS_TOKEN } from '@/lib/demo/config';
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,6 +15,31 @@ export async function POST(request: NextRequest) {
         { error: 'Email and password are required' },
         { status: 400 }
       );
+    }
+
+    // Demo deployment: a single demo account, no backend.
+    if (IS_DEMO) {
+      const ok =
+        String(email).trim().toLowerCase() === DEMO_USER.email && password === DEMO_USER.password;
+      if (!ok) {
+        return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+      }
+      const cookieStore = await cookies();
+      cookieStore.set({
+        name: 'g1_session',
+        value: DEMO_SESSION_TOKEN,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 8 * 60 * 60,
+      });
+      return NextResponse.json({
+        success: true,
+        redirectTo: '/dashboard',
+        access_token: DEMO_ACCESS_TOKEN,
+        user: { id: DEMO_USER.id, name: DEMO_USER.name, email: DEMO_USER.email, role: DEMO_USER.role },
+      });
     }
 
     // Proxy to FastAPI backend

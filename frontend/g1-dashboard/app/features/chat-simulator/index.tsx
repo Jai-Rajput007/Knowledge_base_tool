@@ -23,7 +23,7 @@ export function ChatSimulatorModule() {
 
   return (
     <FeatureGate featureKey="chatSimulator">
-      <div className="flex-1 flex bg-background h-[calc(100vh-7rem)]">
+      <div className="flex-1 flex flex-col md:flex-row bg-background h-[calc(100dvh-10.5rem)] md:h-[calc(100vh-7rem)]">
         <ChatSidebar 
           sessions={sessions}
           activeSessionId={activeSessionId}
@@ -31,7 +31,7 @@ export function ChatSimulatorModule() {
           onNewChat={handleNewChat}
           onDeleteSession={handleDeleteSession}
         />
-        <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full border-x border-border">
+        <div className="flex-1 min-h-0 min-w-0 flex flex-col max-w-4xl mx-auto w-full border-x border-border">
           <ChatHeader
             selectedModel={selectedModel}
             setSelectedModel={setSelectedModel}

@@ -13,7 +13,7 @@ const steps = [
       "Every interaction starts with your voice. VEDA listens for your brand-specific wake word — not a generic trigger — activating its full audio pipeline with advanced noise-cancellation the moment it hears you.",
     tagline: "Triggered by your brand's voice.",
     icon: Mic,
-    image: "/step-1.png",
+    image: "/step-1.webp",
   },
   {
     id: "synthesis",
@@ -22,7 +22,7 @@ const steps = [
       "In milliseconds, VEDA simultaneously pulls live context from your on-premise Knowledge Hub and calls the right MCP integrations — whether that's your calendar, CRM, or ticketing system — fusing everything into one accurate, real-time response.",
     tagline: "Knowledge meets live data.",
     icon: BrainCircuit,
-    image: "/step-2.png",
+    image: "/step-2.webp",
   },
   {
     id: "persona",
@@ -31,7 +31,7 @@ const steps = [
       "The fused data is shaped by your robot's assigned Persona Engine. Tone, language, formality, even how it handles silence — every word is filtered through the character you defined, so the robot always feels intentional and on-brand.",
     tagline: "Personality-filtered, always on-brand.",
     icon: Smile,
-    image: "/step-3.png",
+    image: "/step-3.webp",
   },
   {
     id: "action",
@@ -40,7 +40,7 @@ const steps = [
       "The final response is delivered as natural speech, perfectly synchronized with a physical gesture sequence. A wave, a bow, a point — VEDA's body and voice move as one, creating an interaction that feels genuinely human.",
     tagline: "Words and body, perfectly in sync.",
     icon: Activity,
-    image: "/step-4.png",
+    image: "/step-4.webp",
   },
 ];
 

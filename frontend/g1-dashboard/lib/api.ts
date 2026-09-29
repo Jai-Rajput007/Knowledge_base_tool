@@ -592,6 +592,8 @@ class ApiClient {
   }
 
   frsLiveFeedStreamUrl(ticket: string) {
+    // Demo deployment: no camera attached — show a simulated recognition feed.
+    if (process.env.NEXT_PUBLIC_DEMO_MODE === "true") return `/demo/frs-live.svg?t=${encodeURIComponent(ticket)}`;
     return `${this.baseUrl}/employees/live-feed/stream?ticket=${encodeURIComponent(ticket)}`;
   }
 }
